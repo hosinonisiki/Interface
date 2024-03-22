@@ -36,6 +36,10 @@ ENTITY PID IS
     -- gain is done by taking the LSB of input and pad k coefficients with 0s
     -- cuz using gain means the input signal is sufficiently small to take the LSB without losing precision
     -- it should be left to the user that the channels won't overflow
+
+    -- corner sets at omega where omega * delta_t = 1
+    -- given that delta_t = 3.2ns, omega = 1 / 3.2ns = 312.5MHz, f = omega / 2pi = 49.7MHz
+    -- 24 bit gain = 16777216, giving corner at 2.965Hz, 8 bit gain = 256, giving corner at 194kHz
   );
   PORT(
     -- ports are formalized to 16 bits
@@ -44,9 +48,9 @@ ENTITY PID IS
     control : OUT signed(15 DOWNTO 0);
     Test : OUT signed(15 DOWNTO 0);
 
-    K_P : IN signed(15 DOWNTO 0);
-    K_I : IN signed(15 DOWNTO 0);
-    K_D : IN signed(15 DOWNTO 0);
+    K_P : IN signed(15 DOWNTO 0); 
+    K_I : IN signed(15 DOWNTO 0); 
+    K_D : IN signed(15 DOWNTO 0); 
 
     limit_P : IN signed(15 DOWNTO 0);
     limit_I : IN signed(15 DOWNTO 0);
@@ -60,6 +64,7 @@ END PID;
 ARCHITECTURE bhvr OF PID IS
   SIGNAL error : signed(15 DOWNTO 0);
   SIGNAL last_error : signed(15 DOWNTO 0) := x"0000";
+  SIGNAL difference : signed(15 DOWNTO 0);
   SIGNAL sum : signed(15 DOWNTO 0);
 
   SIGNAL P : signed(word_length(gain_P) - 1 DOWNTO 0) := (OTHERS => '0');
@@ -101,18 +106,19 @@ BEGIN
             last_error <= error;
         END IF;
         error <= actual - setpoint;
+        difference <= error - last_error;
         control <= sum;
     END IF;
   END PROCESS PID;
-  reg_buf_P <= K_P * (error(15 - gain_P DOWNTO 0) & (gain_P - 1 DOWNTO 0 => '0')) WHEN gain_P > 0 ELSE
+  reg_buf_P <= K_P * (error(15) & error(14 - gain_P DOWNTO 0) & (gain_P - 1 DOWNTO 0 => '0')) WHEN gain_P > 0 ELSE
                 ((-gain_P - 1 DOWNTO 0 => K_P(15)) & K_P) * error WHEN gain_P < 0 ELSE
                 K_P * error; -- there could be a better way to implement 8-bit gain?
-  reg_buf_I <= I + K_I * (error(15 - gain_I DOWNTO 0) & (gain_I - 1 DOWNTO 0 => '0')) WHEN gain_I > 0 ELSE
+  reg_buf_I <= I + K_I * (error(15) & error(14 - gain_I DOWNTO 0) & (gain_I - 1 DOWNTO 0 => '0')) WHEN gain_I > 0 ELSE
                 I + ((-gain_I - 1 DOWNTO 0 => K_I(15)) & K_I) * error WHEN gain_I < 0 ELSE
                 I + K_I * error;
-  reg_buf_D <= K_D * (error(15 - gain_D DOWNTO 0) - last_error(15 - gain_D DOWNTO 0) & (gain_D - 1 DOWNTO 0 => '0')) WHEN gain_D > 0 ELSE
-                ((-gain_D - 1 DOWNTO 0 => K_D(15)) & K_D) * (error - last_error) WHEN gain_D < 0 ELSE
-                K_D * (error - last_error);
+  reg_buf_D <= K_D * (difference(15) & difference(14 - gain_P DOWNTO 0) & (gain_D - 1 DOWNTO 0 => '0')) WHEN gain_D > 0 ELSE
+                ((-gain_D - 1 DOWNTO 0 => K_D(15)) & K_D) * difference WHEN gain_D < 0 ELSE
+                K_D * difference;
 
   reg_P <= limit_P & (word_length(gain_P) - 17 DOWNTO 0 => '0') WHEN buf_P > limit_P & (word_length(gain_P) - 17 DOWNTO 0 => '0') ELSE
           -limit_P & (word_length(gain_P) - 17 DOWNTO 0 => '0') WHEN buf_P < -limit_P & (word_length(gain_P) - 17 DOWNTO 0 => '0') ELSE
