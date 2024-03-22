@@ -2,7 +2,7 @@ LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.Numeric_std.ALL;
 
-PACKAGE MyPak IS
+PACKAGE MyPak_turnkey IS
     TYPE signs IS ARRAY(NATURAL RANGE <>) OF std_logic;
     TYPE LUT_24 IS ARRAY(NATURAL RANGE <>) OF unsigned(23 DOWNTO 0);
     TYPE LUT_16 IS ARRAY(NATURAL RANGE <>) OF unsigned(15 DOWNTO 0);
@@ -13,12 +13,14 @@ LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.Numeric_std.ALL;
 
-USE WORK.MyPak.ALL;
+USE WORK.MyPak_turnkey.ALL;
 
+
+-- todo : replace the implement of line state with line entity
 ENTITY turnkey IS
     GENERIC(
         segments : INTEGER := 3; -- enumerated from 1, but array index starts at 0
-        tap : INTEGER := 64;
+        tap : INTEGER := 64; -- for calculating moving averages
         logtap : INTEGER := 6
     );
     PORT(
@@ -32,10 +34,10 @@ ENTITY turnkey IS
         soliton_threshold_max : IN signed(15 DOWNTO 0);
         soliton_threshold_min : IN signed(15 DOWNTO 0);
         
-        LUT_sign : signs(0 TO segments - 1);
-        LUT_period : LUT_24(0 TO segments - 1);
-        LUT_amplitude : LUT_16(0 TO segments - 1);
-        LUT_slope : LUT_16(0 TO segments - 1);
+        LUT_sign : IN signs(0 TO segments - 1);
+        LUT_period : IN LUT_24(0 TO segments - 1);
+        LUT_amplitude : IN LUT_16(0 TO segments - 1);
+        LUT_slope : IN LUT_16(0 TO segments - 1);
 
         attempts : IN unsigned(7 DOWNTO 0);
         approaches : IN unsigned(7 DOWNTO 0);
@@ -241,7 +243,7 @@ BEGIN
                                 amplitude_accum <= amplitude_accum + LUT_slp_mul_prd(next_segment - 1) + (x"0000" & period);
                             END IF;
                             period_counter <= period_counter + x"000001";
-                            period_accum <= period_accum + amplitude;
+                            period_accum <= period_accum + x"000000" & amplitude;
                         END IF;
                         IF sign = '1' THEN
                             output_voltage <= offset_voltage - signed(amplitude_counter);
