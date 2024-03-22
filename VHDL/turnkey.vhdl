@@ -243,7 +243,7 @@ BEGIN
                                 amplitude_accum <= amplitude_accum + LUT_slp_mul_prd(next_segment - 1) + (x"0000" & period);
                             END IF;
                             period_counter <= period_counter + x"000001";
-                            period_accum <= period_accum + x"000000" & amplitude;
+                            period_accum <= period_accum + (x"000000" & amplitude);
                         END IF;
                         IF sign = '1' THEN
                             output_voltage <= offset_voltage - signed(amplitude_counter);
