@@ -794,7 +794,7 @@ class Interface():
         self.logger.info("TCM connection thread started.")
         try:
             self.logger.debug("Connecting to TCM.")
-            self.tcm = tcm.TCM(self.port, self.logger)
+            self.tcm = tcm.TCM(self.port, logger = self.logger)
             self.temperature_setpoint = self.tcm.get_setpoint()
             match self.tcm.get_switch():
                 case 1:
