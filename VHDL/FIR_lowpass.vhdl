@@ -5,7 +5,7 @@ USE IEEE.Numeric_std.ALL;
 ENTITY FIR_lowpass IS
     GENERIC(
         input_length : INTEGER := 16;
-        output_length : INTEGER := 16;
+        output_length : INTEGER := 16
     );
     PORT(
         SIGNAL input : IN signed(input_length - 1 DOWNTO 0);

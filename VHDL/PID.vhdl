@@ -116,7 +116,7 @@ BEGIN
   reg_buf_I <= I + K_I * (error(15) & error(14 - gain_I DOWNTO 0) & (gain_I - 1 DOWNTO 0 => '0')) WHEN gain_I > 0 ELSE
                 I + ((-gain_I - 1 DOWNTO 0 => K_I(15)) & K_I) * error WHEN gain_I < 0 ELSE
                 I + K_I * error;
-  reg_buf_D <= K_D * (difference(15) & difference(14 - gain_P DOWNTO 0) & (gain_D - 1 DOWNTO 0 => '0')) WHEN gain_D > 0 ELSE
+  reg_buf_D <= K_D * (difference(15) & difference(14 - gain_D DOWNTO 0) & (gain_D - 1 DOWNTO 0 => '0')) WHEN gain_D > 0 ELSE
                 ((-gain_D - 1 DOWNTO 0 => K_D(15)) & K_D) * difference WHEN gain_D < 0 ELSE
                 K_D * difference;
 

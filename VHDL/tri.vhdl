@@ -6,7 +6,7 @@ ENTITY sincos IS
     PORT(
         -- x"8000" refers to exactly +/-180
         SIGNAL input : IN signed(15 DOWNTO 0);
-        -- x"36F612" refers to 1, while x"C909EE" refers to -1
+        -- x"7586A5" refers to 1, while x"800001" refers to -1
         SIGNAL outputC : OUT signed(15 DOWNTO 0);
         SIGNAL outputS : OUT signed(15 DOWNTO 0);
         SIGNAL Clk : IN std_logic
@@ -71,10 +71,10 @@ BEGIN
                 bufZ & x"00";
     bufX <= bufZ(15) XOR bufZ(14);
     D(0) <= Z(0)(23);
-    -- x"216017" = 0.607253 * x"36F612"
-    C(0) <= x"216017";
-    S(0) <= x"216017" WHEN D(0) = '0' ELSE
-            x"DE9FE9";
+    -- x"475E34" = 0.607253 * x"7586A5"
+    C(0) <= x"475E34";
+    S(0) <= x"475E34" WHEN D(0) = '0' ELSE
+            x"B8A1CC";
     gen : FOR i IN 0 TO 17 GENERATE
         reg : IF (i MOD 2 = 1) GENERATE
             regC((i - 1) / 2) <= C(i) - shift_right(S(i), i + 1) WHEN regD((i - 1) / 2) = '0' ELSE
