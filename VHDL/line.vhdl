@@ -33,6 +33,7 @@ ENTITY line IS
         -- initiate = '0' represents for periodic operation
         -- A '0' peak on initiate represents for single operation
         initiate : IN std_logic;
+        prolong : IN std_logic;
         Reset : IN std_logic;
         Clk : IN std_logic
     );
@@ -92,7 +93,15 @@ BEGIN
                                 IF initiate = '1' THEN
                                     current_state <= standby;
                                 ELSE
-                                    y0 <= (OTHERS => '0');
+                                    IF prolong = '0' THEN
+                                        IF sign = '1' THEN
+                                            y0 <= y0 - signed(y);
+                                        ELSE
+                                            y0 <= y0 + signed(y);
+                                        END IF;
+                                    ELSE
+                                        y0 <= (OTHERS => '0');
+                                    END IF;
                                     waveform <= (OTHERS => '0');
                                     next_segment <= 1;
                                     x_counter <= x"00000000";
