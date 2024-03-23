@@ -52,10 +52,10 @@ BEGIN
     )PORT MAP(
         offset => frequency_bias,
 
-        LUT_sign => LUT_sign,
-        LUT_x => LUT_x,
-        LUT_y => LUT_y,
-        LUT_slope => LUT_slope,
+        LUT_sign_input => LUT_sign,
+        LUT_x_input => LUT_x,
+        LUT_y_input => LUT_y,
+        LUT_slope_input => LUT_slope,
 
         segments_enabled => segments_enabled_translated,
 

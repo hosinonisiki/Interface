@@ -22,10 +22,10 @@ ENTITY line_signed IS
     PORT(
         offset : IN signed(15 DOWNTO 0);
 
-        LUT_sign : IN signs(0 TO segments - 1);
-        LUT_x : IN LUT_32(0 TO segments - 1);
-        LUT_y : IN LUT_16(0 TO segments - 1);
-        LUT_slope : IN LUT_16(0 TO segments - 1);
+        LUT_sign_input : IN signs(0 TO segments - 1);
+        LUT_x_input : IN LUT_32(0 TO segments - 1);
+        LUT_y_input : IN LUT_16(0 TO segments - 1);
+        LUT_slope_input : IN LUT_16(0 TO segments - 1);
 
         segments_enabled : IN INTEGER;
 
@@ -48,13 +48,19 @@ ARCHITECTURE bhvr OF line_signed IS
     SIGNAL x_accum : unsigned(47 DOWNTO 0);
     SIGNAL y_accum : unsigned(47 DOWNTO 0);
 
+    SIGNAL LUT_sign : signs(0 TO segments - 1);
+    SIGNAL LUT_x : LUT_32(0 TO segments - 1);
+    SIGNAL LUT_y : LUT_16(0 TO segments - 1);
+    SIGNAL LUT_slope : LUT_16(0 TO segments - 1);
     SIGNAL LUT_slp_mul_x : LUT_48(0 TO segments - 1);
+    SIGNAL LUT_slp1_mul_x : LUT_48(0 TO segments - 1);
 
     SIGNAL sign : std_logic;
     SIGNAL x : unsigned(31 DOWNTO 0);
     SIGNAL y : unsigned(15 DOWNTO 0);
     SIGNAL slope : unsigned(15 DOWNTO 0);
     SIGNAL slp_mul_x : unsigned(47 DOWNTO 0);
+    SIGNAL slp1_mul_x : unsigned(47 DOWNTO 0);
 
     SIGNAL y0 : signed(15 DOWNTO 0) := (OTHERS => '0');
 
@@ -87,12 +93,13 @@ BEGIN
                         x_counter <= x"00000000";
                         y_counter <= x"0000";
                         x_accum <= x"00000000" & LUT_y(0);
-                        y_accum <= LUT_slp_mul_x(0) + (x"0000" & LUT_x(0));
+                        y_accum <= LUT_slp1_mul_x(0);
                         sign <= LUT_sign(0);
                         x <= LUT_x(0);
                         y <= LUT_y(0);
                         slope <= LUT_slope(0);
                         slp_mul_x <= LUT_slp_mul_x(0);
+                        slp1_mul_x <= LUT_slp1_mul_x(0);
                     WHEN running =>
                         IF x_counter = x - x"00000001" THEN
                             IF next_segment = segments_enabled THEN
@@ -112,12 +119,13 @@ BEGIN
                                 x_counter <= x"00000000";
                                 y_counter <= x"0000";
                                 x_accum <= x"00000000" & LUT_y(0);
-                                y_accum <= LUT_slp_mul_x(0) + (x"0000" & LUT_x(0));
+                                y_accum <= LUT_slp1_mul_x(0);
                                 sign <= LUT_sign(0);
                                 x <= LUT_x(0);
                                 y <= LUT_y(0);
                                 slope <= LUT_slope(0);
                                 slp_mul_x <= LUT_slp_mul_x(0);
+                                slp1_mul_x <= LUT_slp1_mul_x(0);
                             ELSE
                                 IF sign = '1' THEN
                                     y0 <= y0 - signed(y);
@@ -128,12 +136,13 @@ BEGIN
                                 x_counter <= x"00000000";
                                 y_counter <= x"0000";
                                 x_accum <= x"00000000" & LUT_y(next_segment);
-                                y_accum <= LUT_slp_mul_x(next_segment) + (x"0000" & LUT_x(next_segment));
+                                y_accum <= LUT_slp1_mul_x(next_segment);
                                 sign <= LUT_sign(next_segment);
                                 x <= LUT_x(next_segment);
                                 y <= LUT_y(next_segment);
                                 slope <= LUT_slope(next_segment);
-                                slp_mul_x <= LUT_slope(next_segment) * LUT_x(next_segment);
+                                slp_mul_x <= LUT_slp_mul_x(next_segment);
+                                slp1_mul_x <= LUT_slp1_mul_x(next_segment);
                             END IF;
                         ELSE
                             IF y_accum > x_accum THEN
@@ -141,7 +150,7 @@ BEGIN
                                 y_accum <= y_accum + slp_mul_x;
                             ELSE
                                 y_counter <= y_counter + slope + x"0001";
-                                y_accum <= y_accum + slp_mul_x + (x"0000" & x);
+                                y_accum <= y_accum + slp1_mul_x;
                             END IF;
                             x_counter <= x_counter + x"00000001";
                             x_accum <= x_accum + (x"00000000" & y);
@@ -156,8 +165,24 @@ BEGIN
         END IF;
     END PROCESS;
 
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            LUT_sign <= LUT_sign_input;
+            LUT_x <= LUT_x_input;
+            LUT_y <= LUT_y_input;
+            LUT_slope <= LUT_slope_input;
+        END IF;
+    END PROCESS;
+
     gen : FOR i IN 0 TO segments - 1 GENERATE
-        LUT_slp_mul_x(i) <= LUT_slope(i) * LUT_x(i);
+        PROCESS(Clk)
+        BEGIN
+            IF rising_edge(Clk) THEN
+                LUT_slp_mul_x(i) <= LUT_slope(i) * LUT_x(i);
+                LUT_slp1_mul_x(i) <= LUT_slope(i) * LUT_x(i) + (x"0000" & LUT_x(i));
+            END IF;
+        END PROCESS;
     END GENERATE gen;
 
     PROCESS(Reset)
@@ -195,10 +220,10 @@ ENTITY line_unsigned IS
     PORT(
         offset : IN unsigned(15 DOWNTO 0);
 
-        LUT_sign : IN signs(0 TO segments - 1);
-        LUT_x : IN LUT_32(0 TO segments - 1);
-        LUT_y : IN LUT_16(0 TO segments - 1);
-        LUT_slope : IN LUT_16(0 TO segments - 1);
+        LUT_sign_input : IN signs(0 TO segments - 1);
+        LUT_x_input : IN LUT_32(0 TO segments - 1);
+        LUT_y_input : IN LUT_16(0 TO segments - 1);
+        LUT_slope_input : IN LUT_16(0 TO segments - 1);
 
         segments_enabled : IN INTEGER;
 
@@ -221,13 +246,19 @@ ARCHITECTURE bhvr OF line_unsigned IS
     SIGNAL x_accum : unsigned(47 DOWNTO 0);
     SIGNAL y_accum : unsigned(47 DOWNTO 0);
 
+    SIGNAL LUT_sign : signs(0 TO segments - 1);
+    SIGNAL LUT_x : LUT_32(0 TO segments - 1);
+    SIGNAL LUT_y : LUT_16(0 TO segments - 1);
+    SIGNAL LUT_slope : LUT_16(0 TO segments - 1);
     SIGNAL LUT_slp_mul_x : LUT_48(0 TO segments - 1);
+    SIGNAL LUT_slp1_mul_x : LUT_48(0 TO segments - 1);
 
     SIGNAL sign : std_logic;
     SIGNAL x : unsigned(31 DOWNTO 0);
     SIGNAL y : unsigned(15 DOWNTO 0);
     SIGNAL slope : unsigned(15 DOWNTO 0);
     SIGNAL slp_mul_x : unsigned(47 DOWNTO 0);
+    SIGNAL slp1_mul_x : unsigned(47 DOWNTO 0);
 
     SIGNAL y0 : unsigned(15 DOWNTO 0) := (OTHERS => '0');
 
@@ -260,12 +291,13 @@ BEGIN
                         x_counter <= x"00000000";
                         y_counter <= x"0000";
                         x_accum <= x"00000000" & LUT_y(0);
-                        y_accum <= LUT_slp_mul_x(0) + (x"0000" & LUT_x(0));
+                        y_accum <= LUT_slp1_mul_x(0);
                         sign <= LUT_sign(0);
                         x <= LUT_x(0);
                         y <= LUT_y(0);
                         slope <= LUT_slope(0);
                         slp_mul_x <= LUT_slp_mul_x(0);
+                        slp1_mul_x <= LUT_slp1_mul_x(0);
                     WHEN running =>
                         IF x_counter = x - x"00000001" THEN
                             IF next_segment = segments_enabled THEN
@@ -285,12 +317,13 @@ BEGIN
                                 x_counter <= x"00000000";
                                 y_counter <= x"0000";
                                 x_accum <= x"00000000" & LUT_y(0);
-                                y_accum <= LUT_slp_mul_x(0) + (x"0000" & LUT_x(0));
+                                y_accum <= LUT_slp1_mul_x(0);
                                 sign <= LUT_sign(0);
                                 x <= LUT_x(0);
                                 y <= LUT_y(0);
                                 slope <= LUT_slope(0);
                                 slp_mul_x <= LUT_slp_mul_x(0);
+                                slp1_mul_x <= LUT_slp1_mul_x(0);
                             ELSE
                                 IF sign = '1' THEN
                                     y0 <= y0 - y;
@@ -301,12 +334,13 @@ BEGIN
                                 x_counter <= x"00000000";
                                 y_counter <= x"0000";
                                 x_accum <= x"00000000" & LUT_y(next_segment);
-                                y_accum <= LUT_slp_mul_x(next_segment) + (x"0000" & LUT_x(next_segment));
+                                y_accum <= LUT_slp1_mul_x(next_segment);
                                 sign <= LUT_sign(next_segment);
                                 x <= LUT_x(next_segment);
                                 y <= LUT_y(next_segment);
                                 slope <= LUT_slope(next_segment);
-                                slp_mul_x <= LUT_slope(next_segment) * LUT_x(next_segment);
+                                slp_mul_x <= LUT_slp_mul_x(next_segment);
+                                slp1_mul_x <= LUT_slp1_mul_x(next_segment);
                             END IF;
                         ELSE
                             IF y_accum > x_accum THEN
@@ -314,7 +348,7 @@ BEGIN
                                 y_accum <= y_accum + slp_mul_x;
                             ELSE
                                 y_counter <= y_counter + slope + x"0001";
-                                y_accum <= y_accum + slp_mul_x + (x"0000" & x);
+                                y_accum <= y_accum + slp1_mul_x;
                             END IF;
                             x_counter <= x_counter + x"00000001";
                             x_accum <= x_accum + (x"00000000" & y);
@@ -329,8 +363,24 @@ BEGIN
         END IF;
     END PROCESS;
 
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            LUT_sign <= LUT_sign_input;
+            LUT_x <= LUT_x_input;
+            LUT_y <= LUT_y_input;
+            LUT_slope <= LUT_slope_input;
+        END IF;
+    END PROCESS;
+
     gen : FOR i IN 0 TO segments - 1 GENERATE
-        LUT_slp_mul_x(i) <= LUT_slope(i) * LUT_x(i);
+        PROCESS(Clk)
+        BEGIN
+            IF rising_edge(Clk) THEN
+                LUT_slp_mul_x(i) <= LUT_slope(i) * LUT_x(i);
+                LUT_slp1_mul_x(i) <= LUT_slope(i) * LUT_x(i) + (x"0000" & LUT_x(i));
+            END IF;
+        END PROCESS;
     END GENERATE gen;
 
     PROCESS(Reset)

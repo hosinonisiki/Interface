@@ -39,10 +39,10 @@ BEGIN
     )PORT MAP(
         offset => init_phase,
         
-        LUT_sign => LUT_sign_input,
-        LUT_x => LUT_x_input,
-        LUT_y => LUT_y_input,
-        LUT_slope => LUT_slope_input,
+        LUT_sign_input => LUT_sign_input,
+        LUT_x_input => LUT_x_input,
+        LUT_y_input => LUT_y_input,
+        LUT_slope_input => LUT_slope_input,
 
         segments_enabled => 1,
 
