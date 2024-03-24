@@ -136,11 +136,11 @@ BEGIN
     BEGIN
         IF rising_edge(Clk) THEN
             reg_soliton_power <= soliton_power_unscaled * input_gain;
-            reg_scanning_voltage <= scanning_voltage_scaled * output_gain;
+            reg_scanning_voltage <= scanning_voltage * output_gain;
         END IF;
     END PROCESS;
     soliton_power <= reg_soliton_power(19 DOWNTO 4);
-    scanning_voltage <= reg_scanning_voltage(19 DOWNTO 4);
+    scanning_voltage_scaled <= reg_scanning_voltage(19 DOWNTO 4);
     -- FSM
     PROCESS(Clk)
     BEGIN
