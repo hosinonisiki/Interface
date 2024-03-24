@@ -13,6 +13,7 @@ import numpy as np
 
 import fpga
 import tcm
+import custom_widgets
 
 def characteristic(waveform: list[float]) -> float:
     return np.max(waveform)
@@ -488,6 +489,11 @@ class Interface():
 
             self.developer_state_sweeping_label = ttk.Label(self.developer_state_frame, text = "")
             self.developer_state_sweeping_label.place(x = 10, y = 80, anchor = tk.NW)
+
+            # experimental widgets
+
+            self.developer_manual_offset = custom_widgets.UnclampingKnob("icons/knob.png", 100, 8 self.developer_mode)
+            self.developer_manual_offset.place(x = 300, y = 0, anchor = tk.NW)
 
             self.update()
 
