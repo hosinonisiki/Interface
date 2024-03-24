@@ -690,7 +690,7 @@ class Interface():
         self.logger.info("FPGA connection button clicked.")
         self.ip = self.fpga_connection_entry.get()
         # allow ipv6 connections
-        if re.match(r"^([0-9]{1,3}\.){3}[0-9]{1,3}$", self.ip) or re.match(r"^\[([0-9a-fA-F]{0,4}:){7}[0-9a-fA-F]{0,4}\]$", self.ip):
+        if re.match(r"^([0-9]{1,3}\.){3}[0-9]{1,3}$", self.ip) or re.match(r"^\[([0-9a-fA-F]{0,4}:){5,7}[0-9a-fA-F]{0,4}\]$", self.ip):
             self.logger.debug("Connecting to FPGA at %s."%self.ip)
             self.information["text"] = "Connecting to FPGA."
             self.fpga_state = self.FPGA_STATE_CONNECTING
