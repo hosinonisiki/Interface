@@ -492,8 +492,9 @@ class Interface():
 
             # experimental widgets
 
-            self.developer_manual_offset = custom_widgets.UnclampingKnob("icons/knob.png", 100, 8 self.developer_mode)
+            self.developer_manual_offset = custom_widgets.UnclampingKnob("icons/knob.png", 100, 8, self.developer_mode)
             self.developer_manual_offset.place(x = 300, y = 0, anchor = tk.NW)
+            self.developer_manual_offset.draw()
 
             self.update()
 
