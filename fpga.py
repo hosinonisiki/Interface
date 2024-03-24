@@ -105,6 +105,7 @@ class Turnkey(MCC):
         "PID_limit_D": 8192,
         "input_gain": 16, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
         "output_gain": 16, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
+        "manual_offset": 0,
         "Reset": 0
     } # {<name>:<value>}
     mapping = {
@@ -139,7 +140,8 @@ class Turnkey(MCC):
         "PID_limit_I": {"index": 13, "high": 15, "low": 0},
         "PID_limit_D": {"index": 14, "high": 31, "low": 16},
         "input_gain": {"index": 14, "high": 7, "low": 0},
-        "output_gain": {"index": 15, "high": 31, "low": 24},
+        "output_gain": {"index": 14, "high": 15, "low": 8},
+        "manual_offset": {"index": 15, "high": 31, "low": 16},
         "Reset": {"index": 0, "high": 0, "low": 0}
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
         

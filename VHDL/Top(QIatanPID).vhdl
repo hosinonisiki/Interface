@@ -3,6 +3,10 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL I,Q : signed(15 DOWNTO 0);
     SIGNAL MyClk : std_logic;
     SIGNAL phase : signed(15 DOWNTO 0);
+
+    SIGNAL error : signed(15 DOWNTO 0);
+
+    SIGNAL lock_mode : std_logic;
 BEGIN
     DUT1 : ENTITY WORK.AWG PORT MAP(
         frequency_bias => unsigned(Control7(31 DOWNTO 16)),
@@ -44,6 +48,15 @@ BEGIN
         output => phase, -- positive phase angle indicates a negative init phase in input signal
         Clk => Clk
     );
+
+    OutputC <= phase;
+    OutputD <= I;
+
+    lock_mode <= Control0(6); -- 0: phase lock, 1: frequency lock
+
+    error <= phase WHEN lock_mode = '0' ELSE
+                I;
+    
     -- fast PID
     DUT5 : ENTITY WORK.PID GENERIC MAP(
         -- tunable range 32768 times
@@ -53,7 +66,7 @@ BEGIN
         gain_I => -12,
         gain_D => 10
     )PORT MAP(
-        actual => phase,
+        actual => error,
         setpoint => x"0000",
         control => OutputA,
         Test => OPEN,
@@ -76,7 +89,7 @@ BEGIN
         gain_I => -20,
         gain_D => 0
     )PORT MAP(
-        actual => phase,
+        actual => error,
         setpoint => x"0000",
         control => OutputB,
         Test => OPEN,

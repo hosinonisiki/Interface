@@ -15,7 +15,6 @@ USE IEEE.Numeric_std.ALL;
 
 USE WORK.MyPak_turnkey.ALL;
 
-
 -- todo : replace the implement of line state with line entity
 ENTITY turnkey IS
     GENERIC(
@@ -69,6 +68,8 @@ ENTITY turnkey IS
 
         input_gain : IN signed(7 DOWNTO 0);
         output_gain : IN signed(7 DOWNTO 0);
+
+        offset_voltage : IN signed(15 DOWNTO 0);
 
         Clk : IN std_logic;
         Reset : IN std_logic;
@@ -403,6 +404,6 @@ BEGIN
     END PROCESS;
 
     -- Test <= PID_control;
-    scanning_voltage <= output_voltage + PID_control WHEN current_state = longterm AND PID_lock = '0' ELSE
-                        output_voltage;
+    scanning_voltage <= output_voltage + offset_voltage + PID_control WHEN current_state = longterm AND PID_lock = '0' ELSE
+                        output_voltage + offset_voltage;
 END bhvr;

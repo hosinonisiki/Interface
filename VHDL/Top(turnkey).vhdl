@@ -50,7 +50,9 @@ BEGIN
         PID_limit_D => signed(Control14(31 DOWNTO 16)),
 
         input_gain => signed(Control14(7 DOWNTO 0)),
-        output_gain => signed(Control15(31 DOWNTO 24)),
+        output_gain => signed(Control14(15 DOWNTO 8)),
+
+        offset_voltage => signed(Control15(31 DOWNTO 16)),
 
         Clk => Clk,
         Reset => Control0(0),
