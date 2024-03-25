@@ -9,7 +9,7 @@ import threading
 import time
 
 class UnclampingKnob(tk.Canvas):
-    def __init__(self, master = None, image_path = None, size = None, value_step = 1, step = 36, resistance = 1.5, value = 0, **kw):
+    def __init__(self, master = None, image_path = None, size = None, value_step = 1, step = 36, resistance = 1.5, value = 0, on_spin = None, **kw):
         super().__init__(master, width = size + 2, height = size + 2, **kw)
         self.image = Image.open(image_path)
         self.size = size
@@ -17,6 +17,7 @@ class UnclampingKnob(tk.Canvas):
         self.step = step
         self.resistance = resistance
         self.value = value
+        self.on_spin = on_spin
         self.bind("<Button-1>", self.hold)
         self.bind("<B1-Motion>", self.spin)
         self.bind("<ButtonRelease-1>", self.release)
@@ -35,29 +36,31 @@ class UnclampingKnob(tk.Canvas):
         self.create_image(self.size / 2 + 2, self.size / 2 + 2, image = self.image_tk, anchor = tk.CENTER)
 
     def hold(self, event):
-        self.start = event.x
+        self.start = event.x - event.y
         self.starting_angle = self.knob_angle
 
     def spin(self, event):
-        self.angle = self.starting_angle + (event.x - self.start) / self.resistance
+        self.angle = self.starting_angle + (event.x - event.y - self.start) / self.resistance
         if np.abs(self.angle - self.knob_angle) >= self.step:
             if self.angle - self.knob_angle > 0:
                 direction = 1
+                self.value += self.value_step
             else:
                 direction = -1
+                self.value -= self.value_step
             rotate_thread = threading.Thread(target = self.rotate_one_step, args = [direction])
             rotate_thread.start()
+            if self.on_spin != None:
+                self.on_spin()
 
     def rotate_one_step(self, direction):
         if direction == 1:
-            self.value += self.value_step
             self.knob_angle += (self.step - 0.5)
             self.draw()
             time.sleep(0.05)
             self.knob_angle += 0.5
             self.draw()
         else:
-            self.value -= self.value_step
             self.knob_angle -= (self.step - 0.5)
             self.draw()
             time.sleep(0.05)
@@ -77,7 +80,7 @@ class KnobFrame(tk.Frame):
         self.label.place(x = size / 2 + 6, y = 0, anchor = tk.N)
         self.knob = UnclampingKnob(self, image_path, size)
         self.knob.place(x = 4, y = 20, anchor = tk.NW)
-        self.value_label = tk.Label(self, text = "% 3.3f"%self.knob.get_value() * self.scale + self.unit)
+        self.value_label = tk.Label(self, text = "% 3.3f"%(self.knob.get_value() * self.scale) + self.unit)
         self.value_label.place(x = size / 2 + 6, y = size + 22, anchor = tk.N)
 
     def set_value(self, value):
@@ -95,6 +98,7 @@ if __name__ == "__main__":
     root.geometry("800x600")
     knob = KnobFrame(root, "icons/knob.png", 100, name = "Knob", scale = 5, unit = "mV", relief = tk.GROOVE, borderwidth = 2)
     knob.knob.value_step = 1
+    knob.knob.on_spin = knob.update
     knob.place(x = 50, y = 50)
     knob.update()
     root.mainloop()

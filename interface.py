@@ -1,6 +1,8 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 
+from PIL import Image, ImageTk
+
 import re
 import hashlib
 import threading
@@ -95,6 +97,11 @@ class Interface():
 
         self.powerlock_state = self.POWERLOCK_STATE_OFF
 
+        self.KNOB_PANEL_STATE_OFF = 0
+        self.KNOB_PANEL_STATE_ON = 1
+
+        self.knob_panel_state = self.KNOB_PANEL_STATE_OFF
+
         # temperature parameters
         
         self.temperature_setpoint = 0
@@ -113,17 +120,27 @@ class Interface():
         self.developer = False
         self.setup_found = False
 
+        # other initializations
+
+        self.knob_panel = None
+
         # Top class utilities
         
         self.root = tk.Tk()
         self.root.geometry("1200x400")
         self.root.title("Main panel")
+        self.root.protocol("WM_DELETE_WINDOW", self.root_onclose)
         
         self.information = ttk.Label(self.root, text = "Information will be displayed here.")
         self.information.place(rely = 1, anchor = tk.SW)
         
         self.developer_entrance = ttk.Button(self.root, text = "D", command = self.developer_entrance_onclick, width = 2)
         self.developer_entrance.place(relx = 1, rely = 1, anchor = tk.SE)
+
+        self.knob_panel_button = ttk.Button(self.root, command = self.knob_panel_button_onclick, width = 2.5)
+        self.knob_panel_button.place(relx = 1, rely = 1, x = -25, anchor = tk.SE)
+        self.knob_panel_button.image = ImageTk.PhotoImage(Image.open("icons/knob20.png").resize((17, 17)))
+        self.knob_panel_button.config(image = self.knob_panel_button.image)
         
         # status panel
         
@@ -214,6 +231,11 @@ class Interface():
         self.tcm_save_button = ttk.Button(self.tcm_frame, text = "Save current temp", command = self.tcm_save_button_onclick, width = 32)
         self.tcm_save_button.place(x = 20, y = 142, anchor = tk.NW)
 
+    def root_onclose(self) -> None:
+        self.logger.info("Root closed.")
+        self.root.destroy()
+        return
+
     def loop(self) -> None:
         self.update_thread = threading.Thread(target = self.update_thread_function, args = (), daemon = True)
         self.update_thread.start()
@@ -224,13 +246,13 @@ class Interface():
 
     def update_thread_function(self) -> NoReturn:
         self.logger.info("Update thread started.")
-        last = (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state)
+        last = (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state)
         while(True):
             time.sleep(0.03)
-            if (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state) != last:
-                self.logger.debug("State change detected: %d, %d, %d, %d, %d, %d, %d"%(self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state))
+            if (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state) != last:
+                self.logger.debug("State change detected: %d, %d, %d, %d, %d, %d, %d, %d"%(self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state))
                 self.update()
-                last = (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state)
+                last = (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.knob_panel_state)
             # widgets that need real-time updates
             match self.tcm_state:
                 case self.TCM_STATE_OFFLINE:
@@ -426,6 +448,11 @@ class Interface():
             case _:
                 self.command_powerlock_button["state"] = tk.DISABLED
                 self.command_powerlock_button["relief"] = tk.RAISED
+        match self.knob_panel_state:
+            case self.KNOB_PANEL_STATE_OFF:
+                self.knob_panel_button["state"] = tk.NORMAL
+            case self.KNOB_PANEL_STATE_ON:
+                self.knob_panel_button["state"] = tk.DISABLED
         return
 
     def developer_entrance_onclick(self) -> None:
@@ -490,12 +517,6 @@ class Interface():
             self.developer_state_sweeping_label = ttk.Label(self.developer_state_frame, text = "")
             self.developer_state_sweeping_label.place(x = 10, y = 80, anchor = tk.NW)
 
-            # experimental widgets
-
-            self.developer_manual_offset = custom_widgets.UnclampingKnob("icons/knob.png", 100, 8, self.developer_mode)
-            self.developer_manual_offset.place(x = 300, y = 0, anchor = tk.NW)
-            self.developer_manual_offset.draw()
-
             self.update()
 
             self.logger.debug("Developer panel generated.")
@@ -504,6 +525,51 @@ class Interface():
             self.information["text"] = "Wrong password."
         return
     
+    def knob_panel_button_onclick(self) -> None:
+        self.logger.debug("Knob panel button clicked.")
+        self.information["text"] = "Knob panel."
+        self.knob_panel_thread = threading.Thread(target = self.knob_panel_thread_function, args = (), daemon = True)
+        self.knob_panel_thread.start()
+
+    def knob_panel_thread_function(self) -> None:
+        self.logger.info("Knob panel thread started.")
+        try:
+            self.knob_panel_state = self.KNOB_PANEL_STATE_ON
+            self.knob_panel = tk.Toplevel()
+            self.knob_panel.title("Knob panel")
+            self.knob_panel.geometry("800x600")
+            self.knob_panel.protocol("WM_DELETE_WINDOW", self.knob_panel_onclose)
+
+            self.manual_offset_knob = custom_widgets.KnobFrame(self.knob_panel, image_path = "icons/knob.png", size = 100, name = "Manual offset", scale = 0.167, unit = "mV")
+            self.manual_offset_knob.place(x = 10, y = 10, anchor = tk.NW)
+            #self.manual_offset_knob.knob.set_value(self.mim.tk.get_parameter("manual_offset"))
+            self.manual_offset_knob.knob.on_spin = self.manual_offset_knob_onspin
+            print(self.manual_offset_knob.knob.on_spin)
+        except Exception as e:
+            self.logger.error("%s"%e.__repr__())
+            self.information["text"] = "Error encountered when generating knob panel: %s"%e.__repr__()
+        else:
+            self.logger.debug("Knob panel generated.")
+            self.knob_panel.mainloop()
+        return
+
+    def knob_panel_onclose(self) -> None:
+        self.logger.debug("Knob panel closed.")
+        self.knob_panel_state = self.KNOB_PANEL_STATE_OFF
+        self.knob_panel.destroy()
+        return
+
+    def manual_offset_knob_onspin(self) -> None:
+        try:
+            self.logger.debug("Setting manual offset to %d."%self.manual_offset_knob.knob.get_value())
+            self.manual_offset_knob.update()
+            self.mim.tk.set_parameter("manual_offset", self.manual_offset_knob.knob.get_value())
+            self.mim.tk.upload_control()
+        except Exception as e:
+            self.logger.error("%s"%e.__repr__())
+            self.information["text"] = "Error encountered when setting manual offset: %s"%e.__repr__()
+        return
+
     def command_soliton_button_onclick(self) -> None:
         self.logger.info("Soliton button clicked.")
         match self.soliton_state:
@@ -531,6 +597,8 @@ class Interface():
                     self.information["text"] = "Started generation for single soliton."
                     self.fpga_state = self.FPGA_STATE_BUSY
                     self.soliton_state = self.SOLITON_STATE_ON
+                    if self.knob_panel != None and self.knob_panel.winfo_exists():
+                        self.manual_offset_knob.knob.set_value(0)
         return
     
     def command_locktemp_button_onclick(self) -> None:
@@ -664,6 +732,8 @@ class Interface():
                     self.information["text"] = "Started sweeping."
                     self.fpga_state = self.FPGA_STATE_BUSY
                     self.sweeping_state = self.SWEEPING_STATE_ON
+                    if self.knob_panel != None and self.knob_panel.winfo_exists():
+                        self.manual_offset_knob.knob.set_value(0)
         return
     
     def command_powerlock_button_onclick(self) -> None:

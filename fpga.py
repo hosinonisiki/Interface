@@ -167,6 +167,7 @@ class Turnkey(MCC):
     def run(self) -> object:
         self.set_parameter("mode", 0)
         self.set_parameter("Reset", 0)
+        self.set_parameter("manual_offset", 0)
         self.upload_control()
         return self
         
@@ -178,6 +179,7 @@ class Turnkey(MCC):
     def sweep(self) -> object:
         self.set_parameter("mode", 1)
         self.set_parameter("Reset", 0)
+        self.set_parameter("manual_offset", 0)
         self.upload_control()
         return self
 
