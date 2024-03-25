@@ -191,6 +191,100 @@ class Turnkey(MCC):
         self.upload_control()
         return self
 
+class Feedback(MCC):
+    default_controls = {
+        "fast_PID_K_P": 0,
+        "fast_PID_K_I": 0,
+        "fast_PID_K_D": 0,
+        "rate": 8,
+        "slow_PID_K_P": 0,
+        "slow_PID_K_I": 0,
+        "slow_PID_K_D": 0,
+        "slow_PID_limit_I": 8192,
+        "LUT_x": 31250000,
+        "LUT_y": 3355,
+        "LUT_slope": 0,
+        "frequency_bias": 33554,
+        "amplitude": 28672,
+        "PID_Reset": 1,
+        "LO_Reset": 1,
+        "LUT_sign": 0,
+        "initiate": 1,
+        "periodic": 1,
+        "prolong": 0
+    } # {<name>:<value>}
+    mapping = {
+        "fast_PID_K_P": {"index": 1, "high": 31, "low": 16},
+        "fast_PID_K_I": {"index": 1, "high": 15, "low": 0},
+        "fast_PID_K_D": {"index": 2, "high": 31, "low": 16},
+        "rate": {"index": 2, "high": 3, "low": 0},
+        "slow_PID_K_P": {"index": 3, "high": 31, "low": 16},
+        "slow_PID_K_I": {"index": 3, "high": 15, "low": 0},
+        "slow_PID_K_D": {"index": 4, "high": 31, "low": 16},
+        "slow_PID_limit_I": {"index": 4, "high": 15, "low": 0},
+        "LUT_x": {"index": 5, "high": 31, "low": 0},
+        "LUT_y": {"index": 6, "high": 31, "low": 16},
+        "LUT_slope": {"index": 6, "high": 15, "low": 0},
+        "frequency_bias": {"index": 7, "high": 31, "low": 16},
+        "amplitude": {"index": 7, "high": 15, "low": 0},
+        "PID_Reset": {"index": 0, "high": 0, "low": 0},
+        "LO_Reset": {"index": 0, "high": 1, "low": 1},
+        "LUT_sign": {"index": 0, "high": 2, "low": 2},
+        "initiate": {"index": 0, "high": 3, "low": 3},
+        "periodic": {"index": 0, "high": 4, "low": 4},
+        "prolong": {"index": 0, "high": 5, "low": 5}
+    } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
+
+    def set_default(self) -> object:
+        for name in self.mapping:
+            self.set_parameter(name, self.default_controls[name])
+        return self
+    
+    def set_parameter(self, name: str, value: int) -> object:
+        location = Feedback.mapping[name]
+        bits = convert_bits(value, location["high"] - location["low"] + 1)
+        pointer = location["high"]
+        for i in bits:
+            self.set_bit(location["index"], pointer, i)
+            pointer = pointer - 1
+        return self
+
+    def get_parameter(self, name: str) -> int:
+        location = Feedback.mapping[name]
+        bits = bin(self.get_control(location["index"]))[2:].zfill
+        return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
+    
+    def LO_on(self) -> object:
+        self.set_parameter("LO_Reset", 0)
+        self.upload_control()
+        return self
+    
+    def LO_off(self) -> object:
+        self.set_parameter("LO_Reset", 1)
+        self.upload_control()
+        return self
+    
+    def PID_on(self) -> object:
+        self.set_parameter("PID_Reset", 0)
+        self.upload_control()
+        return self
+
+    def PID_off(self) -> object:
+        self.set_parameter("PID_Reset", 1)
+        self.upload_control()
+        return self
+    
+    def launch_frequency_control(self) -> object:
+        self.set_parameter("initiate", 1)
+        self.upload_control()
+        self.set_parameter("initiate", 0)
+        self.upload_control()
+        self.set_parameter("periodic", 1)
+        self.upload_control()
+        return self
+
+    # todo : provide methods to control PID coefficients and LUT waveforms
+
 class MIM():
     def __init__(self, ip, logger = None):
         self.mim = instruments.MultiInstrument(ip, force_connect = True, platform_id = 4)
@@ -208,22 +302,32 @@ class MIM():
             self.logger.debug("Initializing turnkey.")
         self.tk.set_default()
         if self.logger:
+            self.logger.debug("Creating feedback.")
+        self.feedback = Feedback(self.mim.set_instrument(3, instruments.CloudCompile, bitstream = "bitstreams/feedback.tar.gz"))
+        if self.logger:
+            self.logger.debug("Initializing feedback.")
+        self.feedback.set_default()
+        if self.logger:
             self.logger.debug("Creating oscilloscope.")
         self.osc = self.mim.set_instrument(4, instruments.Oscilloscope)
         if self.logger:
             self.logger.debug("Setting connections.")
         self.con = self.mim.set_connections([{"source": "Input1", "destination": "Slot2InA"},
-                                             {"source": "Slot2OutA", "destination": "Output1"},
-                                             {"source": "Slot2OutB", "destination": "Output2"},
-                                             {"source": "Slot2OutC", "destination": "Output3"},
-                                             {"source": "Input1", "destination": "Slot4InA"},
-                                             {"source": "Slot2OutB", "destination": "Slot4InB"}])
+                                            {"source": "Slot2OutA", "destination": "Output1"},
+                                            {"source": "Input2", "destination": "Slot3InA"},
+                                            {"source": "Slot3OutA", "destination": "Output4"},
+                                            {"source": "Slot3OutB", "destination": "Output3"},
+                                            {"source": "Slot3OutC", "destination": "Output2"},
+                                            {"source": "Input2", "destination": "Slot4InA"},
+                                            {"source": "Slot3OutC", "destination": "Slot4InB"}])
         if self.logger:
             self.logger.debug("Setting frontends and outputs.")
         self.mim.set_frontend(1, "1MOhm", "DC", "0dB")
+        self.mim.set_frontend(2, "1MOhm", "DC", "0dB")
         self.mim.set_output(1, "14dB")
         self.mim.set_output(2, "0dB")
         self.mim.set_output(3, "0dB")
+        self.mim.set_output(4, "0dB")
         if self.logger:
             self.logger.debug("Final steps.")
         self.tk.stop()

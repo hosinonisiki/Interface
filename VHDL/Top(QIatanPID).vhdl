@@ -8,6 +8,8 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL lock_mode : std_logic;
 BEGIN
+
+    -- todo : dynamic PID hardware gain
     DUT1 : ENTITY WORK.AWG PORT MAP(
         frequency_bias => unsigned(Control7(31 DOWNTO 16)),
 
@@ -30,7 +32,7 @@ BEGIN
     );
     DUT2 : ENTITY WORK.CDC PORT MAP(
         Clk => Clk,
-        rate => x"8", -- bandpass below 9.8MHz
+        rate => unsigned(Control2(3 DOWNTO 0)), -- bandpass below 9.8MHz
         MyClk => MyClk
     );
     DUT3 : ENTITY WORK.QI_demodulator PORT MAP(

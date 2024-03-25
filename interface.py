@@ -22,6 +22,7 @@ def characteristic(waveform: list[float]) -> float:
 
 # todo: add a thread to constantly check the connection to FPGA
 # todo: better analyzing algorithm for the temperature setpoint
+# todo: control the states of knobs
 
 # maybe move to moku:go?
 # change to datalogger for gathering data
@@ -40,7 +41,7 @@ class Interface():
         self.error_handler = logging.FileHandler("logs/%s.err"%time.strftime("%Y-%m-%d %H-%M-%S", time.localtime()))
         self.error_handler.setLevel(logging.ERROR)
 
-        self.formatter = logging.Formatter("%(asctime)s - %(levelname)s in line %(lineno)d, func %(funcName)s, file %(filename)s: %(message)s")
+        self.formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(lineno)d, %(funcName)s, %(filename)s: %(message)s")
 
         self.log_handler.setFormatter(self.formatter)
         self.error_handler.setFormatter(self.formatter)
@@ -542,8 +543,10 @@ class Interface():
 
             self.manual_offset_knob = custom_widgets.KnobFrame(self.knob_panel, image_path = "icons/knob.png", size = 100, name = "Manual offset", scale = 0.167, unit = "mV")
             self.manual_offset_knob.place(x = 10, y = 10, anchor = tk.NW)
-            #self.manual_offset_knob.knob.set_value(self.mim.tk.get_parameter("manual_offset"))
+            self.manual_offset_knob.knob.set_value(self.mim.tk.get_parameter("manual_offset"))
             self.manual_offset_knob.knob.on_spin = self.manual_offset_knob_onspin
+            self.manual_offset_knob.knob.max = 32767
+            self.manual_offset_knob.knob.min = -32767
             print(self.manual_offset_knob.knob.on_spin)
         except Exception as e:
             self.logger.error("%s"%e.__repr__())
