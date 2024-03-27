@@ -13,10 +13,12 @@ BEGIN
     DUT1 : ENTITY WORK.AWG PORT MAP(
         frequency_bias => unsigned(Control7(31 DOWNTO 16)),
 
-        LUT_sign => (0 => Control0(2), OTHERS => '0'),
-        LUT_x => (0 => unsigned(Control5), OTHERS => x"00000000"),
-        LUT_y => (0 => unsigned(Control6(31 DOWNTO 16)), OTHERS => x"0000"),
-        LUT_slope => (0 => unsigned(Control6(15 DOWNTO 0)), OTHERS => x"0000"),
+        set_sign => Control0(2),
+        set_x => unsigned(Control5),
+        set_y => unsigned(Control6(31 DOWNTO 16)),
+        set_slope => unsigned(Control6(15 DOWNTO 0)),
+        set_address => unsigned(Control2(7 DOWNTO 4)),
+        set => Control0(7),
         segments_enabled => x"0",
         initiate => Control0(3),
         periodic => Control0(4),

@@ -745,7 +745,7 @@ class Interface():
             case self.POWERLOCK_STATE_ON:
                 try:
                     self.logger.debug("Stopping power lock.")
-                    self.mim.power_lock(False)
+                    self.mim.power_lock_OFF()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -756,7 +756,7 @@ class Interface():
             case self.POWERLOCK_STATE_OFF:
                 try:
                     self.logger.debug("Starting power lock.")
-                    self.mim.power_lock(True)
+                    self.mim.power_lock_ON()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()

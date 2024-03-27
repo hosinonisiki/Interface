@@ -183,11 +183,13 @@ class Turnkey(MCC):
         self.upload_control()
         return self
 
-    def power_lock(self, switch: bool) -> object:
-        if switch:
-            self.set_parameter("PID_lock", 0)
-        else:
-            self.set_parameter("PID_lock", 1)
+    def power_lock_ON(self) -> object:
+        self.set_parameter("PID_lock", 0)
+        self.upload_control()
+        return self
+    
+    def power_lock_OFF(self) -> object:
+        self.set_parameter("PID_lock", 1)
         self.upload_control()
         return self
 
@@ -196,44 +198,60 @@ class Feedback(MCC):
         "fast_PID_K_P": 0,
         "fast_PID_K_I": 0,
         "fast_PID_K_D": 0,
+        "set_address": 0,
         "rate": 8,
         "slow_PID_K_P": 0,
         "slow_PID_K_I": 0,
         "slow_PID_K_D": 0,
         "slow_PID_limit_I": 8192,
-        "LUT_x": 31250000,
-        "LUT_y": 3355,
-        "LUT_slope": 0,
+        "set_x": 31250000,
+        "set_y": 3355,
+        "set_slope": 0,
         "frequency_bias": 33554,
         "amplitude": 28672,
         "PID_Reset": 1,
         "LO_Reset": 1,
-        "LUT_sign": 0,
+        "set_sign": 0,
         "initiate": 1,
         "periodic": 1,
-        "prolong": 0
+        "prolong": 0,
+        "lock_mode": 0,
+        "set": 1
     } # {<name>:<value>}
     mapping = {
         "fast_PID_K_P": {"index": 1, "high": 31, "low": 16},
         "fast_PID_K_I": {"index": 1, "high": 15, "low": 0},
         "fast_PID_K_D": {"index": 2, "high": 31, "low": 16},
+        "set_address": {"index": 2, "high": 7, "low": 4},
         "rate": {"index": 2, "high": 3, "low": 0},
         "slow_PID_K_P": {"index": 3, "high": 31, "low": 16},
         "slow_PID_K_I": {"index": 3, "high": 15, "low": 0},
         "slow_PID_K_D": {"index": 4, "high": 31, "low": 16},
         "slow_PID_limit_I": {"index": 4, "high": 15, "low": 0},
-        "LUT_x": {"index": 5, "high": 31, "low": 0},
-        "LUT_y": {"index": 6, "high": 31, "low": 16},
-        "LUT_slope": {"index": 6, "high": 15, "low": 0},
+        "set_x": {"index": 5, "high": 31, "low": 0},
+        "set_y": {"index": 6, "high": 31, "low": 16},
+        "set_slope": {"index": 6, "high": 15, "low": 0},
         "frequency_bias": {"index": 7, "high": 31, "low": 16},
         "amplitude": {"index": 7, "high": 15, "low": 0},
         "PID_Reset": {"index": 0, "high": 0, "low": 0},
         "LO_Reset": {"index": 0, "high": 1, "low": 1},
-        "LUT_sign": {"index": 0, "high": 2, "low": 2},
+        "set_sign": {"index": 0, "high": 2, "low": 2},
         "initiate": {"index": 0, "high": 3, "low": 3},
         "periodic": {"index": 0, "high": 4, "low": 4},
-        "prolong": {"index": 0, "high": 5, "low": 5}
+        "prolong": {"index": 0, "high": 5, "low": 5},
+        "lock_mode": {"index": 0, "high": 6, "low": 6},
+        "set": {"index": 0, "high": 7, "low": 7}
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
+    default_waveform = [
+        {"sign": 0, "x": 31250000, "y": 3355, "slope": 0}
+    ]
+    def __init__(self, mcc: object, controls: dict[int, int] = {}, waveform: list[dict[str, int]] = []):
+        super().__init__(mcc, controls)
+        if waveform:
+            self.waveform = waveform
+        else:
+            self.waveform = Feedback.default_waveform
+        self.upload_waveform()
 
     def set_default(self) -> object:
         for name in self.mapping:
@@ -254,6 +272,23 @@ class Feedback(MCC):
         bits = bin(self.get_control(location["index"]))[2:].zfill
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
     
+    # todo: a method to set parameters in waveform
+
+    def upload_waveform(self) -> object:
+        for i in range(len(self.waveform)):
+            self.set_parameter("set_sign", self.waveform[i]["sign"])
+            self.set_parameter("set_x", self.waveform[i]["x"])
+            self.set_parameter("set_y", self.waveform[i]["y"])
+            self.set_parameter("set_slope", self.waveform[i]["slope"])
+            self.set_parameter("set_address", i)
+            self.set_parameter("set", 1)
+            self.upload_control()
+            self.set_parameter("set", 0)
+            self.upload_control()
+            self.set_parameter("set", 1)
+            self.upload_control()
+        return self
+
     def LO_on(self) -> object:
         self.set_parameter("LO_Reset", 0)
         self.upload_control()
