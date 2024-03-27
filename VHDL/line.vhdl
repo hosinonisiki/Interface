@@ -30,8 +30,6 @@ ENTITY line_signed IS
         segments_enabled : IN INTEGER;
 
         output : OUT signed(15 DOWNTO 0);
-        -- initiate = '0' represents for periodic operation
-        -- A '0' peak on initiate represents for single operation
         initiate : IN std_logic;
         periodic : IN std_logic;
         prolong : IN std_logic;
