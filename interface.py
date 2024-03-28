@@ -116,6 +116,8 @@ class Interface():
 
         self.setpoint_disconnection_flag = False
 
+        self.knob_uploading_flag = False
+
         # other flags
 
         self.developer = False
@@ -185,7 +187,7 @@ class Interface():
 
         self.fpga_connection_entry = ttk.Entry(self.fpga_frame, width = 20)
         self.fpga_connection_entry.place(x = 20, y = 20, anchor = tk.NW)
-        self.fpga_connection_entry.insert(0, "192.168.73.1")
+        self.fpga_connection_entry.insert(0, "[fe80::7269:79ff:feb0:6d2]")
         self.fpga_connection_entry.bind("<Return>", lambda event:self.fpga_connection_button_onclick())
         
         self.fpga_connection_button = ttk.Button(self.fpga_frame, text = "Submit", command = self.fpga_connection_button_onclick)
@@ -207,7 +209,7 @@ class Interface():
 
         self.tcm_connection_entry = ttk.Entry(self.tcm_frame, width = 20)
         self.tcm_connection_entry.place(x = 20, y = 20, anchor = tk.NW)
-        self.tcm_connection_entry.insert(0, "COM7")
+        self.tcm_connection_entry.insert(0, "COM13")
         self.tcm_connection_entry.bind("<Return>", lambda event:self.tcm_connection_button_onclick())
         
         self.tcm_connection_button = ttk.Button(self.tcm_frame, text = "Submit", command = self.tcm_connection_button_onclick)
@@ -567,10 +569,20 @@ class Interface():
             self.logger.debug("Setting manual offset to %d."%self.manual_offset_knob.knob.get_value())
             self.manual_offset_knob.update()
             self.mim.tk.set_parameter("manual_offset", self.manual_offset_knob.knob.get_value())
-            self.mim.tk.upload_control()
+            if self.knob_uploading_flag == False:
+                self.knob_uploading_flag = True
+                self.knob_uploading_thread = threading.Thread(target = self.knob_uploading_thread_function, args = (), daemon = True)
+                self.knob_uploading_thread.start()
         except Exception as e:
             self.logger.error("%s"%e.__repr__())
             self.information["text"] = "Error encountered when setting manual offset: %s"%e.__repr__()
+        return
+
+    def knob_uploading_thread_function(self) -> None:
+        self.logger.info("Knob uploading thread started.")
+        self.mim.tk.upload_control()
+        self.knob_uploading_flag = False
+        self.logger.debug("Knob parameter uploaded.")
         return
 
     def command_soliton_button_onclick(self) -> None:
@@ -745,7 +757,7 @@ class Interface():
             case self.POWERLOCK_STATE_ON:
                 try:
                     self.logger.debug("Stopping power lock.")
-                    self.mim.power_lock_OFF()
+                    self.mim.tk.power_lock_OFF()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -756,7 +768,7 @@ class Interface():
             case self.POWERLOCK_STATE_OFF:
                 try:
                     self.logger.debug("Starting power lock.")
-                    self.mim.power_lock_ON()
+                    self.mim.tk.power_lock_ON()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()

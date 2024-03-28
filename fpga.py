@@ -86,7 +86,7 @@ class Turnkey(MCC):
         "soliton_threshold_max": 4608,
         "soliton_threshold_min": 1536,
         "attempts": 1,
-        "approaches": 64,
+        "approaches": 1,
         "coarse_target": 1008,
         "fine_target": 96,
         "coarse_period": 4077,
@@ -99,7 +99,7 @@ class Turnkey(MCC):
         "PID_K_D": 0,
         "mode": 0,
         "sweep_period": 404,
-        "PID_lock": 0,
+        "PID_lock": 1,
         "PID_limit_P": 8192, # upper limit 10922
         "PID_limit_I": 8192,
         "PID_limit_D": 8192,
@@ -148,6 +148,7 @@ class Turnkey(MCC):
     def set_default(self) -> object:
         for name in self.mapping:
             self.set_parameter(name, self.default_controls[name])
+        self.upload_control()
         return self
         
     def set_parameter(self, name: str, value: int) -> object:
@@ -250,12 +251,13 @@ class Feedback(MCC):
         if waveform:
             self.waveform = waveform
         else:
-            self.waveform = Feedback.default_waveform
+            self.waveform = self.default_waveform
         self.upload_waveform()
 
     def set_default(self) -> object:
         for name in self.mapping:
             self.set_parameter(name, self.default_controls[name])
+        self.upload_control()
         return self
     
     def set_parameter(self, name: str, value: int) -> object:
