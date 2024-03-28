@@ -86,7 +86,7 @@ class Turnkey(MCC):
         "soliton_threshold_max": 4608,
         "soliton_threshold_min": 1536,
         "attempts": 1,
-        "approaches": 1,
+        "approaches": 64,
         "coarse_target": 1008,
         "fine_target": 96,
         "coarse_period": 4077,
@@ -196,14 +196,14 @@ class Turnkey(MCC):
 
 class Feedback(MCC):
     default_controls = {
-        "fast_PID_K_P": 0,
-        "fast_PID_K_I": 0,
-        "fast_PID_K_D": 0,
+        "fast_PID_K_P": 256,
+        "fast_PID_K_I": 1024,
+        "fast_PID_K_D": 256,
         "set_address": 0,
         "rate": 8,
-        "slow_PID_K_P": 0,
-        "slow_PID_K_I": 0,
-        "slow_PID_K_D": 0,
+        "slow_PID_K_P": 256,
+        "slow_PID_K_I": 256,
+        "slow_PID_K_D": 256,
         "slow_PID_limit_I": 8192,
         "set_x": 31250000,
         "set_y": 3355,
@@ -363,8 +363,8 @@ class MIM():
         self.mim.set_frontend(2, "1MOhm", "DC", "0dB")
         self.mim.set_output(1, "14dB")
         self.mim.set_output(2, "0dB")
-        self.mim.set_output(3, "0dB")
-        self.mim.set_output(4, "0dB")
+        self.mim.set_output(3, "14dB")
+        self.mim.set_output(4, "14dB")
         if self.logger:
             self.logger.debug("Final steps.")
         self.tk.stop()

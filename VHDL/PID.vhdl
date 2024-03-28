@@ -57,6 +57,8 @@ ENTITY PID IS
     limit_I : IN signed(15 DOWNTO 0);
     limit_D : IN signed(15 DOWNTO 0);
 
+    limit_sum : IN signed(15 DOWNTO 0);
+
     Reset : IN std_logic;
     Clk : IN std_logic
   );
@@ -67,6 +69,8 @@ ARCHITECTURE bhvr OF PID IS
   SIGNAL last_error : signed(15 DOWNTO 0) := x"0000";
   SIGNAL difference : signed(15 DOWNTO 0);
   SIGNAL sum : signed(15 DOWNTO 0);
+
+  SIGNAL buf_sum : signed(17 DOWNTO 0);
 
   SIGNAL P : signed(word_length(gain_P) - 1 DOWNTO 0) := (OTHERS => '0');
   SIGNAL I : signed(word_length(gain_I) - 1 DOWNTO 0) := (OTHERS => '0');
@@ -130,7 +134,12 @@ BEGIN
   reg_D <= limit_D & (word_length(gain_D) - 17 DOWNTO 0 => '0') WHEN buf_D > limit_D & (word_length(gain_D) - 17 DOWNTO 0 => '0') ELSE
           -limit_D & (word_length(gain_D) - 17 DOWNTO 0 => '0') WHEN buf_D < -limit_D & (word_length(gain_D) - 17 DOWNTO 0 => '0') ELSE
           buf_D;
-  sum <= P(word_length(gain_P) - 1 DOWNTO word_length(gain_P) - 16) + I(word_length(gain_I) - 1 DOWNTO word_length(gain_I) - 16) + D(word_length(gain_D) - 1 DOWNTO word_length(gain_D) - 16); -- this should not overflow in a normal operation
+
+  buf_sum <= ("00" & P(word_length(gain_P) - 1 DOWNTO word_length(gain_P) - 16)) + ("00" & I(word_length(gain_I) - 1 DOWNTO word_length(gain_I) - 16)) + ("00" & D(word_length(gain_D) - 1 DOWNTO word_length(gain_D) - 16)); -- this should not overflow in a normal operation
+
+  sum <= limit_sum WHEN buf_sum > ("00" & limit_sum) ELSE
+          -limit_sum WHEN buf_sum < -("00" & limit_sum) ELSE
+          buf_sum(15 DOWNTO 0);
 
   Test <= I(word_length(gain_I) - 1 DOWNTO word_length(gain_I) - 16);
 

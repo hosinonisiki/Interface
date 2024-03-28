@@ -187,7 +187,7 @@ class Interface():
 
         self.fpga_connection_entry = ttk.Entry(self.fpga_frame, width = 20)
         self.fpga_connection_entry.place(x = 20, y = 20, anchor = tk.NW)
-        self.fpga_connection_entry.insert(0, "[fe80::7269:79ff:feb0:6d2]")
+        self.fpga_connection_entry.insert(0, "[fe80::1208:2cff:fe69:6870]")
         self.fpga_connection_entry.bind("<Return>", lambda event:self.fpga_connection_button_onclick())
         
         self.fpga_connection_button = ttk.Button(self.fpga_frame, text = "Submit", command = self.fpga_connection_button_onclick)

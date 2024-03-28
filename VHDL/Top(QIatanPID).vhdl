@@ -79,9 +79,11 @@ BEGIN
         K_I => signed(Control1(15 DOWNTO 0)),
         K_D => signed(Control2(31 DOWNTO 16)),
 
-        limit_P => x"2000",
-        limit_I => x"2000",
-        limit_D => x"2000",
+        limit_P => x"6800",
+        limit_I => x"6800",
+        limit_D => x"6800",
+
+        limit_sum => x"7FFF",
 
         Reset => Control0(0),
         Clk => Clk
@@ -102,9 +104,11 @@ BEGIN
         K_I => signed(Control3(15 DOWNTO 0)),
         K_D => signed(Control4(31 DOWNTO 16)),
 
-        limit_P => x"2000",
+        limit_P => x"6800",
         limit_I => signed(Control4(15 DOWNTO 0)),
-        limit_D => x"2000",
+        limit_D => x"6800",
+
+        limit_sum => x"7FFF",
 
         Reset => Control0(0),
         Clk => Clk

@@ -63,13 +63,15 @@ ENTITY turnkey IS
         PID_limit_P : IN signed(15 DOWNTO 0);
         PID_limit_I : IN signed(15 DOWNTO 0);
         PID_limit_D : IN signed(15 DOWNTO 0);
+        
+        PID_limit_sum : IN signed(15 DOWNTO 0);
 
         PID_lock : IN std_logic;
 
         input_gain : IN signed(7 DOWNTO 0);
         output_gain : IN signed(7 DOWNTO 0);
 
-        offset_voltage : IN signed(15 DOWNTO 0);
+        manual_offset : IN signed(15 DOWNTO 0);
 
         Clk : IN std_logic;
         Reset : IN std_logic;
@@ -163,6 +165,7 @@ BEGIN
                             -- set
                             soliton_detected <= '0';
                             MI_detected <= '0';
+                            soliton_failure <= '0';
                             platform_voltage <= max_voltage; --
                             attempt_counter <= x"00";
                             approach_counter <= x"01";
@@ -244,7 +247,7 @@ BEGIN
                                 amplitude_accum <= amplitude_accum + LUT_slp_mul_prd(next_segment - 1) + (x"0000" & period);
                             END IF;
                             period_counter <= period_counter + x"000001";
-                            period_accum <= period_accum + x"000000" & amplitude;
+                            period_accum <= period_accum + (x"000000" & amplitude);
                         END IF;
                         IF sign = '1' THEN
                             output_voltage <= offset_voltage - signed(amplitude_counter);
@@ -386,6 +389,8 @@ BEGIN
         limit_I => PID_limit_I,
         limit_D => PID_limit_D,
 
+        limit_sum => PID_limit_sum,
+
         Reset => PID_reset,
         Clk => Clk
     );
@@ -404,6 +409,7 @@ BEGIN
     END PROCESS;
 
     -- Test <= PID_control;
-    scanning_voltage <= output_voltage + offset_voltage + PID_control WHEN current_state = longterm AND PID_lock = '0' ELSE
-                        output_voltage + offset_voltage;
+    -- limit wrapping around
+    scanning_voltage <= output_voltage + manual_offset + PID_control WHEN current_state = longterm AND PID_lock = '0' ELSE
+                        output_voltage + manual_offset;
 END bhvr;
