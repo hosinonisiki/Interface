@@ -100,7 +100,9 @@ BEGIN
             P <= (OTHERS => '0');
             I <= (OTHERS => '0');
             D <= (OTHERS => '0');
-            last_error <= x"0000";
+            buf_P <= (OTHERS => '0');
+            buf_I <= (OTHERS => '0');
+            buf_D <= (OTHERS => '0');
         ELSE
             P <= reg_P;
             I <= reg_I;
@@ -108,8 +110,8 @@ BEGIN
             buf_P <= reg_buf_P;
             buf_I <= reg_buf_I;
             buf_D <= reg_buf_D;
-            last_error <= error;
         END IF;
+        last_error <= error;
         error <= actual - setpoint;
         difference <= error - last_error;
         control <= sum;
@@ -135,7 +137,7 @@ BEGIN
           -limit_D & (word_length(gain_D) - 17 DOWNTO 0 => '0') WHEN buf_D < -limit_D & (word_length(gain_D) - 17 DOWNTO 0 => '0') ELSE
           buf_D;
 
-  buf_sum <= ("00" & P(word_length(gain_P) - 1 DOWNTO word_length(gain_P) - 16)) + ("00" & I(word_length(gain_I) - 1 DOWNTO word_length(gain_I) - 16)) + ("00" & D(word_length(gain_D) - 1 DOWNTO word_length(gain_D) - 16)); -- this should not overflow in a normal operation
+  buf_sum <= ((1 DOWNTO 0 => P(word_length(gain_P) - 1)) & P(word_length(gain_P) - 1 DOWNTO word_length(gain_P) - 16)) + ((1 DOWNTO 0 => I(word_length(gain_I) - 1)) & I(word_length(gain_I) - 1 DOWNTO word_length(gain_I) - 16)) + ((1 DOWNTO 0 => D(word_length(gain_D) - 1)) & D(word_length(gain_D) - 1 DOWNTO word_length(gain_D) - 16)); -- this should not overflow in a normal operation
 
   sum <= limit_sum WHEN buf_sum > ("00" & limit_sum) ELSE
           -limit_sum WHEN buf_sum < -("00" & limit_sum) ELSE
