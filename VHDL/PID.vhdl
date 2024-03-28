@@ -26,7 +26,6 @@ USE Moku.Support.ALL;
 
 USE work.MyPak_PID.ALL;
 
--- todo : limit sum instead of individual components
 ENTITY PID IS
   GENERIC(
     gain_P : INTEGER := 8;

@@ -8,9 +8,6 @@ import numpy as np
 import threading
 import time
 
-
-
-# todo : clamping knob
 class ClampingKnob(tk.Canvas):
     def __init__(self, master = None, image_path = None, size = None, value_step = 1, step = 36, resistance = 1.5, lag = 0.5, value = 0, on_spin = None, max = np.inf, min = -np.inf, **kw):
         super().__init__(master, width = size + 2, height = size + 2, **kw)
@@ -102,7 +99,6 @@ class UnclampingKnob(tk.Canvas):
         return self.value
 
     def draw(self):
-        #self.delete("all")
         self.image_tk = ImageTk.PhotoImage(self.image.rotate(-self.knob_angle))
         self.create_image(self.size / 2 + 2, self.size / 2 + 2, image = self.image_tk, anchor = tk.CENTER)
 
@@ -170,11 +166,11 @@ class KnobFrame(tk.Frame):
 if __name__ == "__main__":
     root = tk.Tk()
     root.geometry("220x280")
-    knob = KnobFrame(root, "icons/knob.png", 100, name = "Manual offset", scale = 0.167, unit = "mV", relief = tk.GROOVE, borderwidth = 2)
-    knob.knob.value_step = 1
+    knob = KnobFrame(root, "icons/knob.png", 100, name = "Manual offset", scale = 0.334, unit = "mV", relief = tk.GROOVE, borderwidth = 2)
+    knob.knob.value_step = 30
     knob.knob.on_spin = knob.update
-    knob.knob.max = 20
-    knob.knob.min = -20
+    knob.knob.max = 32767
+    knob.knob.min = -32767
     knob.place(x = 50, y = 50)
     knob.update()
     

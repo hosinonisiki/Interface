@@ -10,6 +10,7 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 BEGIN
 
     -- todo : dynamic PID hardware gain
+    -- todo : find frequency from phase error
     DUT1 : ENTITY WORK.AWG PORT MAP(
         frequency_bias => unsigned(Control7(31 DOWNTO 16)),
 

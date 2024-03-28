@@ -23,7 +23,7 @@ def characteristic(waveform: list[float]) -> float:
 # todo: add a thread to constantly check the connection to FPGA
 # todo: better analyzing algorithm for the temperature setpoint
 # todo: control the states of knobs
-# todo: update labels when setting knob zero
+# todo: provide guis to mim.fb
 
 # maybe move to moku:go?
 # change to datalogger for gathering data
@@ -125,8 +125,6 @@ class Interface():
         self.setup_found = False
 
         # other initializations
-
-        self.knob_panel = None
 
         # Top class utilities
         
@@ -544,12 +542,13 @@ class Interface():
             self.knob_panel.geometry("800x600")
             self.knob_panel.protocol("WM_DELETE_WINDOW", self.knob_panel_onclose)
 
-            self.manual_offset_knob = custom_widgets.KnobFrame(self.knob_panel, image_path = "icons/knob.png", size = 100, name = "Manual offset", scale = 0.167, unit = "mV")
+            self.manual_offset_knob = custom_widgets.KnobFrame(self.knob_panel, image_path = "icons/knob.png", size = 100, name = "Manual offset", scale = 0.334, unit = "mV")
             self.manual_offset_knob.place(x = 10, y = 10, anchor = tk.NW)
             self.manual_offset_knob.knob.set_value(self.mim.tk.get_parameter("manual_offset"))
             self.manual_offset_knob.knob.on_spin = self.manual_offset_knob_onspin
             self.manual_offset_knob.knob.max = 32767
             self.manual_offset_knob.knob.min = -32767
+            self.manual_offset_knob.knob.value_step = 30
             print(self.manual_offset_knob.knob.on_spin)
         except Exception as e:
             self.logger.error("%s"%e.__repr__())
@@ -613,8 +612,9 @@ class Interface():
                     self.information["text"] = "Started generation for single soliton."
                     self.fpga_state = self.FPGA_STATE_BUSY
                     self.soliton_state = self.SOLITON_STATE_ON
-                    if self.knob_panel != None and self.knob_panel.winfo_exists():
+                    if self.knob_panel_state ==  self.KNOB_PANEL_STATE_ON:
                         self.manual_offset_knob.knob.set_value(0)
+                        self.manual_offset_knob.update()
         return
     
     def command_locktemp_button_onclick(self) -> None:
@@ -750,6 +750,7 @@ class Interface():
                     self.sweeping_state = self.SWEEPING_STATE_ON
                     if self.knob_panel != None and self.knob_panel.winfo_exists():
                         self.manual_offset_knob.knob.set_value(0)
+                        self.manual_offset_knob.update()
         return
     
     def command_powerlock_button_onclick(self) -> None:

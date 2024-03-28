@@ -220,28 +220,28 @@ class Feedback(MCC):
         "set": 1
     } # {<name>:<value>}
     mapping = {
-        "fast_PID_K_P": {"index": 1, "high": 31, "low": 16},
-        "fast_PID_K_I": {"index": 1, "high": 15, "low": 0},
-        "fast_PID_K_D": {"index": 2, "high": 31, "low": 16},
-        "set_address": {"index": 2, "high": 7, "low": 4},
+        "fast_PID_K_P": {"index": 1, "high": 31, "low": 16}, # open to user
+        "fast_PID_K_I": {"index": 1, "high": 15, "low": 0}, # open to user
+        "fast_PID_K_D": {"index": 2, "high": 31, "low": 16}, # open to user
+        "set_address": {"index": 2, "high": 7, "low": 4}, # open to user with encapsulation
         "rate": {"index": 2, "high": 3, "low": 0},
-        "slow_PID_K_P": {"index": 3, "high": 31, "low": 16},
-        "slow_PID_K_I": {"index": 3, "high": 15, "low": 0},
-        "slow_PID_K_D": {"index": 4, "high": 31, "low": 16},
-        "slow_PID_limit_I": {"index": 4, "high": 15, "low": 0},
-        "set_x": {"index": 5, "high": 31, "low": 0},
-        "set_y": {"index": 6, "high": 31, "low": 16},
-        "set_slope": {"index": 6, "high": 15, "low": 0},
-        "frequency_bias": {"index": 7, "high": 31, "low": 16},
+        "slow_PID_K_P": {"index": 3, "high": 31, "low": 16}, # open to user
+        "slow_PID_K_I": {"index": 3, "high": 15, "low": 0}, # open to user
+        "slow_PID_K_D": {"index": 4, "high": 31, "low": 16}, # open to user
+        "slow_PID_limit_I": {"index": 4, "high": 15, "low": 0}, # open to user
+        "set_x": {"index": 5, "high": 31, "low": 0}, # open to user with encapsulation
+        "set_y": {"index": 6, "high": 31, "low": 16}, # open to user with encapsulation
+        "set_slope": {"index": 6, "high": 15, "low": 0}, # open to user with encapsulation
+        "frequency_bias": {"index": 7, "high": 31, "low": 16}, # open to user
         "amplitude": {"index": 7, "high": 15, "low": 0},
-        "PID_Reset": {"index": 0, "high": 0, "low": 0},
-        "LO_Reset": {"index": 0, "high": 1, "low": 1},
-        "set_sign": {"index": 0, "high": 2, "low": 2},
-        "initiate": {"index": 0, "high": 3, "low": 3},
-        "periodic": {"index": 0, "high": 4, "low": 4},
-        "prolong": {"index": 0, "high": 5, "low": 5},
-        "lock_mode": {"index": 0, "high": 6, "low": 6},
-        "set": {"index": 0, "high": 7, "low": 7}
+        "PID_Reset": {"index": 0, "high": 0, "low": 0}, # open to user with turnkey
+        "LO_Reset": {"index": 0, "high": 1, "low": 1}, # open to user with turnkey
+        "set_sign": {"index": 0, "high": 2, "low": 2}, # open to user with encapsulation
+        "initiate": {"index": 0, "high": 3, "low": 3}, # open to user with encapsulation
+        "periodic": {"index": 0, "high": 4, "low": 4}, # open to user with encapsulation
+        "prolong": {"index": 0, "high": 5, "low": 5}, # open to user with encapsulation
+        "lock_mode": {"index": 0, "high": 6, "low": 6}, # will be deprecated
+        "set": {"index": 0, "high": 7, "low": 7} # open to user with encapsulation
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
     default_waveform = [
         {"sign": 0, "x": 31250000, "y": 3355, "slope": 0}
@@ -340,10 +340,10 @@ class MIM():
         self.tk.set_default()
         if self.logger:
             self.logger.debug("Creating feedback.")
-        self.feedback = Feedback(self.mim.set_instrument(3, instruments.CloudCompile, bitstream = "bitstreams/feedback.tar.gz"))
+        self.fb = Feedback(self.mim.set_instrument(3, instruments.CloudCompile, bitstream = "bitstreams/feedback.tar.gz"))
         if self.logger:
             self.logger.debug("Initializing feedback.")
-        self.feedback.set_default()
+        self.fb.set_default()
         if self.logger:
             self.logger.debug("Creating oscilloscope.")
         self.osc = self.mim.set_instrument(4, instruments.Oscilloscope)
