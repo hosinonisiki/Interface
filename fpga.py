@@ -104,7 +104,7 @@ class Turnkey(MCC):
         "PID_limit_I": 8192,
         "PID_limit_D": 8192,
         "input_gain": 16, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
-        "output_gain": 16, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
+        "output_gain": 32, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
         "manual_offset": 0,
         "Reset": 0
     } # {<name>:<value>}
