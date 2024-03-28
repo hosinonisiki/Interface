@@ -5,3 +5,5 @@ bitstreams/
 compiled/
 
 tb & tests/
+
+*.bat
