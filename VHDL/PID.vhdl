@@ -21,9 +21,6 @@ LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.Numeric_std.ALL;
 
-LIBRARY Moku;
-USE Moku.Support.ALL;
-
 USE work.MyPak_PID.ALL;
 
 ENTITY PID IS

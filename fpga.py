@@ -199,6 +199,9 @@ class Feedback(MCC):
         "fast_PID_K_P": 256,
         "fast_PID_K_I": 1024,
         "fast_PID_K_D": 256,
+        "monitorC": 0,
+        "monitorD": 1,
+        "segments_enabled": 0,
         "set_address": 0,
         "rate": 8,
         "slow_PID_K_P": 256,
@@ -223,6 +226,9 @@ class Feedback(MCC):
         "fast_PID_K_P": {"index": 1, "high": 31, "low": 16}, # open to user
         "fast_PID_K_I": {"index": 1, "high": 15, "low": 0}, # open to user
         "fast_PID_K_D": {"index": 2, "high": 31, "low": 16}, # open to user
+        "monitorC" : {"index": 2, "high": 15, "low": 14},
+        "monitorD" : {"index": 2, "high": 13, "low": 12},
+        "segments_enabled": {"index": 2, "high": 11, "low": 8}, # open to user with encapsulation
         "set_address": {"index": 2, "high": 7, "low": 4}, # open to user with encapsulation
         "rate": {"index": 2, "high": 3, "low": 0},
         "slow_PID_K_P": {"index": 3, "high": 31, "low": 16}, # open to user

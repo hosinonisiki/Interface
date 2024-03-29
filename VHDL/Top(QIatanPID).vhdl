@@ -11,7 +11,6 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 BEGIN
 
     -- todo : dynamic PID hardware gain
-    -- todo : find frequency from phase error
     DUT1 : ENTITY WORK.AWG PORT MAP(
         frequency_bias => unsigned(Control7(31 DOWNTO 16)),
 
@@ -21,7 +20,7 @@ BEGIN
         set_slope => unsigned(Control6(15 DOWNTO 0)),
         set_address => unsigned(Control2(7 DOWNTO 4)),
         set => Control0(7),
-        segments_enabled => x"0",
+        segments_enabled => unsigned(Control2(11 DOWNTO 8)),
         initiate => Control0(3),
         periodic => Control0(4),
         prolong => Control0(5),
@@ -54,8 +53,6 @@ BEGIN
         output => phase, -- positive phase angle indicates a negative init phase in input signal
         Clk => Clk
     );
-
-    OutputC <= phase;
     
     DUT7 : ENTITY WORK.phase2freq PORT MAP(
         phase => phase,
@@ -64,8 +61,6 @@ BEGIN
         Clk => Clk,
         Reset => Reset
     );
-
-    OutputD <= freq;
 
     lock_mode <= Control0(6); -- 0: phase lock, 1: frequency lock
 
@@ -124,4 +119,15 @@ BEGIN
         Reset => Control0(0),
         Clk => Clk
     );
+
+    -- monitor
+    OutputC <= phase WHEN Control2(15 DOWNTO 14) = "00" ELSE
+                freq WHEN Control2(15 DOWNTO 14) = "01" ELSE
+                I WHEN Control2(15 DOWNTO 14) = "10" ELSE
+                Q;
+
+    OutputD <= phase WHEN Control2(13 DOWNTO 12) = "00" ELSE
+                freq WHEN Control2(13 DOWNTO 12) = "01" ELSE
+                I WHEN Control2(13 DOWNTO 12) = "10" ELSE
+                Q;
 END bhvr;
