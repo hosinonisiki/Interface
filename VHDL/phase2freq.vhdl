@@ -5,7 +5,8 @@ USE IEEE.Numeric_std.ALL;
 ENTITY phase2freq IS
     GENERIC(
         tap : INTEGER := 256;
-        logtap : INTEGER := 8
+        logtap : INTEGER := 8;
+        gain : INTEGER := 10 -- range +- 156.25MHz / 1024 = +- 152.59kHz, step 152.59kHz / 65536 = 2.33Hz
     );
     PORT(
         phase : IN signed(15 DOWNTO 0);
@@ -32,12 +33,16 @@ BEGIN
         IF rising_edge(Clk) THEN
             diffrence <= phase - last_phase;
             last_phase <= phase;
-            freq <= frequency;
+            IF gain <= logtap THEN
+              freq <= frequency_avg(15 + logtap) & frequency_avg(14 + logtap - gain DOWNTO logtap - gain);
+            ELSE
+              freq <= frequency_avg(15 + logtap) & frequency_avg(14 + logtap - gain DOWNTO 0) & (gain - logtap - 1 DOWNTO 0 => '0');
+            END IF;
         END IF;
     END PROCESS;
 
-    frequency <= diffrence IF diffrence < 8192 AND diffrence > -8192
-                    ELSE frequency_avg(15 + logtap DOWNTO logtap);
+    frequency <= diffrence WHEN diffrence < 16384 AND diffrence > -16384 ELSE 
+                  frequency_avg(15 + logtap DOWNTO logtap);
 
     PROCESS(Clk)
     BEGIN

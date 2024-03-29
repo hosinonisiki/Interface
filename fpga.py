@@ -91,8 +91,8 @@ class Turnkey(MCC):
         "fine_target": 96,
         "coarse_period": 4077,
         "fine_period": 20385,
-        "stab_target": 480,
-        "stab_period": 10192,
+        "stab_target": 2048,
+        "stab_period": 2548,
         "floor": 65472,
         "PID_K_P": 65280,
         "PID_K_I": 57088,
@@ -216,7 +216,7 @@ class Feedback(MCC):
         "initiate": 1,
         "periodic": 1,
         "prolong": 0,
-        "lock_mode": 0,
+        "lock_mode": 1,
         "set": 1
     } # {<name>:<value>}
     mapping = {

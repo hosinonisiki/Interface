@@ -3,6 +3,7 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL I,Q : signed(15 DOWNTO 0);
     SIGNAL MyClk : std_logic;
     SIGNAL phase : signed(15 DOWNTO 0);
+    SIGNAL freq : signed(15 DOWNTO 0);
 
     SIGNAL error : signed(15 DOWNTO 0);
 
@@ -55,20 +56,29 @@ BEGIN
     );
 
     OutputC <= phase;
-    OutputD <= I;
+    
+    DUT7 : ENTITY WORK.phase2freq PORT MAP(
+        phase => phase,
+        freq => freq,
+      
+        Clk => Clk,
+        Reset => Reset
+    );
+
+    OutputD <= freq;
 
     lock_mode <= Control0(6); -- 0: phase lock, 1: frequency lock
 
     error <= phase WHEN lock_mode = '0' ELSE
-                I;
+                freq;
     
     -- fast PID
     DUT5 : ENTITY WORK.PID GENERIC MAP(
         -- tunable range 32768 times
         -- PI corner at 30Hz - 6kHz, set default PI corner at 759Hz(16 bit)
         -- PD corner at 200kHz - 2MHz, set default PD corner at 777kHz(6 bit)
-        gain_P => 4,
-        gain_I => -12,
+        gain_P => 8,
+        gain_I => -8,
         gain_D => 10
     )PORT MAP(
         actual => error,
@@ -92,8 +102,8 @@ BEGIN
     -- slow PID
     DUT6 : ENTITY WORK.PID GENERIC MAP(
         -- PI corner at 650mHz(26 bit)
-        gain_P => 6,
-        gain_I => -20,
+        gain_P => 10,
+        gain_I => -16,
         gain_D => 0
     )PORT MAP(
         actual => error,

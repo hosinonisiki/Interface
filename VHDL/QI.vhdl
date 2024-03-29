@@ -19,7 +19,6 @@ ARCHITECTURE bhvr OF QI_demodulator IS
     SIGNAL bufI2 : signed(15 DOWNTO 0);
     SIGNAL bufQ2 : signed(15 DOWNTO 0);
 BEGIN
-    -- 两路参考，两路混合，两路滤波
     Process(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
