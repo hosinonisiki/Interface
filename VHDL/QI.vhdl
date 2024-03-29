@@ -14,8 +14,10 @@ END QI_demodulator;
 ARCHITECTURE bhvr OF QI_demodulator IS
     SIGNAL mixerI : signed(31 DOWNTO 0);
     SIGNAL mixerQ : signed(31 DOWNTO 0);
-    SIGNAL bufI : signed(23 DOWNTO 0);
-    SIGNAL bufQ : signed(23 DOWNTO 0);
+    SIGNAL bufI1 : signed(15 DOWNTO 0);
+    SIGNAL bufQ1 : signed(15 DOWNTO 0);
+    SIGNAL bufI2 : signed(15 DOWNTO 0);
+    SIGNAL bufQ2 : signed(15 DOWNTO 0);
 BEGIN
     -- 两路参考，两路混合，两路滤波
     Process(Clk)
@@ -23,25 +25,43 @@ BEGIN
         IF rising_edge(Clk) THEN
             mixerI <= input * ref;
             mixerQ <= input * ref_shift;
-            I <= bufI(23 DOWNTO 8);
-            Q <= bufQ(23 DOWNTO 8);
+            I <= bufI2;
+            Q <= bufQ2;
         END IF;
     END PROCESS;
-    LPF_I : ENTITY WORK.FIR_lowpass(bhvr) GENERIC MAP(
-        output_length => 24
+    LPF_I1 : ENTITY WORK.FIR_lowpass(bhvr) GENERIC MAP(
+        output_length => 16
     )
     PORT MAP(
         input => mixerI(31 DOWNTO 16),
-        output => bufI,
+        output => bufI1,
         Clk => Clk,
         Reset => Reset
     );
-    LPF_Q : ENTITY WORK.FIR_lowpass(bhvr) GENERIC MAP(
-        output_length => 24
+    LPF_Q1 : ENTITY WORK.FIR_lowpass(bhvr) GENERIC MAP(
+        output_length => 16
     )
     PORT MAP(
         input => mixerQ(31 DOWNTO 16),
-        output => bufQ,
+        output => bufQ1,
+        Clk => Clk,
+        Reset => Reset
+    );
+    LPF_I2 : ENTITY WORK.FIR_lowpass(bhvr) GENERIC MAP(
+        output_length => 16
+    )
+    PORT MAP(
+        input => bufI1,
+        output => bufI2,
+        Clk => Clk,
+        Reset => Reset
+    );
+    LPF_Q2 : ENTITY WORK.FIR_lowpass(bhvr) GENERIC MAP(
+        output_length => 16
+    )
+    PORT MAP(
+        input => bufQ1,
+        output => bufQ2,
         Clk => Clk,
         Reset => Reset
     );

@@ -16,6 +16,7 @@ USE IEEE.Numeric_std.ALL;
 USE WORK.MyPak_turnkey.ALL;
 
 -- todo : replace the implement of line state with line entity
+-- todo : replace averaging with an entity
 ENTITY turnkey IS
     GENERIC(
         segments : INTEGER := 3; -- enumerated from 1, but array index starts at 0
