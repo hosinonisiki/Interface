@@ -219,7 +219,7 @@ class Feedback(MCC):
         "initiate": 1,
         "periodic": 1,
         "prolong": 0,
-        "lock_mode": 1,
+        "lock_mode": 2,
         "set": 1
     } # {<name>:<value>}
     mapping = {
@@ -246,7 +246,7 @@ class Feedback(MCC):
         "initiate": {"index": 0, "high": 3, "low": 3}, # open to user with encapsulation
         "periodic": {"index": 0, "high": 4, "low": 4}, # open to user with encapsulation
         "prolong": {"index": 0, "high": 5, "low": 5}, # open to user with encapsulation
-        "lock_mode": {"index": 0, "high": 6, "low": 6}, # will be deprecated
+        "lock_mode": {"index": 0, "high": 9, "low": 8}, # will be deprecated
         "set": {"index": 0, "high": 7, "low": 7} # open to user with encapsulation
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
     default_waveform = [

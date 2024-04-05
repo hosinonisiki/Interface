@@ -133,16 +133,22 @@ BEGIN
             Q <= bufQ2;
         END IF;
     END PROCESS;
-    LPF_I1 : ENTITY WORK.FIR_10M PORT MAP(
+    LPF_I1 : ENTITY  WORK.IIR_3SLA_4th_order GENERIC MAP(
+        coefX => (x"0D61CD428E1", x"020F1087D03", x"0507946A096", x"D577A3C0435", x"03239774DF3", x"FB00CB6A1C2", x"3ABE3B5B723", x"F69BFE4FD0E", x"FEBA40478DB", x"D92F6CF77F2", x"067794595B2", x"03839BA6033", x"0B7F4DAF280"),
+        coefY => (x"3C5BCE285C0", x"AA83F3F0C70", x"35DDEADBEE0", x"F3421C74039")
+    )PORT MAP(
         input => mixerI(31 DOWNTO 16),
         output => bufI2,
-        Clk => Clk,
-        Reset => Reset
+        Reset => Reset,
+        Clk => Clk
     );
-    LPF_Q1 : ENTITY WORK.FIR_10M PORT MAP(
+    LPF_Q1 : ENTITY WORK.IIR_3SLA_4th_order GENERIC MAP(
+        coefX => (x"0D61CD428E1", x"020F1087D03", x"0507946A096", x"D577A3C0435", x"03239774DF3", x"FB00CB6A1C2", x"3ABE3B5B723", x"F69BFE4FD0E", x"FEBA40478DB", x"D92F6CF77F2", x"067794595B2", x"03839BA6033", x"0B7F4DAF280"),
+        coefY => (x"3C5BCE285C0", x"AA83F3F0C70", x"35DDEADBEE0", x"F3421C74039")
+    )PORT MAP(
         input => mixerQ(31 DOWNTO 16),
         output => bufQ2,
-        Clk => Clk,
-        Reset => Reset
+        Reset => Reset,
+        Clk => Clk
     );
 END newer;

@@ -7,7 +7,7 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL error : signed(15 DOWNTO 0);
 
-    SIGNAL lock_mode : std_logic;
+    SIGNAL lock_mode : std_logic_vector(1 DOWNTO 0);
 BEGIN
 
     -- todo : dynamic PID hardware gain
@@ -38,7 +38,7 @@ BEGIN
         rate => unsigned(Control2(3 DOWNTO 0)), -- bandpass below 9.8MHz
         MyClk => MyClk
     );
-    DUT3 : ENTITY WORK.QI_demodulator PORT MAP(
+    DUT3 : ENTITY WORK.QI_demodulator(newer) PORT MAP(
         input => InputA,
         ref => ref,
         ref_shift => ref_shift,
@@ -62,10 +62,12 @@ BEGIN
         Reset => Reset
     );
 
-    lock_mode <= Control0(6); -- 0: phase lock, 1: frequency lock
+    lock_mode <= Control0(9 DOWNTO 8); -- 0: phase lock, 1: frequency lock, 2: mixed signal lock
 
-    error <= phase WHEN lock_mode = '0' ELSE
-                freq;
+    error <= phase WHEN lock_mode = "00" ELSE
+                freq WHEN lock_mode = "01" ELSE
+                I WHEN lock_mode = "10" ELSE
+                (OTHERS => '0');
     
     -- fast PID
     DUT5 : ENTITY WORK.PID GENERIC MAP(
@@ -124,10 +126,10 @@ BEGIN
     OutputC <= phase WHEN Control2(15 DOWNTO 14) = "00" ELSE
                 freq WHEN Control2(15 DOWNTO 14) = "01" ELSE
                 I WHEN Control2(15 DOWNTO 14) = "10" ELSE
-                Q;
+                ref;
 
     OutputD <= phase WHEN Control2(13 DOWNTO 12) = "00" ELSE
                 freq WHEN Control2(13 DOWNTO 12) = "01" ELSE
                 I WHEN Control2(13 DOWNTO 12) = "10" ELSE
-                Q;
+                ref;
 END bhvr;

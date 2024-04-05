@@ -3,10 +3,11 @@ USE IEEE.std_logic_1164.ALL;
 USE IEEE.Numeric_std.ALL;
 
 PACKAGE MyPak_IIR IS
-    TYPE signed_vec_20 IS ARRAY(NATURAL RANGE <>) OF signed(19 DOWNTO 0);
-    TYPE signed_vec_24 IS ARRAY(NATURAL RANGE <>) OF signed(23 DOWNTO 0);
-    TYPE signed_vec_36 IS ARRAY(NATURAL RANGE <>) OF signed(35 DOWNTO 0);
+    TYPE signed_vec_16 IS ARRAY(NATURAL RANGE <>) OF signed(15 DOWNTO 0);
     TYPE signed_vec_44 IS ARRAY(NATURAL RANGE <>) OF signed(43 DOWNTO 0);
+    TYPE signed_vec_48 IS ARRAY(NATURAL RANGE <>) OF signed(47 DOWNTO 0);
+    TYPE signed_vec_60 IS ARRAY(NATURAL RANGE <>) OF signed(59 DOWNTO 0);
+    TYPE signed_vec_88 IS ARRAY(NATURAL RANGE <>) OF signed(87 DOWNTO 0);
 END MyPak_IIR;
 
 LIBRARY IEEE;
@@ -22,10 +23,10 @@ ENTITY IIR_3SLA_4th_order IS
         -- internal word length is 20
         -- y[n] = b0*x[n] + b1*x[n-1] + b2*x[n-2] + b3*x[n-3] + b4*x[n-4]
         --      + a1*y[n-1] + a2*y[n-2] + a3*y[n-3] + a4*y[n-4]
-        -- y[n] actually depends on x[n] ~ x[n-6] and y[n-3] ~ y[n-6], cuz a 2 clocks delay is introduced by the multipliers
-        -- for how to derive the coefficients, refer to my diagram on draw.io
-        coefX : signed_vec_20(0 TO 6); -- ranges from -1 to 1, setting 2 ** 19 as 1
-        coefY : signed_vec_20(0 TO 3) -- ranges from -64 to 64, setting 2 ** 13 as 1
+        -- y[n] actually depends on x[n] ~ x[n-12] and y[n-3] ~ y[n-12]
+        -- for how to derive the coefficients, refer to the python program
+        coefX : signed_vec_44(0 TO 12); -- ranges from -1 to 1, setting 2 ** 19 as 1
+        coefY : signed_vec_44(0 TO 3) -- ranges from -8 to 8, setting 2 ** 16 as 1
     );
     PORT(
         input : IN signed(15 DOWNTO 0);
@@ -38,57 +39,51 @@ END IIR_3SLA_4th_order;
 
 ARCHITECTURE bhvr OF IIR_3SLA_4th_order IS
     SIGNAL X : signed(15 DOWNTO 0);
-    SIGNAL Y : signed(23 DOWNTO 0);
-    SIGNAL result : signed(23 DOWNTO 0);
+    SIGNAL bufX : signed(31 DOWNTO 0);
+    SIGNAL Y : signed(43 DOWNTO 0);
+    SIGNAL result : signed(43 DOWNTO 0);
 
-    SIGNAL productX : signed_vec_20(0 TO 6);
-    SIGNAL reg_productX : signed_vec_36(0 TO 6);
+    SIGNAL productX : signed_vec_44(0 TO 12);
+    SIGNAL reg_productX : signed_vec_60(0 TO 12);
     -- suppose no more than 16 products are summed up
-    SIGNAL sumX : signed_vec_20(0 TO 6);
-    SIGNAL reg_sumX : signed_vec_20(0 TO 6);
+    SIGNAL sumX : signed_vec_44(0 TO 12);
+    SIGNAL reg_sumX : signed_vec_44(0 TO 12);
 
-    SIGNAL productY : signed_vec_24(0 TO 3);
-    SIGNAL reg_productY : signed_vec_44(0 TO 3);
-    SIGNAL sumY : signed_vec_24(0 TO 3);
-    SIGNAL reg_sumY : signed_vec_24(0 TO 3);
+    SIGNAL productY : signed_vec_48(0 TO 3);
+    SIGNAL reg_productY : signed_vec_88(0 TO 3);
+    SIGNAL sumY : signed_vec_48(0 TO 9);
+    SIGNAL reg_sumY : signed_vec_48(0 TO 9);
 BEGIN
     PROCESS(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
-            X <= input;
+            bufX <= input * x"7B96";
+            X <= bufX(31) & bufX(29 DOWNTO 15);
             Y <= result;
-            sumX(6) <= reg_sumX(6);
-            sumY(3) <= reg_sumY(3);
-
-            output <= result(23 DOWNTO 8);
+            output <= result(43 DOWNTO 28) + ((14 DOWNTO 0 => '0') & result(27));
         END IF;
     END PROCESS;
 
-    Xend : FOR i IN 0 TO 6 GENERATE
+    Xend : FOR i IN 0 TO 12 GENERATE
         PROCESS(Clk)
         BEGIN
             IF rising_edge(Clk) THEN
-                productX(i) <= ((3 DOWNTO 0 => reg_productX(i)(35)) & reg_productX(i)(35 DOWNTO 20));
+                productX(i) <= ((8 DOWNTO 0 => reg_productX(i)(59)) & reg_productX(i)(59 DOWNTO 25)) + ((42 DOWNTO 0 => '0') & reg_productX(i)(24));
+                sumX(i) <= reg_sumX(i);
             END IF;
         END PROCESS;
         reg_productX(i) <= coefX(i) * X WHEN Reset = '0' ELSE (OTHERS => '0');
-        Xsum : IF i /= 6 GENERATE
-            PROCESS(Clk)
-            BEGIN
-                IF rising_edge(Clk) THEN
-                    sumX(i) <= reg_sumX(i);
-                END IF;
-            END PROCESS;
+        Xsum : IF i /= 12 GENERATE
             reg_sumX(i) <= sumX(i + 1) + productX(i);
         END GENERATE Xsum;
     END GENERATE Xend;
-    reg_sumX(6) <= productX(6) WHEN Reset = '0' ELSE (OTHERS => '0');
+    reg_sumX(12) <= productX(12) WHEN Reset = '0' ELSE (OTHERS => '0');
 
     Yend : FOR i IN 0 TO 3 GENERATE
         PROCESS(Clk)
         BEGIN
             IF rising_edge(Clk) THEN
-                productY(i) <= reg_productY(i)(43) & reg_productY(i)(36 DOWNTO 14);
+                productY(i) <= reg_productY(i)(87 DOWNTO 40) + ((46 DOWNTO 0 => '0') & reg_productY(i)(39));
             END IF;
         END PROCESS;
         reg_productY(i) <= coefY(i) * Y WHEN Reset = '0' ELSE (OTHERS => '0');
@@ -96,13 +91,23 @@ BEGIN
             PROCESS(Clk)
             BEGIN
                 IF rising_edge(Clk) THEN
-                    sumY(i) <= reg_sumY(i);
+                    sumY(i * 3) <= reg_sumY(i * 3);
+                    sumY(i * 3 + 1) <= reg_sumY(i * 3 + 1);
+                    sumY(i * 3 + 2) <= reg_sumY(i * 3 + 2);
                 END IF;
             END PROCESS;
-            reg_sumY(i) <= sumY(i + 1) + productY(i);
+            reg_sumY(i * 3) <= sumY(i * 3 + 1) + productY(i);
+            reg_sumY(i * 3 + 1) <= sumY(i * 3 + 2);
+            reg_sumY(i * 3 + 2) <= sumY(i * 3 + 3);
         END GENERATE Ysum;
     END GENERATE Yend;
-    reg_sumY(3) <= productY(3) WHEN Reset = '0' ELSE (OTHERS => '0');
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            sumY(9) <= reg_sumY(9);
+        END IF;
+    END PROCESS;
+    reg_sumY(9) <= productY(3) WHEN Reset = '0' ELSE (OTHERS => '0');
 
-    result <= ((3 DOWNTO 0 => sumX(0)(19)) & sumX(0)) + sumY(0) WHEN Reset = '0' ELSE (OTHERS => '0');
+    result <= sumX(0) + (sumY(0)(47) & sumY(0)(42 DOWNTO 0))  WHEN Reset = '0' ELSE (OTHERS => '0');
 END bhvr;
