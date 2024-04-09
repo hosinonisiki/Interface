@@ -31,7 +31,12 @@ END PID;
 ARCHITECTURE bhvr OF PID IS
     SIGNAL error : signed(15 DOWNTO 0);
     SIGNAL last_error : signed(15 DOWNTO 0) := x"0000";
-    SIGNAL sum : signed(47 DOWNTO 0);
+    SIGNAL buf_sum : signed(47 DOWNTO 0);
+    SIGNAL sum : signed(15 DOWNTO 0);
+
+    SIGNAL buf_K_P : signed(31 DOWNTO 0);
+    SIGNAL buf_K_I : signed(31 DOWNTO 0);
+    SIGNAL buf_K_D : signed(31 DOWNTO 0);
 
     SIGNAL P : signed(47 DOWNTO 0);
     SIGNAL I : signed(47 DOWNTO 0);
@@ -59,21 +64,25 @@ BEGIN
             END IF;
             last_error <= error;
             error <= actual - setpoint;
+            control <= sum;
+            buf_K_P <= K_P;
+            buf_K_I <= K_I;
+            buf_K_D <= K_D;
         END IF;
     END PROCESS PID;    
 
-    reg_P <= K_P * error;
+    reg_P <= buf_K_P * error;
     
-    buf_I <= I + K_I * error;
+    buf_I <= I + buf_K_I * error;
     reg_I <= limit_I WHEN buf_I > limit_I ELSE
                 -limit_I WHEN buf_I < -limit_I ELSE
                 buf_I;
 
-    reg_D <= K_D * (error - last_error);
+    reg_D <= buf_K_D * (error - last_error);
 
-    sum <= P + I + D;
+    buf_sum <= P + I + D;
 
-    control <= limit_sum WHEN sum(47 DOWNTO 16) > (x"0000" & limit_sum) ELSE
-               -limit_sum WHEN sum(47 DOWNTO 16) - x"00000001" < -(x"0000" & limit_sum) ELSE
-               sum(31 DOWNTO 16);
+    sum <= limit_sum WHEN buf_sum(47 DOWNTO 16) > (x"0000" & limit_sum) ELSE
+               -limit_sum WHEN buf_sum(47 DOWNTO 16) - x"00000001" < -(x"0000" & limit_sum) ELSE
+               buf_sum(31 DOWNTO 16);
 END bhvr;
