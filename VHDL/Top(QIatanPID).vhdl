@@ -57,7 +57,7 @@ BEGIN
         Clk => Clk
     );
     
-    DUT7 : ENTITY WORK.phase2freq PORT MAP(
+    DUT7 : ENTITY WORK.phase2freq(noavg) PORT MAP(
         phase => phase,
         freq => freq,
       

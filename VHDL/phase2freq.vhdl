@@ -61,3 +61,24 @@ BEGIN
         END PROCESS;
     END GENERATE avg;
 END bhvr;
+
+ARCHITECTURE noavg OF phase2freq IS
+    SIGNAL last_phase : signed(15 DOWNTO 0);
+    SIGNAL diffrence : signed(15 DOWNTO 0);
+    SIGNAL frequency : signed(15 DOWNTO 0);
+BEGIN
+    -- find direvative of phase
+    -- tackle wrapping of phase
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            diffrence <= phase - last_phase;
+            last_phase <= phase;
+        END IF;
+    END PROCESS;
+
+    frequency <= diffrence WHEN diffrence < 16384 AND diffrence > -16384 ELSE 
+                  frequency;
+
+    freq <= frequency(15) & frequency(14 - gain DOWNTO 0) & (gain - 1 DOWNTO 0 => '0');
+END noavg;
