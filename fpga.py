@@ -100,9 +100,6 @@ class Turnkey(MCC):
         "mode": 0,
         "sweep_period": 404,
         "PID_lock": 1,
-        "PID_limit_P": 8192, # upper limit 10922
-        "PID_limit_I": 8192,
-        "PID_limit_D": 8192,
         "input_gain": 16, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
         "output_gain": 32, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
         "manual_offset": 0,
@@ -130,15 +127,12 @@ class Turnkey(MCC):
         "stab_target": {"index": 9, "high": 15, "low": 0},
         "stab_period": {"index": 10, "high": 31, "low": 16}, 
         "floor": {"index": 10, "high": 15, "low": 0},
-        "PID_K_P": {"index": 11, "high": 31, "low": 16},
-        "PID_K_I": {"index": 11, "high": 15, "low": 0},
-        "PID_K_D": {"index": 12, "high": 31, "low": 16},
+        "PID_K_P": {"index": 11, "high": 31, "low": 0},
+        "PID_K_I": {"index": 12, "high": 31, "low": 0},
+        "PID_K_D": {"index": 13, "high": 31, "low": 0},
         "mode": {"index": 0, "high": 1, "low": 1},
-        "sweep_period": {"index": 12, "high":15, "low": 0},
+        "sweep_period": {"index": 14, "high": 31, "low": 16},
         "PID_lock": {"index": 0, "high": 2, "low": 2},
-        "PID_limit_P": {"index": 13, "high": 31, "low": 16},
-        "PID_limit_I": {"index": 13, "high": 15, "low": 0},
-        "PID_limit_D": {"index": 14, "high": 31, "low": 16},
         "input_gain": {"index": 14, "high": 7, "low": 0},
         "output_gain": {"index": 14, "high": 15, "low": 8},
         "manual_offset": {"index": 15, "high": 31, "low": 16},
@@ -196,57 +190,60 @@ class Turnkey(MCC):
 
 class Feedback(MCC):
     default_controls = {
-        "fast_PID_K_P": 256,
-        "fast_PID_K_I": 1024,
-        "fast_PID_K_D": 256,
+        "fast_PID_K_P": 0,
+        "fast_PID_K_I": 0,
+        "fast_PID_K_D": 0,
         "monitorC": 0,
         "monitorD": 1,
         "segments_enabled": 0,
         "set_address": 0,
-        "rate": 8,
-        "slow_PID_K_P": 256,
-        "slow_PID_K_I": 256,
-        "slow_PID_K_D": 256,
-        "slow_PID_limit_I": 8192,
+        "rate": 1, # modified from 8 to 1 due to the new IIR entity with cutoff freqeuncy around 1.5MHz already
+        "slow_PID_K_P": 0,
+        "slow_PID_K_I": 0,
+        "slow_PID_K_D": 0,
         "set_x": 31250000,
         "set_y": 3355,
         "set_slope": 0,
         "frequency_bias": 33554,
         "amplitude": 28672,
-        "PID_Reset": 1,
+        "fast_PID_Reset": 1,
+        "slow_PID_Reset": 1,
         "LO_Reset": 1,
         "set_sign": 0,
         "initiate": 1,
         "periodic": 1,
         "prolong": 0,
         "lock_mode": 2,
+        "slow_input": 1,
         "set": 1
     } # {<name>:<value>}
     mapping = {
-        "fast_PID_K_P": {"index": 1, "high": 31, "low": 16}, # open to user
-        "fast_PID_K_I": {"index": 1, "high": 15, "low": 0}, # open to user
-        "fast_PID_K_D": {"index": 2, "high": 31, "low": 16}, # open to user
-        "monitorC" : {"index": 2, "high": 15, "low": 14},
-        "monitorD" : {"index": 2, "high": 13, "low": 12},
-        "segments_enabled": {"index": 2, "high": 11, "low": 8}, # open to user with encapsulation
-        "set_address": {"index": 2, "high": 7, "low": 4}, # open to user with encapsulation
-        "rate": {"index": 2, "high": 3, "low": 0},
-        "slow_PID_K_P": {"index": 3, "high": 31, "low": 16}, # open to user
-        "slow_PID_K_I": {"index": 3, "high": 15, "low": 0}, # open to user
-        "slow_PID_K_D": {"index": 4, "high": 31, "low": 16}, # open to user
-        "slow_PID_limit_I": {"index": 4, "high": 15, "low": 0}, # open to user
+        "fast_PID_K_P": {"index": 2, "high": 31, "low": 0}, # open to user
+        "fast_PID_K_I": {"index": 3, "high": 31, "low": 0}, # open to user
+        "fast_PID_K_D": {"index": 4, "high": 31, "low": 0}, # open to user
+        "monitorC" : {"index": 1, "high": 15, "low": 14},
+        "monitorD" : {"index": 1, "high": 13, "low": 12},
+        "segments_enabled": {"index": 1, "high": 11, "low": 8}, # open to user with encapsulation
+        "set_address": {"index": 1, "high": 7, "low": 4}, # open to user with encapsulation
+        "rate": {"index": 1, "high": 3, "low": 0},
+        "slow_PID_K_P": {"index": 8, "high": 31, "low": 0}, # open to user
+        "slow_PID_K_I": {"index": 9, "high": 31, "low": 0}, # open to user
+        "slow_PID_K_D": {"index": 10, "high": 31, "low": 0}, # open to user
         "set_x": {"index": 5, "high": 31, "low": 0}, # open to user with encapsulation
         "set_y": {"index": 6, "high": 31, "low": 16}, # open to user with encapsulation
         "set_slope": {"index": 6, "high": 15, "low": 0}, # open to user with encapsulation
         "frequency_bias": {"index": 7, "high": 31, "low": 16}, # open to user
         "amplitude": {"index": 7, "high": 15, "low": 0},
-        "PID_Reset": {"index": 0, "high": 0, "low": 0}, # open to user with turnkey
+        "fast_PID_Reset": {"index": 0, "high": 10, "low": 10}, # open to user with turnkey
+        "slow_PID_Reset": {"index": 0, "high": 11, "low": 11}, # open to user with turnkey
+        # control0 0 is empty for now
         "LO_Reset": {"index": 0, "high": 1, "low": 1}, # open to user with turnkey
         "set_sign": {"index": 0, "high": 2, "low": 2}, # open to user with encapsulation
         "initiate": {"index": 0, "high": 3, "low": 3}, # open to user with encapsulation
         "periodic": {"index": 0, "high": 4, "low": 4}, # open to user with encapsulation
         "prolong": {"index": 0, "high": 5, "low": 5}, # open to user with encapsulation
-        "lock_mode": {"index": 0, "high": 9, "low": 8}, # will be deprecated
+        "lock_mode": {"index": 0, "high": 9, "low": 8}, # open to user with encapsulation
+        "slow_input": {"index": 0, "high": 6, "low": 6}, # open to user with encapsulation
         "set": {"index": 0, "high": 7, "low": 7} # open to user with encapsulation
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
     default_waveform = [

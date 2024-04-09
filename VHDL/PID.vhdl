@@ -73,7 +73,7 @@ BEGIN
 
     sum <= P + I + D;
 
-    control <= limit_sum WHEN sum(47 DOWNTO 16) > limit_sum ELSE
-               -limit_sum WHEN sum(47 DOWNTO 16) - x"00000001" < -limit_sum ELSE
+    control <= limit_sum WHEN sum(47 DOWNTO 16) > (x"0000" & limit_sum) ELSE
+               -limit_sum WHEN sum(47 DOWNTO 16) - x"00000001" < -(x"0000" & limit_sum) ELSE
                sum(31 DOWNTO 16);
 END bhvr;

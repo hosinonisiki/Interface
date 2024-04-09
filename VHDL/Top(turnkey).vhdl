@@ -34,20 +34,15 @@ BEGIN
 
         floor => signed(Control10(15 DOWNTO 0)),
         
-        PID_K_P => signed(Control11(31 DOWNTO 16)),
-        PID_K_I => signed(Control11(15 DOWNTO 0)),
-        PID_K_D => signed(Control12(31 DOWNTO 16)),
-        
-        
+        PID_K_P => signed(Control11(31 DOWNTO 0)),
+        PID_K_I => signed(Control12(31 DOWNTO 0)),
+        PID_K_D => signed(Control13(31 DOWNTO 0)),
+         
         mode => Control0(1),
 
-        sweep_period =>  x"00" & unsigned(Control12(15 DOWNTO 0)),
+        sweep_period =>  x"00" & unsigned(Control14(31 DOWNTO 16)),
 
         PID_lock => Control0(2),
-
-        PID_limit_P => signed(Control13(31 DOWNTO 16)),
-        PID_limit_I => signed(Control13(15 DOWNTO 0)),
-        PID_limit_D => signed(Control14(31 DOWNTO 16)),
 
         PID_limit_sum => x"7000",
 

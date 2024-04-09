@@ -53,17 +53,13 @@ ENTITY turnkey IS
 
         floor : IN signed(15 DOWNTO 0);
 
-        PID_K_P : IN signed(15 DOWNTO 0);
-        PID_K_I : IN signed(15 DOWNTO 0);
-        PID_K_D : IN signed(15 DOWNTO 0);
+        PID_K_P : IN signed(31 DOWNTO 0);
+        PID_K_I : IN signed(31 DOWNTO 0);
+        PID_K_D : IN signed(31 DOWNTO 0);
 
         mode : IN std_logic;
 
         sweep_period : IN unsigned(23 DOWNTO 0);
-
-        PID_limit_P : IN signed(15 DOWNTO 0);
-        PID_limit_I : IN signed(15 DOWNTO 0);
-        PID_limit_D : IN signed(15 DOWNTO 0);
         
         PID_limit_sum : IN signed(15 DOWNTO 0);
 
@@ -372,23 +368,16 @@ BEGIN
         END PROCESS;
     END GENERATE avg;
 
-    pid: ENTITY WORK.PID GENERIC MAP(
-        gain_P => 8,
-        gain_I => -16,
-        gain_D => 0   
-    )PORT MAP(
+    pid: ENTITY WORK.PID PORT MAP(
         actual => soliton_power_avg(15 + logtap DOWNTO logtap),
         setpoint => PID_setpoint,
         control => PID_control,
-        Test => TestA,
 
         K_P => PID_K_P,
         K_I => PID_K_I,
         K_D => PID_K_D,
 
-        limit_P => PID_limit_P,
-        limit_I => PID_limit_I,
-        limit_D => PID_limit_D,
+        limit_I => x"000100000000",
 
         limit_sum => PID_limit_sum,
 
@@ -396,6 +385,7 @@ BEGIN
         Clk => Clk
     );
 
+    TestA <= x"0000";
     TestB <= soliton_power_avg(15 + logtap DOWNTO logtap) - PID_setpoint;
 
     gen : FOR i IN 0 TO segments - 1 GENERATE

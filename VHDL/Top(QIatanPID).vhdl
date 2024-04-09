@@ -8,6 +8,9 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL error : signed(15 DOWNTO 0);
 
     SIGNAL lock_mode : std_logic_vector(1 DOWNTO 0);
+
+    SIGNAL fast_control : signed(15 DOWNTO 0);
+    SIGNAL slow_actual : signed(15 DOWNTO 0);
 BEGIN
 
     -- todo : dynamic PID hardware gain
@@ -18,9 +21,9 @@ BEGIN
         set_x => unsigned(Control5),
         set_y => unsigned(Control6(31 DOWNTO 16)),
         set_slope => unsigned(Control6(15 DOWNTO 0)),
-        set_address => unsigned(Control2(7 DOWNTO 4)),
+        set_address => unsigned(Control1(7 DOWNTO 4)),
         set => Control0(7),
-        segments_enabled => unsigned(Control2(11 DOWNTO 8)),
+        segments_enabled => unsigned(Control1(11 DOWNTO 8)),
         initiate => Control0(3),
         periodic => Control0(4),
         prolong => Control0(5),
@@ -35,7 +38,7 @@ BEGIN
     );
     DUT2 : ENTITY WORK.CDC PORT MAP(
         Clk => Clk,
-        rate => unsigned(Control2(3 DOWNTO 0)), -- bandpass below 9.8MHz
+        rate => unsigned(Control1(3 DOWNTO 0)), -- bandpass below 9.8MHz
         MyClk => MyClk
     );
     DUT3 : ENTITY WORK.QI_demodulator(newer) PORT MAP(
@@ -67,69 +70,58 @@ BEGIN
     error <= phase WHEN lock_mode = "00" ELSE
                 freq WHEN lock_mode = "01" ELSE
                 I WHEN lock_mode = "10" ELSE
-                (OTHERS => '0');
+                Q;
     
     -- fast PID
-    DUT5 : ENTITY WORK.PID GENERIC MAP(
-        -- tunable range 32768 times
-        -- PI corner at 30Hz - 6kHz, set default PI corner at 759Hz(16 bit)
-        -- PD corner at 200kHz - 2MHz, set default PD corner at 777kHz(6 bit)
-        gain_P => 8,
-        gain_I => -8,
-        gain_D => 10
-    )PORT MAP(
+    -- PI corner at 30Hz - 6kHz, set default PI corner at 759Hz(16 bit)
+    -- PD corner at 200kHz - 2MHz, set default PD corner at 777kHz(6 bit)
+    DUT5 : ENTITY WORK.PID PORT MAP(
         actual => error,
         setpoint => x"0000",
-        control => OutputA,
-        Test => OPEN,
+        control => fast_control,
 
-        K_P => signed(Control1(31 DOWNTO 16)),
-        K_I => signed(Control1(15 DOWNTO 0)),
-        K_D => signed(Control2(31 DOWNTO 16)),
+        K_P => signed(Control2(31 DOWNTO 0)),
+        K_I => signed(Control3(31 DOWNTO 0)),
+        K_D => signed(Control4(31 DOWNTO 0)),
 
-        limit_P => x"6800",
-        limit_I => x"6800",
-        limit_D => x"6800",
+        limit_I => x"000100000000",
 
         limit_sum => x"7FFF",
 
-        Reset => Control0(0),
+        Reset => Control0(10),
         Clk => Clk
     );
+    OutputA <= fast_control;
+
     -- slow PID
-    DUT6 : ENTITY WORK.PID GENERIC MAP(
-        -- PI corner at 650mHz(26 bit)
-        gain_P => 10,
-        gain_I => -16,
-        gain_D => 0
-    )PORT MAP(
-        actual => error,
+    -- PI corner at 650mHz(26 bit)
+    DUT6 : ENTITY WORK.PID PORT MAP(
+        actual => slow_actual,
         setpoint => x"0000",
         control => OutputB,
-        Test => OPEN,
 
-        K_P => signed(Control3(31 DOWNTO 16)),
-        K_I => signed(Control3(15 DOWNTO 0)),
-        K_D => signed(Control4(31 DOWNTO 16)),
+        K_P => signed(Control8(31 DOWNTO 0)),
+        K_I => signed(Control9(31 DOWNTO 0)),
+        K_D => signed(Control10(31 DOWNTO 0)),
 
-        limit_P => x"6800",
-        limit_I => signed(Control4(15 DOWNTO 0)),
-        limit_D => x"6800",
+        limit_I => x"000100000000",
 
         limit_sum => x"7FFF",
 
-        Reset => Control0(0),
+        Reset => Control0(11),
         Clk => Clk
     );
+    slow_actual <= error WHEN Control0(6) = '0' ELSE
+                    fast_control;
 
     -- monitor
-    OutputC <= phase WHEN Control2(15 DOWNTO 14) = "00" ELSE
-                freq WHEN Control2(15 DOWNTO 14) = "01" ELSE
-                I WHEN Control2(15 DOWNTO 14) = "10" ELSE
+    OutputC <= phase WHEN Control1(15 DOWNTO 14) = "00" ELSE
+                freq WHEN Control1(15 DOWNTO 14) = "01" ELSE
+                I WHEN Control1(15 DOWNTO 14) = "10" ELSE
                 ref;
 
-    OutputD <= phase WHEN Control2(13 DOWNTO 12) = "00" ELSE
-                freq WHEN Control2(13 DOWNTO 12) = "01" ELSE
-                I WHEN Control2(13 DOWNTO 12) = "10" ELSE
+    OutputD <= phase WHEN Control1(13 DOWNTO 12) = "00" ELSE
+                freq WHEN Control1(13 DOWNTO 12) = "01" ELSE
+                I WHEN Control1(13 DOWNTO 12) = "10" ELSE
                 ref;
 END bhvr;
