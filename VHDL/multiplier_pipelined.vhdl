@@ -2,6 +2,7 @@ LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.Numeric_std.ALL;
 
+-- potential problem : summing of the 4 products violates the timing constraints
 ENTITY multiplier_signed_2stage_piped IS
     GENERIC(
         half_word_length_A : INTEGER := 8;

@@ -81,8 +81,9 @@ END turnkey;
 ARCHITECTURE bhvr OF turnkey IS
     SIGNAL soliton_power : signed(15 DOWNTO 0);
     SIGNAL scanning_voltage : signed(15 DOWNTO 0);
+    SIGNAL reg_scanning_voltage : signed(15 DOWNTO 0);
     SIGNAL reg_soliton_power : signed(23 DOWNTO 0);
-    SIGNAL reg_scanning_voltage : signed(23 DOWNTO 0);
+    SIGNAL reg_scanning_voltage_scaled : signed(23 DOWNTO 0);
 
     TYPE state IS (standby, confirm, line, hold, failure, coarse, fine, stablize, longterm, sweep, sweeppause);
     SIGNAL current_state : state := standby;
@@ -135,12 +136,14 @@ BEGIN
     PROCESS(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
-            reg_soliton_power <= soliton_power_unscaled * input_gain;
-            reg_scanning_voltage <= scanning_voltage * output_gain;
+        soliton_power <= reg_soliton_power(19 DOWNTO 4);
+            scanning_voltage_scaled <= reg_scanning_voltage_scaled(19 DOWNTO 4);
+            scanning_voltage <= reg_scanning_voltage;
         END IF;
     END PROCESS;
-    soliton_power <= reg_soliton_power(19 DOWNTO 4);
-    scanning_voltage_scaled <= reg_scanning_voltage(19 DOWNTO 4);
+    reg_soliton_power <= soliton_power_unscaled * input_gain;
+    reg_scanning_voltage_scaled <= scanning_voltage * output_gain;
+    
     -- FSM
     PROCESS(Clk)
     BEGIN
@@ -401,6 +404,6 @@ BEGIN
 
     -- Test <= PID_control;
     -- limit wrapping around
-    scanning_voltage <= output_voltage + manual_offset + PID_control WHEN current_state = longterm AND PID_lock = '0' ELSE
+    reg_scanning_voltage <= output_voltage + manual_offset + PID_control WHEN current_state = longterm AND PID_lock = '0' ELSE
                         output_voltage + manual_offset;
 END bhvr;

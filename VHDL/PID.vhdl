@@ -2,6 +2,7 @@ LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.Numeric_std.ALL;
 
+-- potential problem : a 1 clock delay in I channel
 ENTITY PID IS
     PORT(
         actual : IN signed(15 DOWNTO 0);
@@ -46,9 +47,8 @@ ARCHITECTURE bhvr OF PID IS
     SIGNAL reg_I : signed(47 DOWNTO 0);
     SIGNAL reg_D : signed(47 DOWNTO 0);
 
-    SIGNAL buf_P : signed(47 DOWNTO 0);
     SIGNAL buf_I : signed(47 DOWNTO 0);
-    SIGNAL buf_D : signed(47 DOWNTO 0);
+    SIGNAL reg_buf_I : signed(47 DOWNTO 0);
 BEGIN
     PID : PROCESS(Clk)
     BEGIN
@@ -68,15 +68,16 @@ BEGIN
             buf_K_P <= K_P;
             buf_K_I <= K_I;
             buf_K_D <= K_D;
+            buf_I <= reg_buf_I;
         END IF;
     END PROCESS PID;    
 
     reg_P <= buf_K_P * error;
     
-    buf_I <= I + buf_K_I * error;
-    reg_I <= limit_I WHEN buf_I > limit_I ELSE
-                -limit_I WHEN buf_I < -limit_I ELSE
-                buf_I;
+    reg_buf_I <= buf_K_I * error;
+    reg_I <= limit_I WHEN I + buf_I > limit_I ELSE
+                -limit_I WHEN I + buf_I < -limit_I ELSE
+                I + buf_I;
 
     reg_D <= buf_K_D * (error - last_error);
 
