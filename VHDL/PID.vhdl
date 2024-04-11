@@ -20,7 +20,7 @@ ENTITY PID IS
         -- future feature: I channel with decay
         -- I[n] = qI[n-1] + x[n] = qqI[n-2] + qx[n-1] + x[n], 2-lookahead
         
-        limit_I : IN signed(47 DOWNTO 0);
+        limit_I : IN signed(63 DOWNTO 0);
 
         limit_sum : IN signed(15 DOWNTO 0);
 
@@ -40,11 +40,11 @@ ARCHITECTURE bhvr OF PID IS
     SIGNAL buf_K_D : signed(31 DOWNTO 0);
 
     SIGNAL P : signed(47 DOWNTO 0);
-    SIGNAL I : signed(47 DOWNTO 0);
+    SIGNAL I : signed(63 DOWNTO 0);
     SIGNAL D : signed(47 DOWNTO 0);
 
     SIGNAL reg_P : signed(47 DOWNTO 0);
-    SIGNAL reg_I : signed(47 DOWNTO 0);
+    SIGNAL reg_I : signed(63 DOWNTO 0);
     SIGNAL reg_D : signed(47 DOWNTO 0);
 
     SIGNAL buf_I : signed(47 DOWNTO 0);
@@ -75,13 +75,13 @@ BEGIN
     reg_P <= buf_K_P * error;
     
     reg_buf_I <= buf_K_I * error;
-    reg_I <= limit_I WHEN I + buf_I > limit_I ELSE
-                -limit_I WHEN I + buf_I < -limit_I ELSE
-                I + buf_I;
+    reg_I <= limit_I WHEN I + ((15 DOWNTO 0 => buf_I(47)) & buf_I) > limit_I ELSE
+                -limit_I WHEN I + ((15 DOWNTO 0 => buf_I(47)) & buf_I) < -limit_I ELSE
+                I + ((15 DOWNTO 0 => buf_I(47)) & buf_I);
 
     reg_D <= buf_K_D * (error - last_error);
 
-    buf_sum <= P + I + D;
+    buf_sum <= P + I(63 DOWNTO 16) + (x"00000000000" & "000" & I(15)) + D;
 
     sum <= limit_sum WHEN buf_sum(47 DOWNTO 16) > (x"0000" & limit_sum) ELSE
                -limit_sum WHEN buf_sum(47 DOWNTO 16) - x"00000001" < -(x"0000" & limit_sum) ELSE

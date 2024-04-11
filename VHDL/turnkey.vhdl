@@ -380,7 +380,7 @@ BEGIN
         K_I => PID_K_I,
         K_D => PID_K_D,
 
-        limit_I => x"000100000000",
+        limit_I => x"0001000000000000",
 
         limit_sum => PID_limit_sum,
 

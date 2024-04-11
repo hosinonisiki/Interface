@@ -84,7 +84,7 @@ BEGIN
         K_I => signed(Control3(31 DOWNTO 0)),
         K_D => signed(Control4(31 DOWNTO 0)),
 
-        limit_I => x"000100000000",
+        limit_I => x"0001000000000000",
 
         limit_sum => x"7FFF",
 
@@ -104,7 +104,7 @@ BEGIN
         K_I => signed(Control9(31 DOWNTO 0)),
         K_D => signed(Control10(31 DOWNTO 0)),
 
-        limit_I => x"000100000000",
+        limit_I => x"0001000000000000",
 
         limit_sum => x"7FFF",
 
