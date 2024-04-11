@@ -1,4 +1,0 @@
-turnkey.vhdl		修改与PID有关的接口，包括接入PID模块以及接出到Top的
-Top(turneky).vhdl		修改与PID有关的接口
-Top(QIatanPID).vhdl	修改与PID有关的接口
-fpga.py			修改turnkey以及feedback的接口定义以及初始值
