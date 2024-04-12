@@ -2,6 +2,8 @@ import moku.instruments as instruments
 import numpy as np
 import time
 import typing
+import requests
+import json
 
 # for testing
 import matplotlib.pyplot as plt
@@ -32,8 +34,9 @@ def convert_bits(integer: int, length: int) -> str:
     
 
 class MCC():
-    def __init__(self, mcc: object, controls: dict[int, int] = {}):
+    def __init__(self, mcc: object, slot: int, controls: dict[int, int] = {}):
         self.mcc = mcc
+        self.slot = slot
         self.download_control()
         self.set_control(controls) # initialize control
         self.upload_control()
@@ -45,12 +48,27 @@ class MCC():
             raise Exception("Connection error: %s"%e.__repr__())
         return self
         
-    def upload_control(self) -> object:
-        try:
-            for i in range(15, -1, -1):
-                self.mcc.set_control(i, self.controls[i])
-        except Exception as e:
-            raise Exception("Connection error: %s"%e.__repr__())
+    def upload_control(self, mode: str = "default") -> object:
+        if mode == "default":
+            try:
+                for i in range(15, -1, -1):
+                    self.mcc.set_control(i, self.controls[i])
+            except Exception as e:
+                raise Exception("Connection error: %s"%e.__repr__())
+        elif mode == "http":
+            url = "http://localhost:8090/api/v2/registers"
+            post = "[[\"instr" + str(self.slot) + "\", {"
+            for i in range(0, 16):
+                post = post + "\"" + str(i) + "\":" + str(self.controls[i])
+                if i != 15:
+                    post = post + ","
+            post = post + "}]]"
+            try:
+                r_json = json.loads(post)
+                p_confiure = requests.post(url = url, json = r_json)
+                p_confiure_json = p_confiure.json()
+            except Exception as e:
+                raise Exception("Connection error: %s"%e.__repr__())
         return self
     
     def set_control(self, *arg) -> object:
@@ -215,7 +233,14 @@ class Feedback(MCC):
         "prolong": 0,
         "lock_mode": 2,
         "slow_input": 1,
-        "set": 1
+        "set": 1,
+        "enable_auto_match": 1,
+        "initiate_auto_match": 1,
+        "frequency_match_threshold": 268,
+        "frequency_lock_threshold": 3,
+        "frequency_match_K_P": 0,
+        "frequency_match_K_I": 0,
+        "frequency_match_K_D": 0
     } # {<name>:<value>}
     mapping = {
         "fast_PID_K_P": {"index": 2, "high": 31, "low": 0}, # open to user
@@ -244,14 +269,22 @@ class Feedback(MCC):
         "prolong": {"index": 0, "high": 5, "low": 5}, # open to user with encapsulation
         "lock_mode": {"index": 0, "high": 9, "low": 8},
         "slow_input": {"index": 0, "high": 6, "low": 6},
-        "set": {"index": 0, "high": 7, "low": 7} # open to user with encapsulation
+        "set": {"index": 0, "high": 7, "low": 7}, # open to user with encapsulation
+
+        "enable_auto_match": {"index": 0, "high": 12, "low": 12},
+        "initiate_auto_match": {"index": 0, "high": 13, "low": 13},
+        "frequency_match_threshold": {"index": 11, "high": 31, "low": 16},
+        "frequency_lock_threshold": {"index": 11, "high": 15, "low": 0},
+        "frequency_match_K_P": {"index": 12, "high": 31, "low": 0},
+        "frequency_match_K_I": {"index": 13, "high": 31, "low": 0},
+        "frequency_match_K_D": {"index": 14, "high": 31, "low": 0}
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
     # open PID parameters, frequency_bias and three resets first
     default_waveform = [
         {"sign": 0, "x": 31250000, "y": 3355, "slope": 0}
     ]
-    def __init__(self, mcc: object, controls: dict[int, int] = {}, waveform: list[dict[str, int]] = []):
-        super().__init__(mcc, controls)
+    def __init__(self, mcc: object, slot: int, controls: dict[int, int] = {}, waveform: list[dict[str, int]] = []):
+        super().__init__(mcc, slot, controls)
         if waveform:
             self.waveform = waveform
         else:
@@ -305,16 +338,26 @@ class Feedback(MCC):
         self.upload_control()
         return self
     
-    def PID_on(self) -> object:
-        self.set_parameter("PID_Reset", 0)
+    def fast_PID_on(self) -> object:
+        self.set_parameter("fast_PID_Reset", 0)
         self.upload_control()
         return self
 
-    def PID_off(self) -> object:
-        self.set_parameter("PID_Reset", 1)
+    def fast_PID_off(self) -> object:
+        self.set_parameter("fast_PID_Reset", 1)
         self.upload_control()
         return self
     
+    def slow_PID_on(self) -> object:
+        self.set_parameter("slow_PID_Reset", 0)
+        self.upload_control()
+        return self
+    
+    def slow_PID_off(self) -> object:
+        self.set_parameter("slow_PID_Reset", 1)
+        self.upload_control()
+        return self
+
     def launch_frequency_control(self) -> object:
         self.set_parameter("initiate", 1)
         self.upload_control()
@@ -338,13 +381,13 @@ class MIM():
         if self.logger:
             self.logger.info("Initializing MIM.")
             self.logger.debug("Creating turnkey.")
-        self.tk = Turnkey(self.mim.set_instrument(2, instruments.CloudCompile, bitstream = "bitstreams/turnkey.tar.gz"))
+        self.tk = Turnkey(self.mim.set_instrument(2, instruments.CloudCompile, bitstream = "bitstreams/turnkey.tar.gz"), 2)
         if self.logger:
             self.logger.debug("Initializing turnkey.")
         self.tk.set_default()
         if self.logger:
             self.logger.debug("Creating feedback.")
-        self.fb = Feedback(self.mim.set_instrument(3, instruments.CloudCompile, bitstream = "bitstreams/feedback.tar.gz"))
+        self.fb = Feedback(self.mim.set_instrument(3, instruments.CloudCompile, bitstream = "bitstreams/feedback.tar.gz"), 3)
         if self.logger:
             self.logger.debug("Initializing feedback.")
         self.fb.set_default()

@@ -11,12 +11,112 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL fast_control : signed(15 DOWNTO 0);
     SIGNAL slow_actual : signed(15 DOWNTO 0);
-BEGIN
 
+    SIGNAL enable_auto_match : std_logic;
+    SIGNAL initiate_auto_match : std_logic;
+
+    SIGNAL auto_LO_Reset : std_logic := '0';
+    SIGNAL auto_fast_PID_Reset : std_logic := '1';
+    SIGNAL auto_slow_PID_Reset : std_logic := '1';
+    SIGNAL LO_Reset : std_logic;
+    SIGNAL fast_PID_Reset : std_logic;
+    SIGNAL slow_PID_Reset : std_logic;
+
+    SIGNAL auto_match_freq : signed(15 DOWNTO 0) := x"0000";
+    SIGNAL LO_freq : unsigned(15 DOWNTO 0);
+BEGIN
+    enable_auto_match <= Control0(12);
+    initiate_auto_match <= Control0(13);
+
+    LO_Reset <= Control0(1) WHEN enable_auto_match = '1' ELSE
+                auto_LO_Reset;
+    fast_PID_Reset <= Control0(10) WHEN enable_auto_match = '1' ELSE
+                      auto_fast_PID_Reset;
+    slow_PID_Reset <= Control0(11) WHEN enable_auto_match = '1' ELSE
+                      auto_slow_PID_Reset;
+    LO_freq <= unsigned(Control7(31 DOWNTO 16)) WHEN enable_auto_match = '1' ELSE
+               unsigned(auto_match_freq) + unsigned(Control7(31 DOWNTO 16));
+
+    auto_match_logic : BLOCK
+        TYPE state IS (ready, match, hold);
+        SIGNAL current_state : state := ready;
+
+        SIGNAL last_initiate : std_logic := '0';
+
+        SIGNAL auto_match_freq_bias : signed(15 DOWNTO 0);
+        SIGNAL auto_match_freq_control : signed(15 DOWNTO 0);
+        SIGNAL PID_Reset : std_logic := '1';
+
+        SIGNAL frequency_match_threshold : signed(15 DOWNTO 0);
+        SIGNAL frequency_lock_threshold : signed(15 DOWNTO 0);
+    BEGIN
+        frequency_match_threshold <= signed(Control11(31 DOWNTO 16));
+        frequency_lock_threshold <= signed(Control11(15 DOWNTO 0));
+
+        PROCESS(Clk)
+        BEGIN
+            IF rising_edge(Clk) THEN
+                IF enable_auto_match = '1' THEN
+                    --initialization
+                    current_state <= ready;
+                    last_initiate <= '0';
+                    PID_Reset <= '1';
+                    auto_match_freq_bias <= x"0000";
+
+                    auto_LO_Reset <= '0';
+                    auto_fast_PID_Reset <= '1';
+                    auto_slow_PID_Reset <= '1';
+                    auto_match_freq <= x"0000";
+                ELSE
+                    CASE current_state IS
+                        WHEN ready =>
+                            IF initiate_auto_match = '0' AND last_initiate = '1' THEN
+                                auto_fast_PID_Reset <= '1';
+                                auto_slow_PID_Reset <= '1';
+                                current_state <= match;
+                            END IF;
+                            last_initiate <= initiate_auto_match;
+                        WHEN match =>
+                            PID_Reset <= '0';
+                            auto_match_freq <= auto_match_freq_control + auto_match_freq_bias;
+                            IF freq < frequency_match_threshold and freq > -frequency_match_threshold THEN -- x0110 around 10kHz
+                                current_state <= hold;
+                            END IF;
+                        WHEN hold =>
+                            PID_Reset <= '1';
+                            auto_match_freq_bias <= auto_match_freq;
+                            auto_fast_PID_Reset <= '0';
+                            IF freq < frequency_lock_threshold and freq > -frequency_lock_threshold THEN -- x0003 around 10Hz
+                                auto_slow_PID_Reset <= '0';
+                                current_state <= ready;
+                            END IF;
+                    END CASE;
+                END IF;
+            END IF;
+        END PROCESS;
+
+        frequency_match : ENTITY WORK.PID PORT MAP(
+            actual => freq,
+            setpoint => x"0000",
+            control => auto_match_freq_control,
+
+            K_P => signed(Control12(31 DOWNTO 0)),
+            K_I => signed(Control13(31 DOWNTO 0)),
+            K_D => signed(Control14(31 DOWNTO 0)),
+
+            limit_I => x"0000200000000000",
+
+            limit_sum => x"1A00", -- maximum +- 2MHz
+
+            Reset => PID_Reset,
+            Clk => Clk
+        );
+    END BLOCK auto_match_logic;
+
+                      
     -- todo : dynamic PID hardware gain
-    -- todo : auto match frequency within several hundred kHz
     DUT1 : ENTITY WORK.AWG PORT MAP(
-        frequency_bias => unsigned(Control7(31 DOWNTO 16)),
+        frequency_bias => LO_freq,
 
         set_sign => Control0(2),
         set_x => unsigned(Control5),
@@ -34,7 +134,7 @@ BEGIN
         outputC => ref,
         outputS => ref_shift,
 
-        Reset => Control0(1),
+        Reset => LO_Reset,
         Clk => Clk
     );
     DUT2 : ENTITY WORK.CDC PORT MAP(
@@ -58,7 +158,10 @@ BEGIN
         Clk => Clk
     );
     
-    DUT7 : ENTITY WORK.phase2freq(noavg) PORT MAP(
+    -- this module will be used for auto matching instead of frequency locking
+    DUT7 : ENTITY WORK.phase2freq GENERIC MAP(
+        gain => 6 -- resolves +- 2.4MHz
+    )PORT MAP(
         phase => phase,
         freq => freq,
       
@@ -89,7 +192,7 @@ BEGIN
 
         limit_sum => x"7FFF",
 
-        Reset => Control0(10),
+        Reset => fast_PID_Reset,
         Clk => Clk
     );
     OutputA <= fast_control;
@@ -109,7 +212,7 @@ BEGIN
 
         limit_sum => x"7FFF",
 
-        Reset => Control0(11),
+        Reset => slow_PID_Reset,
         Clk => Clk
     );
     slow_actual <= error WHEN Control0(6) = '0' ELSE
@@ -119,10 +222,10 @@ BEGIN
     OutputC <= phase WHEN Control1(15 DOWNTO 14) = "00" ELSE
                 freq WHEN Control1(15 DOWNTO 14) = "01" ELSE
                 I WHEN Control1(15 DOWNTO 14) = "10" ELSE
-                ref;
+                auto_match_freq;
 
     OutputD <= phase WHEN Control1(13 DOWNTO 12) = "00" ELSE
                 freq WHEN Control1(13 DOWNTO 12) = "01" ELSE
                 I WHEN Control1(13 DOWNTO 12) = "10" ELSE
-                ref;
+                auto_match_freq;
 END bhvr;
