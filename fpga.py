@@ -242,10 +242,11 @@ class Feedback(MCC):
         "initiate": {"index": 0, "high": 3, "low": 3}, # open to user with encapsulation
         "periodic": {"index": 0, "high": 4, "low": 4}, # open to user with encapsulation
         "prolong": {"index": 0, "high": 5, "low": 5}, # open to user with encapsulation
-        "lock_mode": {"index": 0, "high": 9, "low": 8}, # open to user with encapsulation
-        "slow_input": {"index": 0, "high": 6, "low": 6}, # open to user with encapsulation
+        "lock_mode": {"index": 0, "high": 9, "low": 8},
+        "slow_input": {"index": 0, "high": 6, "low": 6},
         "set": {"index": 0, "high": 7, "low": 7} # open to user with encapsulation
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
+    # open PID parameters, frequency_bias and three resets first
     default_waveform = [
         {"sign": 0, "x": 31250000, "y": 3355, "slope": 0}
     ]
