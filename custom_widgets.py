@@ -179,10 +179,9 @@ class QuantityFormat():
         result = self.re.match(str)
         if result == None:
             return None, None
-        if result.group(3) == None:
-            value = float(result.group(2))
-        else:
-            value = float(result.group(2) + result.group(3))
+        value = "" if result.group(1) == None else "-"
+        value += result.group(2)
+        value += "" if result.group(3) == None else result.group(3)
         if result.group(4) == None:
             return result, value
         else:
@@ -216,6 +215,9 @@ class QuantityEntry(tk.Text):
         self.delete("1.0", "end-1c")
         self.insert("1.0", str)
         self.store()
+
+    def get_text(self):
+        return self.get("1.0", "end-1c")
 
     def check(self):
         while self.destroying == False:
@@ -678,7 +680,7 @@ if __name__ == "__main__":
     knob.knob.resistance = 1.4
     knob.knob.lag = 0.65
     '''
-    format = QuantityFormat((5,5,3), unit = "V")
+    format = QuantityFormat((1,3,3), unit = "V")
     entry = QuantityEntry(root, format, lambda x: print(x), width = 10, height = 1, font = ("Arial", 12))
     entry.place(x = 50, y = 50)
 

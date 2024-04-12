@@ -28,14 +28,21 @@ BEGIN
     enable_auto_match <= Control0(12);
     initiate_auto_match <= Control0(13);
 
-    LO_Reset <= Control0(1) WHEN enable_auto_match = '1' ELSE
-                auto_LO_Reset;
-    fast_PID_Reset <= Control0(10) WHEN enable_auto_match = '1' ELSE
-                      auto_fast_PID_Reset;
-    slow_PID_Reset <= Control0(11) WHEN enable_auto_match = '1' ELSE
-                      auto_slow_PID_Reset;
-    LO_freq <= unsigned(Control7(31 DOWNTO 16)) WHEN enable_auto_match = '1' ELSE
-               unsigned(auto_match_freq) + unsigned(Control7(31 DOWNTO 16));
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            IF enable_auto_match = '1' THEN
+                LO_Reset <= Control0(1);
+                fast_PID_Reset <= Control0(10);
+                slow_PID_Reset <= Control0(11);
+                LO_freq <= unsigned(Control7(31 DOWNTO 16));
+            ELSE
+                LO_Reset <= auto_LO_Reset;
+                fast_PID_Reset <= auto_fast_PID_Reset;
+                slow_PID_Reset <= auto_slow_PID_Reset;
+                LO_freq <= unsigned(auto_match_freq) + unsigned(Control7(31 DOWNTO 16));
+        END IF;
+    END PROCESS;
 
     auto_match_logic : BLOCK
         TYPE state IS (ready, match, hold);
