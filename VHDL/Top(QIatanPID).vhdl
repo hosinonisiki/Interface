@@ -93,7 +93,7 @@ BEGIN
                             PID_Reset <= '1';
                             auto_match_freq_bias <= auto_match_freq;
                             auto_fast_PID_Reset <= '0';
-                            IF freq < frequency_lock_threshold and freq > -frequency_lock_threshold THEN -- x0003 around 10Hz
+                            IF freq < frequency_lock_threshold and freq > -frequency_lock_threshold THEN -- x0003 around 100Hz
                                 auto_slow_PID_Reset <= '0';
                                 current_state <= ready;
                             END IF;

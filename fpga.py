@@ -208,16 +208,16 @@ class Turnkey(MCC):
 
 class Feedback(MCC):
     default_controls = {
-        "fast_PID_K_P": 0,
-        "fast_PID_K_I": 0,
-        "fast_PID_K_D": 0,
+        "fast_PID_K_P": 4294443088,
+        "fast_PID_K_I": 4261412864,
+        "fast_PID_K_D": 4294836224,
         "monitorC": 0,
         "monitorD": 1,
-        "segments_enabled": 0,
+        "segments_enabled": 3,
         "set_address": 0,
         "rate": 1, # modified from 8 to 1 due to the new IIR entity with cutoff freqeuncy around 1.5MHz already
-        "slow_PID_K_P": 0,
-        "slow_PID_K_I": 0,
+        "slow_PID_K_P": 4096,
+        "slow_PID_K_I": 4096,
         "slow_PID_K_D": 0,
         "set_x": 31250000,
         "set_y": 3355,
@@ -231,15 +231,15 @@ class Feedback(MCC):
         "initiate": 1,
         "periodic": 1,
         "prolong": 0,
-        "lock_mode": 2,
+        "lock_mode": 0,
         "slow_input": 1,
         "set": 1,
         "enable_auto_match": 1,
         "initiate_auto_match": 1,
         "frequency_match_threshold": 268,
         "frequency_lock_threshold": 3,
-        "frequency_match_K_P": 0,
-        "frequency_match_K_I": 0,
+        "frequency_match_K_P": 16384,
+        "frequency_match_K_I": 8192, # should match in around 1 ms
         "frequency_match_K_D": 0
     } # {<name>:<value>}
     mapping = {
@@ -281,7 +281,10 @@ class Feedback(MCC):
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
     # open PID parameters, frequency_bias and three resets first
     default_waveform = [
-        {"sign": 0, "x": 31250000, "y": 3355, "slope": 0}
+        {"sign": 1, "x": 1562500, "y": 3355, "slope": 0},
+        {"sign": 0, "x": 31250000, "y": 0, "slope": 0},
+        {"sign": 0, "x": 1562500, "y": 3355, "slope": 0},
+        {"sign": 0, "x": 31250000, "y": 0, "slope": 0}
     ]
     def __init__(self, mcc: object, slot: int, controls: dict[int, int] = {}, waveform: list[dict[str, int]] = []):
         super().__init__(mcc, slot, controls)
