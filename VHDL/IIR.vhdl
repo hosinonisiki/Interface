@@ -16,15 +16,14 @@ USE IEEE.Numeric_std.ALL;
 
 USE WORK.MyPak_IIR.ALL;
 
--- todo : implement 3SLA
 ENTITY IIR_3SLA_4th_order IS
     GENERIC(
         -- word length of IO is 16
-        -- internal word length is 20
+        -- internal word length is 44/48
         -- y[n] = b0*x[n] + b1*x[n-1] + b2*x[n-2] + b3*x[n-3] + b4*x[n-4]
         --      + a1*y[n-1] + a2*y[n-2] + a3*y[n-3] + a4*y[n-4]
-        -- y[n] actually depends on x[n] ~ x[n-12] and y[n-3] ~ y[n-12]
-        -- for how to derive the coefficients, refer to the python program
+        -- y[n] actually depends on x[n] ~ x[n-12/16] and y[n-3/4] ~ y[n-12/16]
+        -- coefficients derived elsewhere
         coefX : signed_vec_44(0 TO 12); -- ranges from -1 to 1, setting 2 ** 19 as 1
         coefY : signed_vec_44(0 TO 3) -- ranges from -8 to 8, setting 2 ** 16 as 1
     );

@@ -97,7 +97,7 @@ BEGIN
             END PROCESS;
         END GENERATE reg;
         regless : IF (i MOD 2 /= 1) GENERATE
-            C(i + 1) <= C(i) - shift_right(S(i), i + 1) WHEN D(i + 1) = '0' ELSE -- 为了充分利用18次迭代，CS需要look ahead
+            C(i + 1) <= C(i) - shift_right(S(i), i + 1) WHEN D(i + 1) = '0' ELSE -- C & S requires lookahead to fully make use of 18 iterations
                         C(i) + shift_right(S(i), i + 1);
             S(i + 1) <= S(i) + shift_right(C(i), i + 1) WHEN D(i + 1) = '0' ELSE
                         S(i) - shift_right(C(i), i + 1);

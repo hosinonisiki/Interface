@@ -287,7 +287,7 @@ class Feedback(MCC):
     ]
     def __init__(self, mcc: object, slot: int, controls: dict[int, int] = {}, waveform: list[dict[str, int]] = []):
         super().__init__(mcc, slot, controls)
-        # waveform not correctly uploaded?
+        # todo : fix waveform not correctly uploaded?
         if waveform:
             self.waveform = waveform
         else:
@@ -370,8 +370,7 @@ class Feedback(MCC):
         self.upload_control()
         return self
 
-    # todo : provide methods to control PID coefficients and LUT waveforms
-
+# todo : handle requests when tk and fb have not been instantiated
 class MIM():
     def __init__(self, ip, logger = None):
         self.mim = instruments.MultiInstrument(ip, force_connect = True, platform_id = 4)

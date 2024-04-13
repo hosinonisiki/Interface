@@ -1,6 +1,5 @@
 ARCHITECTURE bhvr OF CustomWrapper IS
 BEGIN
-    -- todo: add a global voltage scale factor
     DUT : ENTITY WORK.turnkey(bhvr) GENERIC MAP(
         tap => 256,
         logtap => 8

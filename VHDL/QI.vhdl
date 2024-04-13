@@ -5,7 +5,6 @@ USE IEEE.Numeric_std.ALL;
 ENTITY QI_demodulator IS
     PORT(
         SIGNAL input, ref, ref_shift : IN signed(15 DOWNTO 0);
-        -- resizing I,Q is required in running
         SIGNAL I,Q : OUT signed(15 DOWNTO 0);
         SIGNAL Clk, Reset : IN std_logic
     );

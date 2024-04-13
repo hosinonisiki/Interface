@@ -22,8 +22,7 @@ def characteristic(waveform: list[float]) -> float:
 
 # todo: add a thread to constantly check the connection to FPGA
 # todo: better analyzing algorithm for the temperature setpoint
-# todo: control the states of quantity entries, update on initializing
-# todo: provide guis to mim.fb
+# todo: control the states of quantity entries, update upon initialization
 
 # maybe move to moku:go?
 # change to datalogger for gathering data
@@ -717,7 +716,7 @@ class Interface():
             print(characteristics)
             start = 0
             for i in range(0, N - 1):
-                if start == 0 and characteristics[i] > 0.150: # requires change if pd is to be replaced
+                if start == 0 and characteristics[i] > 0.150:
                     self.logger.debug("Start found at %.3f°C."%templist[start])
                     start = i
                     continue
@@ -799,7 +798,6 @@ class Interface():
     def fpga_connection_button_onclick(self) -> None:
         self.logger.info("FPGA connection button clicked.")
         self.ip = self.fpga_connection_entry.get()
-        # allow ipv6 connections
         if re.match(r"^([0-9]{1,3}\.){3}[0-9]{1,3}$", self.ip) or re.match(r"^\[([0-9a-fA-F]{0,4}:){5,7}[0-9a-fA-F]{0,4}\]$", self.ip):
             self.logger.debug("Connecting to FPGA at %s."%self.ip)
             self.information["text"] = "Connecting to FPGA."

@@ -18,7 +18,7 @@ ENTITY PID IS
         -- to ensure that no overflow occurs.
 
         -- future feature: I channel with decay
-        -- I[n] = qI[n-1] + x[n] = qqI[n-2] + qx[n-1] + x[n], 2-lookahead
+        -- may needs lookahead
         
         limit_I : IN signed(63 DOWNTO 0);
 

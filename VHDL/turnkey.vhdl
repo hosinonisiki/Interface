@@ -15,7 +15,7 @@ USE IEEE.Numeric_std.ALL;
 
 USE WORK.MyPak_turnkey.ALL;
 
--- todo : replace the implement of line state with line entity
+-- todo : replace the implement of line state with simpler logic
 -- todo : replace averaging with an entity
 ENTITY turnkey IS
     GENERIC(
@@ -129,8 +129,6 @@ ARCHITECTURE bhvr OF turnkey IS
     SIGNAL PID_reset : std_logic := '1';
 
     SIGNAL startup : std_logic := '0';
-    -- loaded parameters stay unchanged during operation
-
 BEGIN
     -- IO
     PROCESS(Clk)
@@ -276,7 +274,7 @@ BEGIN
                         output_voltage <= max_voltage;
                     WHEN coarse =>
                         IF period_counter = coarse_period - x"000001" THEN
-                            IF soliton_power_avg(15 + logtap DOWNTO logtap) > coarse_target THEN -- need also to consider the situation where the soliton fails
+                            IF soliton_power_avg(15 + logtap DOWNTO logtap) > coarse_target THEN
                                 output_voltage <= output_voltage - x"0001";
                             ELSIF soliton_power_avg(15 + logtap DOWNTO logtap) < floor THEN
                                 soliton_failure <= '1';

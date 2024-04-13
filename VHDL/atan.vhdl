@@ -105,7 +105,7 @@ BEGIN
                         S(i) - shift_right(C(i), i);
             D(i + 1) <= S(i + 1)(23);
             X(i + 1) <= X(i);
-            Z(i + 1) <= Z(i) - A(i + 1) WHEN D(i + 1) = '1' ELSE -- 为了充分利用18次迭代，Z需要look ahead
+            Z(i + 1) <= Z(i) - A(i + 1) WHEN D(i + 1) = '1' ELSE -- Z requires lookahead to fully make use of 18 iterations
                         Z(i) + A(i + 1);
             END GENERATE regless;
     END GENERATE gen;

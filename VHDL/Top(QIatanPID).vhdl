@@ -124,8 +124,6 @@ BEGIN
         );
     END BLOCK auto_match_logic;
 
-                      
-    -- todo : dynamic PID hardware gain
     DUT1 : ENTITY WORK.AWG PORT MAP(
         frequency_bias => LO_freq,
 
@@ -150,7 +148,7 @@ BEGIN
     );
     DUT2 : ENTITY WORK.CDC PORT MAP(
         Clk => Clk,
-        rate => unsigned(Control1(3 DOWNTO 0)), -- bandpass below 9.8MHz
+        rate => unsigned(Control1(3 DOWNTO 0)), -- rate = 1, cut-off around 1.5MHz
         MyClk => MyClk
     );
     DUT3 : ENTITY WORK.QI_demodulator(newer) PORT MAP(
