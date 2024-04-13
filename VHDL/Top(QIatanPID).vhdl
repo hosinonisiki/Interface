@@ -24,6 +24,9 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL auto_match_freq : signed(15 DOWNTO 0) := x"0000";
     SIGNAL LO_freq : unsigned(15 DOWNTO 0);
+
+    SIGNAL monitorC : signed(15 DOWNTO 0);
+    SIGNAL monitorD : signed(15 DOWNTO 0);
 BEGIN
     enable_auto_match <= Control0(12);
     initiate_auto_match <= Control0(13);
@@ -41,6 +44,7 @@ BEGIN
                 fast_PID_Reset <= auto_fast_PID_Reset;
                 slow_PID_Reset <= auto_slow_PID_Reset;
                 LO_freq <= unsigned(auto_match_freq) + unsigned(Control7(31 DOWNTO 16));
+            END IF;
         END IF;
     END PROCESS;
 
@@ -113,7 +117,7 @@ BEGIN
 
             limit_I => x"0000200000000000",
 
-            limit_sum => x"1A00", -- maximum +- 2MHz
+            limit_sum => x"3400", -- maximum +- 4MHz
 
             Reset => PID_Reset,
             Clk => Clk
@@ -167,7 +171,7 @@ BEGIN
     
     -- this module will be used for auto matching instead of frequency locking
     DUT7 : ENTITY WORK.phase2freq GENERIC MAP(
-        gain => 6 -- resolves +- 2.4MHz
+        gain => 5 -- resolves +- 4.8MHz
     )PORT MAP(
         phase => phase,
         freq => freq,
@@ -226,13 +230,21 @@ BEGIN
                     fast_control;
 
     -- monitor
-    OutputC <= phase WHEN Control1(15 DOWNTO 14) = "00" ELSE
+    monitorC <= phase WHEN Control1(15 DOWNTO 14) = "00" ELSE
                 freq WHEN Control1(15 DOWNTO 14) = "01" ELSE
                 I WHEN Control1(15 DOWNTO 14) = "10" ELSE
                 auto_match_freq;
 
-    OutputD <= phase WHEN Control1(13 DOWNTO 12) = "00" ELSE
+    monitorD <= phase WHEN Control1(13 DOWNTO 12) = "00" ELSE
                 freq WHEN Control1(13 DOWNTO 12) = "01" ELSE
                 I WHEN Control1(13 DOWNTO 12) = "10" ELSE
                 auto_match_freq;
+
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            OutputC <= monitorC;
+            OutputD <= monitorD;
+        END IF;
+    END PROCESS;
 END bhvr;

@@ -182,6 +182,7 @@ class QuantityFormat():
         value = "" if result.group(1) == None else "-"
         value += result.group(2)
         value += "" if result.group(3) == None else result.group(3)
+        value = float(value)
         if result.group(4) == None:
             return result, value
         else:
@@ -189,7 +190,7 @@ class QuantityFormat():
 
 class QuantityEntry(tk.Text):
     def __init__(self, master = None, format = QuantityFormat(), report = lambda x: None, **kw):
-        super().__init__(master, wrap = tk.NONE, **kw)
+        super().__init__(master, wrap = tk.NONE, height = 1, **kw)
         self.format = format
         self.report = report
         self.stored = ""
@@ -317,9 +318,12 @@ class QuantityEntry(tk.Text):
             formalize = "" if self.result.group(1) == None else "-"
             formalize += self.result.group(2)
             if self.result.group(3) == None:
-                formalize += "." + "0" * self.format.digits_limit[2]
+                if self.format.digits_limit[2] != 0:
+                    formalize += "." + "0" * self.format.digits_limit[2]
             elif len(self.result.group(3)) < self.format.digits_limit[2] + 1:
                 formalize += self.result.group(3) + "0" * (self.format.digits_limit[2] - len(self.result.group(3)) + 1)
+            else:
+                formalize += self.result.group(3)
             formalize += "" if self.result.group(4) == None else self.result.group(4)
             formalize += self.format.unit
             self.result, self.value = self.format.match(formalize)
@@ -407,7 +411,7 @@ class QuantityEntry(tk.Text):
                             self.delete("1.%d"%(current), "1.%d"%(current + 1))
                             self.insert("1.%d"%(current), "9")
                         current -= 1
-                    if current == 0 and self.quantity[current] == "1":
+                    if current == 0 and self.quantity[0] == "1" and self.quantity[1] != ".":
                         self.quantity = self.quantity[1:]
                         self.delete("1.0")
                         self.selected -= 1
@@ -426,6 +430,8 @@ class QuantityEntry(tk.Text):
                             if self.quantity[i] != ".":
                                 if i == len(self.quantity) - 1 or all(x == "0" or x == "." for x in self.quantity[i + 1:]):
                                     new_quantity += str(10 - int(self.quantity[i]))
+                                    for j in range(i + 1, len(self.quantity)):
+                                        new_quantity += "0"
                                     break
                                 else:
                                     new_quantity += str(9 - int(self.quantity[i]))
@@ -511,9 +517,14 @@ class QuantityEntry(tk.Text):
                             self.delete("1.%d"%(current + 1), "1.%d"%(current + 2))
                             self.insert("1.%d"%(current + 1), "9")
                         current -= 1
-                    self.quantity = self.quantity[:current] + str(int(self.quantity[current]) - 1) + self.quantity[current + 1:]
-                    self.delete("1.%d"%(current + 1), "1.%d"%(current + 2))
-                    self.insert("1.%d"%(current + 1), self.quantity[current])
+                    if current == 0 and self.quantity[0] == "1" and self.quantity[1] != ".":
+                        self.quantity = self.quantity[1:]
+                        self.delete("1.1")
+                        self.selected -= 1
+                    else:
+                        self.quantity = self.quantity[:current] + str(int(self.quantity[current]) - 1) + self.quantity[current + 1:]
+                        self.delete("1.%d"%(current + 1), "1.%d"%(current + 2))
+                        self.insert("1.%d"%(current + 1), self.quantity[current])
                     self.tag_add("selected", "1.%d"%(self.selected + 1), "1.%d"%(self.selected + 2))
                     self.integer, self.fraction = self.break_up(self.quantity)
                 else:
@@ -525,6 +536,8 @@ class QuantityEntry(tk.Text):
                             if self.quantity[i] != ".":
                                 if i == len(self.quantity) - 1 or all(x == "0" or x == "." for x in self.quantity[i + 1:]):
                                     new_quantity += str(10 - int(self.quantity[i]))
+                                    for j in range(i + 1, len(self.quantity)):
+                                        new_quantity += "0"
                                     break
                                 else:
                                     new_quantity += str(9 - int(self.quantity[i]))
@@ -680,8 +693,8 @@ if __name__ == "__main__":
     knob.knob.resistance = 1.4
     knob.knob.lag = 0.65
     '''
-    format = QuantityFormat((1,3,3), unit = "V")
-    entry = QuantityEntry(root, format, lambda x: print(x), width = 10, height = 1, font = ("Arial", 12))
+    format = QuantityFormat((5,5,3), unit = "V")
+    entry = QuantityEntry(root, format, lambda x: print(x), width = 10, font = ("Arial", 12))
     entry.place(x = 50, y = 50)
 
     root.mainloop()

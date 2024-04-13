@@ -22,7 +22,7 @@ def characteristic(waveform: list[float]) -> float:
 
 # todo: add a thread to constantly check the connection to FPGA
 # todo: better analyzing algorithm for the temperature setpoint
-# todo: control the states of knobs
+# todo: control the states of quantity entries, update on initializing
 # todo: provide guis to mim.fb
 
 # maybe move to moku:go?
@@ -262,9 +262,9 @@ class Interface():
         while(True):
             time.sleep(0.03)
             if (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state, self.fpga_control_panel_state) != last:
-                self.logger.debug("State change detected: %d, %d, %d, %d, %d, %d, %d, %d"%(self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state, self.fpga_control_panel_state))
+                self.logger.debug("State change detected: %d, %d, %d, %d, %d, %d, %d, %d, %d"%(self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state, self.fpga_control_panel_state))
                 self.update()
-                last = (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.knob_panel_state, self.fpga_control_panel_state)
+                last = (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state, self.fpga_control_panel_state)
             # widgets that need real-time updates
             match self.tcm_state:
                 case self.TCM_STATE_OFFLINE:
@@ -955,7 +955,7 @@ class Interface():
             return "%.3fV"%((control - 65536) * 0.33417 * 1e-3)
 
     def manual_offset_value2control(self, value: float) -> int:
-        return np.round(value / 0.33417 * 1e3)
+        return int(np.round(value / 0.33417 * 1e3))
 
     def frequency_bias_report(self, value) -> None:
         try:
@@ -974,7 +974,7 @@ class Interface():
         return "%.3fMHz"%(control * 298.023 * 1e-6)
 
     def frequency_bias_value2control(self, value: float) -> int:
-        return np.round(value / 298.023)
+        return int(np.round(value / 298.023))
 
     def fpga_tk_uploading_thread_function(self) -> None:
         self.logger.info("FPGA uploading thread started.")
@@ -1028,17 +1028,18 @@ class Interface():
             
     def tcm_temperature_thread_function(self) -> None:
         self.logger.info("TCM temperature thread started.")
+        self.last_tcm_locktemp_flag = self.tcm_locktemp_flag
         while(True):
             time.sleep(0.1)
             try:
                 if self.tcm_disconnection_flag:
                     self.logger.debug("TCM temperature thread interrupted due to disconnection.")
                     return
-                if self.tcm_locktemp_flag:
+                if self.tcm_locktemp_flag and not self.last_tcm_locktemp_flag:
                     self.logger.debug("Locking temperature.")
                     self.tcm.set_on()
                     self.logger.debug("Temperature locked.")
-                else:
+                elif not self.tcm_locktemp_flag and self.last_tcm_locktemp_flag:
                     self.logger.debug("Unlocking temperature.")
                     self.tcm.set_off()
                     self.logger.debug("Temperature unlocked.")

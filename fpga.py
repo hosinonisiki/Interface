@@ -41,6 +41,7 @@ class MCC():
         self.set_control(controls) # initialize control
         self.upload_control()
     
+    # needs an http implementation
     def download_control(self) -> object:
         try:
             self.controls = {index:value for index, value in zip(range(16), [self.mcc.get_control(i)[i] for i in range(16)])}
@@ -48,7 +49,7 @@ class MCC():
             raise Exception("Connection error: %s"%e.__repr__())
         return self
         
-    def upload_control(self, mode: str = "default") -> object:
+    def upload_control(self, mode: str = "default", url: str = "http://localhost:8090/api/v2/registers") -> object:
         if mode == "default":
             try:
                 for i in range(15, -1, -1):
@@ -56,7 +57,6 @@ class MCC():
             except Exception as e:
                 raise Exception("Connection error: %s"%e.__repr__())
         elif mode == "http":
-            url = "http://localhost:8090/api/v2/registers"
             post = "[[\"instr" + str(self.slot) + "\", {"
             for i in range(0, 16):
                 post = post + "\"" + str(i) + "\":" + str(self.controls[i])
@@ -66,7 +66,6 @@ class MCC():
             try:
                 r_json = json.loads(post)
                 p_confiure = requests.post(url = url, json = r_json)
-                p_confiure_json = p_confiure.json()
             except Exception as e:
                 raise Exception("Connection error: %s"%e.__repr__())
         return self
@@ -243,21 +242,21 @@ class Feedback(MCC):
         "frequency_match_K_D": 0
     } # {<name>:<value>}
     mapping = {
-        "fast_PID_K_P": {"index": 2, "high": 31, "low": 0}, # open to user
-        "fast_PID_K_I": {"index": 3, "high": 31, "low": 0}, # open to user
-        "fast_PID_K_D": {"index": 4, "high": 31, "low": 0}, # open to user
+        "fast_PID_K_P": {"index": 2, "high": 31, "low": 0},
+        "fast_PID_K_I": {"index": 3, "high": 31, "low": 0},
+        "fast_PID_K_D": {"index": 4, "high": 31, "low": 0},
         "monitorC" : {"index": 1, "high": 15, "low": 14},
         "monitorD" : {"index": 1, "high": 13, "low": 12},
         "segments_enabled": {"index": 1, "high": 11, "low": 8}, # open to user with encapsulation
         "set_address": {"index": 1, "high": 7, "low": 4}, # open to user with encapsulation
         "rate": {"index": 1, "high": 3, "low": 0},
-        "slow_PID_K_P": {"index": 8, "high": 31, "low": 0}, # open to user
-        "slow_PID_K_I": {"index": 9, "high": 31, "low": 0}, # open to user
-        "slow_PID_K_D": {"index": 10, "high": 31, "low": 0}, # open to user
+        "slow_PID_K_P": {"index": 8, "high": 31, "low": 0},
+        "slow_PID_K_I": {"index": 9, "high": 31, "low": 0},
+        "slow_PID_K_D": {"index": 10, "high": 31, "low": 0},
         "set_x": {"index": 5, "high": 31, "low": 0}, # open to user with encapsulation
         "set_y": {"index": 6, "high": 31, "low": 16}, # open to user with encapsulation
         "set_slope": {"index": 6, "high": 15, "low": 0}, # open to user with encapsulation
-        "frequency_bias": {"index": 7, "high": 31, "low": 16}, # open to user
+        "frequency_bias": {"index": 7, "high": 31, "low": 16},
         "amplitude": {"index": 7, "high": 15, "low": 0},
         "fast_PID_Reset": {"index": 0, "high": 10, "low": 10}, # open to user with turnkey
         "slow_PID_Reset": {"index": 0, "high": 11, "low": 11}, # open to user with turnkey
@@ -279,7 +278,7 @@ class Feedback(MCC):
         "frequency_match_K_I": {"index": 13, "high": 31, "low": 0},
         "frequency_match_K_D": {"index": 14, "high": 31, "low": 0}
     } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
-    # open PID parameters, frequency_bias and three resets first
+    # open frequency_bias and three resets first
     default_waveform = [
         {"sign": 1, "x": 1562500, "y": 3355, "slope": 0},
         {"sign": 0, "x": 31250000, "y": 0, "slope": 0},
@@ -288,6 +287,7 @@ class Feedback(MCC):
     ]
     def __init__(self, mcc: object, slot: int, controls: dict[int, int] = {}, waveform: list[dict[str, int]] = []):
         super().__init__(mcc, slot, controls)
+        # waveform not correctly uploaded?
         if waveform:
             self.waveform = waveform
         else:
@@ -311,7 +311,7 @@ class Feedback(MCC):
 
     def get_parameter(self, name: str) -> int:
         location = Feedback.mapping[name]
-        bits = bin(self.get_control(location["index"]))[2:].zfill
+        bits = bin(self.get_control(location["index"]))[2:].zfill(32)
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
     
     # todo: a method to set parameters in waveform
