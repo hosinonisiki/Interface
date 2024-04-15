@@ -207,7 +207,7 @@ class Turnkey(MCC):
 
 class Feedback(MCC):
     default_controls = {
-        "fast_PID_K_P": 4294443088,
+        "fast_PID_K_P": 4294443008,
         "fast_PID_K_I": 4261412864,
         "fast_PID_K_D": 4294836224,
         "monitorC": 0,
@@ -287,7 +287,6 @@ class Feedback(MCC):
     ]
     def __init__(self, mcc: object, slot: int, controls: dict[int, int] = {}, waveform: list[dict[str, int]] = []):
         super().__init__(mcc, slot, controls)
-        # todo : fix waveform not correctly uploaded?
         if waveform:
             self.waveform = waveform
         else:
@@ -298,6 +297,8 @@ class Feedback(MCC):
         for name in self.mapping:
             self.set_parameter(name, self.default_controls[name])
         self.upload_control()
+        self.waveform = self.default_waveform
+        self.upload_waveform()
         return self
     
     def set_parameter(self, name: str, value: int) -> object:
@@ -317,6 +318,7 @@ class Feedback(MCC):
     # todo: a method to set parameters in waveform
 
     def upload_waveform(self) -> object:
+        self.set_parameter("segments_enabled", len(self.waveform) - 1)
         for i in range(len(self.waveform)):
             self.set_parameter("set_sign", self.waveform[i]["sign"])
             self.set_parameter("set_x", self.waveform[i]["x"])
@@ -366,7 +368,7 @@ class Feedback(MCC):
         self.upload_control()
         self.set_parameter("initiate", 0)
         self.upload_control()
-        self.set_parameter("periodic", 1)
+        self.set_parameter("initiate", 1)
         self.upload_control()
         return self
 

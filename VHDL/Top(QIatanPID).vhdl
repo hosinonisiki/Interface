@@ -61,6 +61,10 @@ BEGIN
         SIGNAL frequency_match_threshold : signed(15 DOWNTO 0);
         SIGNAL frequency_lock_threshold : signed(15 DOWNTO 0);
     BEGIN
+        -- try to acquire a faster frequency sweeping speed by actively sweeping the output voltage
+        -- find a way to reduce fluctuations when sweeping
+        -- figure out why sometimes the locking is unstable
+
         frequency_match_threshold <= signed(Control11(31 DOWNTO 16));
         frequency_lock_threshold <= signed(Control11(15 DOWNTO 0));
 

@@ -71,7 +71,7 @@ BEGIN
         write => set,
         memory => memory_sign,
 
-        Reset => Reset,
+        Reset => '0',
         Clk => Clk
     );
 
@@ -84,7 +84,7 @@ BEGIN
         write => set,
         memory => memory_x,
 
-        Reset => Reset,
+        Reset => '0',
         Clk => Clk
     );
 
@@ -97,7 +97,7 @@ BEGIN
         write => set,
         memory => memory_y,
 
-        Reset => Reset,
+        Reset => '0',
         Clk => Clk
     );
 
@@ -110,7 +110,7 @@ BEGIN
         write => set,
         memory => memory_slope,
 
-        Reset => Reset,
+        Reset => '0',
         Clk => Clk
     );
 

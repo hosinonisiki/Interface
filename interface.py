@@ -23,6 +23,9 @@ def characteristic(waveform: list[float]) -> float:
 # todo: add a thread to constantly check the connection to FPGA
 # todo: better analyzing algorithm for the temperature setpoint
 # todo: control the states of quantity entries, update upon initialization
+# add new states to developer panel
+# calling tcl from different apartment error when opening fpga control panel
+# also an error occurs when closing the fpga control panel
 
 # maybe move to moku:go?
 # change to datalogger for gathering data
