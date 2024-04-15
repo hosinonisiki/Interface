@@ -634,6 +634,8 @@ class Interface():
                     self.soliton_state = self.SOLITON_STATE_ON
                     if self.fpga_control_panel_state == self.FPGA_CONTROL_PANEL_STATE_ON:
                         self.manual_offset_entry.set("0.000V")
+                        self.manual_offset_entry.store()
+                        self.manual_offset_entry.call()
         return
     
     def command_locktemp_button_onclick(self) -> None:
@@ -769,6 +771,8 @@ class Interface():
                     self.sweeping_state = self.SWEEPING_STATE_ON
                     if self.fpga_control_panel_state == self.FPGA_CONTROL_PANEL_STATE_ON:
                         self.manual_offset_entry.set("0.000V")
+                        self.manual_offset_entry.store()
+                        self.manual_offset_entry.call()
         return
     
     def command_powerlock_button_onclick(self) -> None:
@@ -915,6 +919,8 @@ class Interface():
             self.manual_offset_entry = custom_widgets.QuantityEntry(self.fpga_control_panel, self.manual_offset_format, self.manual_offset_report, width = 10)
             self.manual_offset_entry.place(x = 10, y = 30, anchor = tk.NW)
             self.manual_offset_entry.set(self.manual_offset_control2quantity(self.mim.tk.get_parameter("manual_offset")))
+            self.manual_offset_entry.store()
+            self.manual_offset_entry.call()
 
             self.frequency_bias_label = ttk.Label(self.fpga_control_panel, text = "Frequency bias:")
             self.frequency_bias_label.place(x = 10, y = 60, anchor = tk.NW)
@@ -922,6 +928,8 @@ class Interface():
             self.frequency_bias_entry = custom_widgets.QuantityEntry(self.fpga_control_panel, self.frequency_bias_format, self.frequency_bias_report, width = 10)
             self.frequency_bias_entry.place(x = 10, y = 80, anchor = tk.NW)
             self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.fb.get_parameter("frequency_bias")))
+            self.frequency_bias_entry.store()
+            self.frequency_bias_entry.call()
         except Exception as e:
             self.logger.error("%s"%e.__repr__())
             self.information["text"] = "Error encountered when generating FPGA control panel: %s"%e.__repr__()

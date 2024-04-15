@@ -189,9 +189,9 @@ class QuantityFormat():
             return result, value * self.prefix[result.group(4)]
 
 class QuantityEntry(tk.Text):
-    def __init__(self, master = None, format = QuantityFormat(), report = lambda x: None, **kw):
+    def __init__(self, master = None, formater = QuantityFormat(), report = lambda x: None, **kw):
         super().__init__(master, wrap = tk.NONE, height = 1, **kw)
-        self.format = format
+        self.format = formater
         self.report = report
         self.stored = ""
         self.state = "changed"
@@ -207,15 +207,18 @@ class QuantityEntry(tk.Text):
         self.check_thread = threading.Thread(target = self.check, args = (), daemon = True)
         self.check_thread.start()
 
-        self.tag_config("unchanged", background = "white")
-        self.tag_config("changed", background = "yellow")
+        self.tag_config("unchanged", background = "white", foreground = "black")
+        self.tag_config("changed", background = "yellow", foreground = "black")
         self.tag_config("selected", background = "black", foreground = "white")
         self.tag_config("highlight", background = "blue", foreground = "white")
+        self.tag_config("disabled", background = "#d3d3d3", foreground = "black")
+
+    def call(self):
+        self.report(self.value)
 
     def set(self, str):
         self.delete("1.0", "end-1c")
         self.insert("1.0", str)
-        self.store()
 
     def get_text(self):
         return self.get("1.0", "end-1c")
@@ -230,6 +233,8 @@ class QuantityEntry(tk.Text):
                 self.tag_add("changed", "1.0", "end-1c")
              
     def handle_key(self, event):
+        if self["state"] == "disabled":
+            return "break"
         match self.state:
             case "unchanged":
                 return self.unchanged_handle_key(event)
@@ -251,6 +256,7 @@ class QuantityEntry(tk.Text):
         match event.keysym:
             case "Return":
                 self.store()
+                self.report(self.value)
                 return "break"
             case "Left" | "Right":
                 return "break"
@@ -269,6 +275,8 @@ class QuantityEntry(tk.Text):
                 return "break"
             
     def handle_button(self, event):
+        if self["state"] == "disabled":
+            return "break"
         match self.state:
             case "unchanged":
                 return self.unchanged_handle_button(event)
@@ -287,12 +295,17 @@ class QuantityEntry(tk.Text):
         return self.exit_roll_button(event)
 
     def handle_selection(self, event):
+        if self["state"] == "disabled":
+            return "break"
         match self.state:
             case "unchanged":
                 self.tag_remove("highlight", "1.0", "end")
                 try:
                     start = self.index("sel.first")
                     end = self.index("sel.last")
+                    if self.compare(end, "==", "end") or self.get(end) == "\n":
+                        self.tag_remove("sel", "end-1c", "end")
+                        end = "end-1c"
                     self.tag_add("highlight", start, end)
                 except:
                     pass
@@ -301,6 +314,9 @@ class QuantityEntry(tk.Text):
                 try:
                     start = self.index("sel.first")
                     end = self.index("sel.last")
+                    if self.compare(end, "==", "end") or self.get(end) == "\n":
+                        self.tag_remove("sel", "end-1c", "end")
+                        end = "end-1c"
                     self.tag_add("highlight", start, end)
                 except:
                     pass
@@ -333,7 +349,6 @@ class QuantityEntry(tk.Text):
             self.state = "unchanged"
             self.tag_remove("changed", "1.0", "end-1c")
             self.tag_add("unchanged", "1.0", "end-1c")
-            self.report(self.value)
         return "break"
 
     def enter_roll(self, event):
@@ -343,6 +358,7 @@ class QuantityEntry(tk.Text):
         self.integer = self.result.group(2)
         self.fraction = "" if self.result.group(3) == None else self.result.group(3)[1:]
         self.quantity = self.integer if self.fraction == "" else self.integer + "." + self.fraction
+        self.tag_remove("highlight", "1.0", "end")
         if event.keysym == "Left":
             self.selected = 0
             if self.minus == False:
@@ -667,6 +683,7 @@ class QuantityEntry(tk.Text):
         self.tag_remove("selected", "1.0", "end-1c")
         self.tag_add("unchanged", "1.0", "end-1c")
         self.store()
+        self.report(self.value)
         return "break"
     
     def exit_roll_button(self, event):
@@ -675,11 +692,244 @@ class QuantityEntry(tk.Text):
         self.tag_remove("selected", "1.0", "end-1c")
         self.tag_add("unchanged", "1.0", "end-1c")
         self.store()
+        self.report(self.value)
         return
+
+class WaveformDisplay(tk.Canvas):
+    def __init__(self, master = None, waveform = [], periodic = False, prolong = True, horizontal_proportion = 0.6, vertical_proportion = 0.6, **kw):
+        super().__init__(master, bg = "white", **kw)
+        self.waveform = waveform
+        self.periodic = periodic
+        self.prolong = prolong
+        self.enabled_segments = len(self.waveform)
+        self.horizontal_proportion = horizontal_proportion
+        self.vertical_proportion = vertical_proportion
+
+    def scale(self, value, min, max, proportion):
+        return (value - min) / (max - min) * proportion + (1 - proportion) / 2
+
+    def draw(self):
+        self.delete("all")
+        print("method called")
+        if self.waveform == []:
+            print("no waveform")
+            self.create_line(0, self.winfo_height() / 2, self.winfo_width(), self.winfo_height() / 2, fill = "black")
+        else:
+            try:
+                #transform waveform into relative coordinates
+                sequence = [(0, 0)]
+                for segment in self.waveform[:self.enabled_segments]:
+                    sequence.append((sequence[-1][0] + segment[0], sequence[-1][1] + segment[1]))
+                points = [(self.scale(x, 0, sequence[-1][0], self.horizontal_proportion) * self.winfo_width(), (1 - self.scale(y, min([y for x, y in sequence]), max([y for x, y in sequence]), self.vertical_proportion)) * self.winfo_height()) for x, y in sequence]
+            except ZeroDivisionError:
+                # draw grid only
+                print("zero division")
+                print(self.waveform[:self.enabled_segments])
+                print(sequence)
+                for i in range(1, 10):
+                    self.create_line(0, i / 10 * self.winfo_height(), self.winfo_width(), i / 10 * self.winfo_height(), fill = "#d3d3d3")
+                    self.create_line(i / 10 * self.winfo_width(), 0, i / 10 * self.winfo_width(), self.winfo_height(), fill = "#d3d3d3")
+            else:
+                #draw grid
+                print("drawing waveform")
+                for i in range(1, 10):
+                    self.create_line(0, i / 10 * self.winfo_height(), self.winfo_width(), i / 10 * self.winfo_height(), fill = "#d3d3d3")
+                    self.create_line(i / 10 * self.winfo_width(), 0, i / 10 * self.winfo_width(), self.winfo_height(), fill = "#d3d3d3")
+                #draw waveform
+                for i in range(len(points) - 1):
+                    self.create_line(points[i][0], points[i][1], points[i + 1][0], points[i + 1][1], fill = "black")
+                    #enumerate the segments
+                    if points[i + 1][0] - points[i][0] > 20:
+                        self.create_text((points[i + 1][0] + points[i][0]) / 2, self.winfo_height() - 10, text = str(i + 1), fill = "#922B21")
+                        self.create_oval((points[i + 1][0] + points[i][0]) / 2 - 6, self.winfo_height() - 4, (points[i + 1][0] + points[i][0]) / 2 + 6, self.winfo_height() - 16, fill = "", outline = "#922B21")
+                for i in range(len(points)):
+                    self.create_line(points[i][0], 0, points[i][0], self.winfo_height(), fill = "#922B21", dash = (4, 4))       
+                match self.periodic, self.prolong:
+                    case True, True:
+                        translated_left = [(points[i][0] - self.winfo_width() * self.horizontal_proportion, points[i][1]) for i in range(len(points))]
+                        translated_right = [(points[i][0] + self.winfo_width() * self.horizontal_proportion, points[i][1]) for i in range(len(points))]
+                        step = points[0][1] - points[-1][1]
+                        # extend waveform to the left
+                        for i in range(len(points) - 1, -1, -1):
+                            if translated_left[i][0] <= 0:
+                                break
+                            self.create_line(translated_left[i][0], translated_left[i][1] + step, translated_left[i - 1][0], translated_left[i - 1][1] + step, fill = "black")
+                        # extend waveform to the right
+                        for i in range(len(points)):
+                            if translated_right[i][0] >= self.winfo_width():
+                                break
+                            self.create_line(translated_right[i][0], translated_right[i][1] - step, translated_right[i + 1][0], translated_right[i + 1][1] - step, fill = "black")
+                    case True, False:
+                        translated_left = [(points[i][0] - self.winfo_width() * self.horizontal_proportion, points[i][1]) for i in range(len(points))]
+                        translated_right = [(points[i][0] + self.winfo_width() * self.horizontal_proportion, points[i][1]) for i in range(len(points))]
+                        # extend waveform to the left
+                        self.create_line(points[0][0], points[0][1], translated_left[-1][0], translated_left[-1][1], fill = "black")
+                        for i in range(len(points) - 1, -1, -1):
+                            if translated_left[i][0] <= 0:
+                                break
+                            self.create_line(translated_left[i][0], translated_left[i][1], translated_left[i - 1][0], translated_left[i - 1][1], fill = "black")
+                        # extend waveform to the right
+                        self.create_line(points[-1][0], points[-1][1], translated_right[0][0], translated_right[0][1], fill = "black")
+                        for i in range(len(points)):
+                            if translated_right[i][0] >= self.winfo_width():
+                                break
+                            self.create_line(translated_right[i][0], translated_right[i][1], translated_right[i + 1][0], translated_right[i + 1][1], fill = "black")
+                    case False, True:
+                        self.create_line(0, points[0][1], points[0][0], points[0][1], fill = "black")
+                        self.create_line(points[-1][0], points[-1][1], self.winfo_width(), points[-1][1], fill = "black")
+                    case False, False:
+                        self.create_line(0, points[0][1], points[0][0], points[0][1], fill = "black")
+                        self.create_line(points[-1][0], points[-1][1], points[-1][0], points[0][1], fill = "black")
+                        self.create_line(points[-1][0], points[0][1], self.winfo_width(), points[0][1], fill = "black")
+
+# better layout
+# add scales
+# handle destoy event
+class WaveformControl(tk.Frame):
+    def __init__(self, master = None, uploader = lambda x, y, z: None, launcher = lambda: None, terminator = lambda: None, **kw):
+        super().__init__(master, height = 600, width = 1000, relief = tk.GROOVE, **kw)
+        self.uploader = uploader
+        self.launcher = launcher
+        self.terminator = terminator
+        
+        # a combobox for selecting the number of segments, 8 * 2 QuanitityEntry for setting the segments, 4 buttons for periodic, prolong, uploading and initiating
+        self.segments = ttk.Combobox(self, values = [str(i) for i in range(1, 9)], width = 5)
+        self.segments.current(0)
+        self.segments.place(x = 700, y = 10)
+        
+        self.periodic = False
+        self.prolong = True
+        self.uploaded = True
+
+        self.periodic_button = tk.Button(self, text = "Periodic", width = 32, relief = tk.RAISED, command = self.toggle_periodic)
+        self.prolong_button = tk.Button(self, text = "Hold", width = 32, relief = tk.SUNKEN, command = self.toggle_prolong)
+        self.upload_button = tk.Button(self, text = "Upload waveform", width = 32, relief = tk.SUNKEN, state = tk.DISABLED, command = self.upload_waveform)
+
+        self.periodic_button.place(x = 700, y = 430)
+        self.prolong_button.place(x = 700, y = 465)
+        self.upload_button.place(x = 700, y = 500)
+
+        self.initiate_button = tk.Button(self, text = "Initiate frequency control", width = 32, relief = tk.RAISED, command = self.handle_initiate)
+        self.initiate_button.place(x = 700, y = 535)
+        self.periodically_running = False
+        
+        self.display = WaveformDisplay(self, height = 500, width = 600)
+        self.display.place(x = 50, y = 50)
+        
+        x_format = QuantityFormat((6, 3, 0), {"m": 1e-3, "u": 1e-6}, "s")
+        y_format = QuantityFormat((6, 3, 0), {"k": 1e3, "M": 1e6}, "Hz")
+        self.x_entries = [QuantityEntry(self, x_format, lambda x, i = i: self.save_waveform(x, "x" + str(i)), width = 10, font = ("Arial", 12)) for i in range(8)]
+        self.y_entries = [QuantityEntry(self, y_format, lambda x, i = i: self.save_waveform(x, "y" + str(i)), width = 10, font = ("Arial", 12)) for i in range(8)]
+        for i in range(8):
+            self.x_entries[i].place(x = 700, y = 50 + 50 * i)
+            self.y_entries[i].place(x = 750, y = 50 + 50 * i)
+            self.x_entries[i].set("0ms")
+            self.y_entries[i].set("0MHz")
+            self.x_entries[i].store()
+            self.y_entries[i].store()
+
+        self.after(100, self.save_all)
+
+        self.update_thread = threading.Thread(target = self.update)
+        self.update_thread.start()
+
+    def update(self):
+        last_segments = 0
+        while True:
+            time.sleep(0.03)
+            if self.segments.get() != last_segments:
+                last_segments = self.segments.get()
+                for i in range(8):
+                    if i < int(last_segments):
+                        self.x_entries[i]["state"] = tk.NORMAL
+                        self.y_entries[i]["state"] = tk.NORMAL
+                        self.x_entries[i]["bg"] = "white"
+                        self.y_entries[i]["bg"] = "white"
+                        self.x_entries[i].tag_remove("disabled", "1.0", "end-1c")
+                        self.y_entries[i].tag_remove("disabled", "1.0", "end-1c")
+                    else:
+                        self.x_entries[i]["state"] = tk.DISABLED
+                        self.y_entries[i]["state"] = tk.DISABLED
+                        self.x_entries[i]["bg"] = "#d3d3d3"
+                        self.y_entries[i]["bg"] = "#d3d3d3"
+                        self.x_entries[i].tag_add("disabled", "1.0", "end-1c")
+                        self.y_entries[i].tag_add("disabled", "1.0", "end-1c")
+                self.display.enabled_segments = int(last_segments)
+                self.display.draw()
+
+    def save_all(self):
+        self.display.waveform = [[self.x_entries[i].value, self.y_entries[i].value] for i in range(8)]
+        self.display.periodic = self.periodic
+        self.display.prolong = self.prolong
+        self.display.draw()
+
+    def save_waveform(self, value, index):
+        print("saving " + index + " as " + str(value))
+        self.uploded = False
+        self.upload_button["relief"] = tk.RAISED
+        self.upload_button["state"] = tk.NORMAL
+
+        if index[0] == "x":
+            self.display.waveform[int(index[1])][0] = value
+        else:
+            self.display.waveform[int(index[1])][1] = value
+        print(self.display.waveform)
+        self.display.draw()
+
+    def toggle_periodic(self):
+        self.uploaded = False
+        self.upload_button["relief"] = tk.RAISED
+        self.upload_button["state"] = tk.NORMAL
+
+        if self.periodic == False:
+            self.periodic = True
+            self.periodic_button["relief"] = tk.SUNKEN
+        else:
+            self.periodic = False
+            self.periodic_button["relief"] = tk.RAISED
+        self.display.periodic = self.periodic
+        self.display.draw()
+
+    def toggle_prolong(self):
+        self.uploaded = False
+        self.upload_button["relief"] = tk.RAISED
+        self.upload_button["state"] = tk.NORMAL
+
+        if self.prolong == False:
+            self.prolong = True
+            self.prolong_button["relief"] = tk.SUNKEN
+        else:
+            self.prolong = False
+            self.prolong_button["relief"] = tk.RAISED
+        self.display.prolong = self.prolong
+        self.display.draw()
+
+    def upload_waveform(self):
+        self.save_all()
+        self.uploaded = True
+        self.upload_button["relief"] = tk.SUNKEN
+        self.upload_button["state"] = tk.DISABLED
+        thread = threading.Thread(target = self.uploader, args = (self.display.waveform, self.periodic, self.prolong), daemon = True)
+        thread.start()
+
+    def handle_initiate(self):
+        if self.periodically_running == True:
+            self.periodically_running = False
+            self.initiate_button["relief"] = tk.RAISED
+            self.initiate_button["text"] = "Initiate frequency control"
+            thread = threading.Thread(target = self.terminator, args = (), daemon = True)
+            thread.start()
+        else:
+            if self.periodic == True:
+                self.periodically_running = True
+                self.initiate_button["relief"] = tk.SUNKEN
+                self.initiate_button["text"] = "Stop frequency control"
+            thread = threading.Thread(target = self.launcher, args = (), daemon = True)
+            thread.start()
 
 if __name__ == "__main__":
     root = tk.Tk()
-    root.geometry("220x280")
+    root.geometry("1000x600")
     '''
     knob = KnobFrame(root, "icons/knob.png", 100, name = "Manual offset", scale = 0.334, unit = "mV", relief = tk.GROOVE, borderwidth = 2)
     knob.knob.value_step = 30
@@ -692,9 +942,17 @@ if __name__ == "__main__":
     knob.knob.step = 36
     knob.knob.resistance = 1.4
     knob.knob.lag = 0.65
-    '''
+    
     format = QuantityFormat((5,5,3), unit = "V")
     entry = QuantityEntry(root, format, lambda x: print(x), width = 10, font = ("Arial", 12))
     entry.place(x = 50, y = 50)
+
+    display = WaveformDisplay(root, [(10, 10), (20, 0), (10, -10), (20, -10)], periodic = False, prolong = False, horizontal_proportion = 0.6, vertical_proportion = 0.6, width = 500, height = 400)
+    display.place(x = 50, y = 100)
+    display.after(100, display.draw)
+    '''
+
+    control = WaveformControl(root)
+    control.place(x = 0, y = 0)
 
     root.mainloop()
