@@ -372,13 +372,15 @@ class Feedback(MCC):
         self.upload_control()
         return self
 
-# todo : handle requests when tk and fb have not been instantiated
+# todo : check if the setup exists upon initialization
 class MIM():
     def __init__(self, ip, logger = None):
         self.mim = instruments.MultiInstrument(ip, force_connect = True, platform_id = 4)
         self.logger = logger
         if self.logger:
             self.logger.debug("MIM Created.")
+        self.tk = None
+        self.fb = None
         
     def initialize(self) -> object:
         # Set the MultiInstrument configuration here
@@ -459,6 +461,14 @@ class MIM():
             result = self.osc.get_data()["ch1"] + result
             time.sleep(delay)
         return result
+
+    def get_module(self, name: str) -> typing.Union[Turnkey, Feedback, None]:
+        if name == "turnkey" and self.tk:
+            return self.tk
+        elif name == "feedback" and self.fb:
+            return self.fb
+        else:
+            return None
 
 def test(mim, N, delay):
     fig, ax = plt.subplots()

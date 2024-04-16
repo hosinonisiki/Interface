@@ -231,6 +231,12 @@ class QuantityEntry(tk.Text):
                 self.tag_remove("unchanged", "1.0", "end-1c")
             if self.state == "changed":
                 self.tag_add("changed", "1.0", "end-1c")
+            if self["state"] == "disabled":
+                self.tag_add("disabled", "1.0", "end-1c")
+                self["bg"] = "#d3d3d3"
+            else:
+                self.tag_remove("disabled", "1.0", "end-1c")
+                self["bg"] = "white"
              
     def handle_key(self, event):
         if self["state"] == "disabled":
@@ -843,17 +849,9 @@ class WaveformControl(tk.Frame):
                     if i < int(last_segments):
                         self.x_entries[i]["state"] = tk.NORMAL
                         self.y_entries[i]["state"] = tk.NORMAL
-                        self.x_entries[i]["bg"] = "white"
-                        self.y_entries[i]["bg"] = "white"
-                        self.x_entries[i].tag_remove("disabled", "1.0", "end-1c")
-                        self.y_entries[i].tag_remove("disabled", "1.0", "end-1c")
                     else:
                         self.x_entries[i]["state"] = tk.DISABLED
                         self.y_entries[i]["state"] = tk.DISABLED
-                        self.x_entries[i]["bg"] = "#d3d3d3"
-                        self.y_entries[i]["bg"] = "#d3d3d3"
-                        self.x_entries[i].tag_add("disabled", "1.0", "end-1c")
-                        self.y_entries[i].tag_add("disabled", "1.0", "end-1c")
                 self.display.enabled_segments = int(last_segments)
                 self.display.draw()
 

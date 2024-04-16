@@ -22,10 +22,10 @@ def characteristic(waveform: list[float]) -> float:
 
 # todo: add a thread to constantly check the connection to FPGA
 # todo: better analyzing algorithm for the temperature setpoint
-# todo: control the states of quantity entries, update upon initialization
 # add new states to developer panel
 # calling tcl from different apartment error when opening fpga control panel
 # also an error occurs when closing the fpga control panel
+# rearchitecture feedback module into a plugin
 
 # maybe move to moku:go?
 # change to datalogger for gathering data
@@ -131,9 +131,10 @@ class Interface():
         # other flags
 
         self.developer = False
-        self.setup_found = False
 
         # other initializations
+
+        self.mim = None
 
         # Top class utilities
         
@@ -187,7 +188,7 @@ class Interface():
 
         # fpga section
         
-        self.fpga_frame = ttk.LabelFrame(self.root, text = "FPGA", width = 280, height = 170, relief = tk.GROOVE)
+        self.fpga_frame = ttk.LabelFrame(self.root, text = "FPGA", width = 280, height = 220, relief = tk.GROOVE)
         self.fpga_frame.place(x = 20, y = 15, anchor = tk.NW)
         
         self.fpga_connection_label = ttk.Label(self.fpga_frame, text = "FPGA local IP address:")
@@ -207,8 +208,15 @@ class Interface():
         self.fpga_initialization_button = ttk.Button(self.fpga_frame, text = "Initialize", command = self.fpga_initialization_button_onclick, width = 32)
         self.fpga_initialization_button.place(x = 20, y = 76, anchor = tk.NW)
         
+        self.manual_offset_label = ttk.Label(self.fpga_frame, text = "Manual offset:")
+        self.manual_offset_label.place(x = 20, y = 105, anchor = tk.NW)
+
+        self.manual_offset_format = custom_widgets.QuantityFormat((3, 3, 3), {"m": 1e-3}, "V")
+        self.manual_offset_entry = custom_widgets.QuantityEntry(self.fpga_frame, self.manual_offset_format, self.manual_offset_report, width = 10)
+        self.manual_offset_entry.place(x = 20, y = 125, anchor = tk.NW)
+
         self.fpga_control_panel_button = ttk.Button(self.fpga_frame, text = "Control panel", command = self.fpga_control_panel_button_onclick, width = 32)
-        self.fpga_control_panel_button.place(x = 20, y = 105, anchor = tk.NW)
+        self.fpga_control_panel_button.place(x = 20, y = 155, anchor = tk.NW)
 
         # tcm section
         
@@ -294,6 +302,7 @@ class Interface():
                 self.fpga_connection_button["state"] = tk.NORMAL
                 self.fpga_disconnection_button["state"] = tk.DISABLED
                 self.fpga_initialization_button["state"] = tk.DISABLED
+                self.manual_offset_entry["state"] = tk.DISABLED
             case self.FPGA_STATE_STANDBY:
                 if self.developer:
                     self.developer_state_fpga_label["text"] = "fpga_state = FPGA_STATE_STANDBY"
@@ -303,6 +312,7 @@ class Interface():
                 self.fpga_connection_button["state"] = tk.DISABLED
                 self.fpga_disconnection_button["state"] = tk.NORMAL
                 self.fpga_initialization_button["state"] = tk.NORMAL
+                self.manual_offset_entry["state"] = tk.NORMAL
             case self.FPGA_STATE_BUSY:
                 if self.developer:
                     self.developer_state_fpga_label["text"] = "fpga_state = FPGA_STATE_BUSY"
@@ -312,6 +322,7 @@ class Interface():
                 self.fpga_connection_button["state"] = tk.DISABLED
                 self.fpga_disconnection_button["state"] = tk.NORMAL
                 self.fpga_initialization_button["state"] = tk.DISABLED
+                self.manual_offset_entry["state"] = tk.NORMAL
             case self.FPGA_STATE_UNKNOWN:
                 if self.developer:
                     self.developer_state_fpga_label["text"] = "fpga_state = FPGA_STATE_UNKNOWN"
@@ -321,6 +332,7 @@ class Interface():
                 self.fpga_connection_button["state"] = tk.NORMAL
                 self.fpga_disconnection_button["state"] = tk.DISABLED
                 self.fpga_initialization_button["state"] = tk.DISABLED
+                self.manual_offset_entry["state"] = tk.DISABLED
             case self.FPGA_STATE_CONNECTING:
                 if self.developer:
                     self.developer_state_fpga_label["text"] = "fpga_state = FPGA_STATE_CONNECTING"
@@ -330,6 +342,7 @@ class Interface():
                 self.fpga_connection_button["state"] = tk.DISABLED
                 self.fpga_disconnection_button["state"] = tk.DISABLED
                 self.fpga_initialization_button["state"] = tk.DISABLED
+                self.manual_offset_entry["state"] = tk.DISABLED
         # tcm panel widgets
         match self.tcm_state:
             case self.TCM_STATE_OFFLINE:
@@ -472,6 +485,19 @@ class Interface():
                 self.fpga_control_panel_button["state"] = tk.NORMAL
             case self.FPGA_CONTROL_PANEL_STATE_ON:
                 self.fpga_control_panel_button["state"] = tk.DISABLED
+        # fpga control panel widgets
+        if self.fpga_control_panel_state == self.FPGA_CONTROL_PANEL_STATE_ON:
+            match self.fpga_state:
+                case self.FPGA_STATE_OFFLINE:
+                    self.frequency_entry["state"] = tk.DISABLED
+                case self.FPGA_STATE_STANDBY:
+                    self.frequency_entry["state"] = tk.NORMAL
+                case self.FPGA_STATE_BUSY:
+                    self.frequency_entry["state"] = tk.NORMAL
+                case self.FPGA_STATE_UNKNOWN:
+                    self.frequency_entry["state"] = tk.DISABLED
+                case self.FPGA_STATE_CONNECTING:
+                    self.frequency_entry["state"] = tk.DISABLED
         return
 
     def developer_entrance_onclick(self) -> None:
@@ -552,7 +578,7 @@ class Interface():
         self.knob_panel_thread.start()
         '''
         return
-
+    '''
     def knob_panel_thread_function(self) -> None:
         self.logger.info("Knob panel thread started.")
         try:
@@ -604,9 +630,13 @@ class Interface():
         self.knob_uploading_flag = False
         self.logger.debug("Knob parameter uploaded.")
         return
-
+    '''
     def command_soliton_button_onclick(self) -> None:
         self.logger.info("Soliton button clicked.")
+        if self.mim.tk is None:
+            self.logger.debug("mim.tk not found.")
+            self.information["text"] = "Module not found. Try initializing first."
+            return
         match self.soliton_state:
             case self.SOLITON_STATE_ON:
                 try:
@@ -655,6 +685,7 @@ class Interface():
     
     def command_setpoint_button_onclick(self) -> None:
         self.logger.info("Setpoint button clicked.")
+        # check if modules exist
         match self.setpoint_state:
             case self.SETPOINT_STATE_ON:
                 self.logger.debug("Setpoint button accessed during sweeping.")
@@ -744,6 +775,10 @@ class Interface():
     
     def command_sweeping_button_onclick(self) -> None:
         self.logger.info("Sweeping button clicked.")
+        if self.mim.tk is None:
+            self.logger.debug("mim.tk not found.")
+            self.information["text"] = "Module not found. Try initializing first."
+            return
         match self.sweeping_state:
             case self.SWEEPING_STATE_ON:
                 try:
@@ -777,6 +812,10 @@ class Interface():
     
     def command_powerlock_button_onclick(self) -> None:
         self.logger.info("Powerlock button clicked.")
+        if self.tk is None:
+            self.logger.debug("mim.tk not found.")
+            self.information["text"] = "Module not found. Try initializing first."
+            return
         match self.powerlock_state:
             case self.POWERLOCK_STATE_ON:
                 try:
@@ -821,11 +860,20 @@ class Interface():
         try:
             self.logger.debug("Connecting to FPGA.")
             self.mim = fpga.MIM(self.ip, self.logger)
-            self.setup_found = False # So far a connection to FPGA is destined to clear the setup
             self.powerlock_state = self.POWERLOCK_STATE_OFF
-            if self.setup_found:
+            if self.mim.tk is None:
+                self.logger.debug("mim.tk not found. Skipping parameter synchronizations.")
+            else:
                 if self.mim.tk.get_parameter("PID_lock") == 0:
                     self.powerlock_state = self.POWERLOCK_STATE_ON
+                self.manual_offset_entry.set(self.manual_offset_control2quantity(self.mim.tk.get_parameter("manual_offset")))
+                self.manual_offset_entry.store()
+            if self.mim.fb is None:
+                self.logger.debug("mim.fb not found. Skipping parameter synchronizations.")
+            else:
+                if self.fpga_control_panel_state == self.FPGA_CONTROL_PANEL_STATE_ON:
+                    self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.fb.get_parameter("frequency_bias")))
+                    self.frequency_bias_entry.store()
         except BaseException as e:
             self.logger.error("Failed to connect to FPGA: %s"%e.__repr__())
             self.information["text"] = "Failed to connect to FPGA: %s"%e.__repr__()
@@ -881,11 +929,15 @@ class Interface():
         try:
             self.logger.debug("Initializing FPGA.")
             self.mim.initialize()
-            self.setup_found = True
             if self.mim.tk.get_parameter("PID_lock") == 0:
                 self.powerlock_state = self.POWERLOCK_STATE_ON
             else:
                 self.powerlock_state = self.POWERLOCK_STATE_OFF
+            self.manual_offset_entry.set(self.manual_offset_control2quantity(self.mim.tk.get_parameter("manual_offset")))
+            self.manual_offset_entry.store()
+            if self.fpga_control_panel_state == self.FPGA_CONTROL_PANEL_STATE_ON:
+                self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.fb.get_parameter("frequency_bias")))
+                self.frequency_bias_entry.store()
         except BaseException as e:
             self.logger.error("%s"%e.__repr__())
             self.information["text"] = "Failed to initialize: %s"%e.__repr__()
@@ -896,57 +948,13 @@ class Interface():
             self.fpga_state = self.FPGA_STATE_STANDBY
         return
     
-    def fpga_control_panel_button_onclick(self) -> None:
-        self.logger.info("FPGA control panel button clicked.")
-        self.information["text"] = "FPGA control panel."
-        self.fpga_control_panel_thread = threading.Thread(target = self.fpga_control_panel_thread_function, args = (), daemon = True)
-        self.fpga_control_panel_thread.start()
-        return
-    
-    def fpga_control_panel_thread_function(self) -> None:
-        self.logger.info("FPGA control panel thread started.")
-        try:
-            self.fpga_control_panel_state = self.FPGA_CONTROL_PANEL_STATE_ON
-            self.fpga_control_panel = tk.Toplevel()
-            self.fpga_control_panel.title("FPGA control panel")
-            self.fpga_control_panel.geometry("800x600")
-            self.fpga_control_panel.protocol("WM_DELETE_WINDOW", self.fpga_control_panel_onclose)
-
-            # entries
-            self.manual_offset_label = ttk.Label(self.fpga_control_panel, text = "Manual offset:")
-            self.manual_offset_label.place(x = 10, y = 10, anchor = tk.NW)
-            self.manual_offset_format = custom_widgets.QuantityFormat((3, 3, 3), {"m": 1e-3}, "V")
-            self.manual_offset_entry = custom_widgets.QuantityEntry(self.fpga_control_panel, self.manual_offset_format, self.manual_offset_report, width = 10)
-            self.manual_offset_entry.place(x = 10, y = 30, anchor = tk.NW)
-            self.manual_offset_entry.set(self.manual_offset_control2quantity(self.mim.tk.get_parameter("manual_offset")))
-            self.manual_offset_entry.store()
-            self.manual_offset_entry.call()
-
-            self.frequency_bias_label = ttk.Label(self.fpga_control_panel, text = "Frequency bias:")
-            self.frequency_bias_label.place(x = 10, y = 60, anchor = tk.NW)
-            self.frequency_bias_format = custom_widgets.QuantityFormat((6, 6, 0), {"M": 1e6, "k": 1e3}, "Hz")
-            self.frequency_bias_entry = custom_widgets.QuantityEntry(self.fpga_control_panel, self.frequency_bias_format, self.frequency_bias_report, width = 10)
-            self.frequency_bias_entry.place(x = 10, y = 80, anchor = tk.NW)
-            self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.fb.get_parameter("frequency_bias")))
-            self.frequency_bias_entry.store()
-            self.frequency_bias_entry.call()
-        except Exception as e:
-            self.logger.error("%s"%e.__repr__())
-            self.information["text"] = "Error encountered when generating FPGA control panel: %s"%e.__repr__()
-        else:
-            self.logger.debug("FPGA control panel generated.")
-            self.fpga_control_panel.mainloop()
-        return
-    
-    def fpga_control_panel_onclose(self) -> None:
-        self.logger.debug("FPGA control panel closed.")
-        self.fpga_control_panel_state = self.FPGA_CONTROL_PANEL_STATE_OFF
-        self.fpga_control_panel.destroy()
-        return
-
     def manual_offset_report(self, value) -> None:
         try:
             self.logger.debug("Setting manual offset to %s."%self.manual_offset_entry.get_text())
+            if self.mim.tk is None:
+                self.logger.debug("mim.tk not found. Aborting setting manual offset.")
+                self.information["text"] = "Module not found. Did you forget to initialize?"
+                return
             self.mim.tk.set_parameter("manual_offset", self.manual_offset_value2control(value))
             if self.fpga_uploading_flag == False:
                 self.fpga_uploading_flag = True
@@ -966,9 +974,57 @@ class Interface():
     def manual_offset_value2control(self, value: float) -> int:
         return int(np.round(value / 0.33417 * 1e3))
 
+    def fpga_control_panel_button_onclick(self) -> None:
+        self.logger.info("FPGA control panel button clicked.")
+        self.information["text"] = "FPGA control panel."
+        self.fpga_control_panel_thread = threading.Thread(target = self.fpga_control_panel_thread_function, args = (), daemon = True)
+        self.fpga_control_panel_thread.start()
+        return
+    
+    def fpga_control_panel_thread_function(self) -> None:
+        self.logger.info("FPGA control panel thread started.")
+        try:
+            self.fpga_control_panel_state = self.FPGA_CONTROL_PANEL_STATE_ON
+            self.fpga_control_panel = tk.Toplevel()
+            self.fpga_control_panel.title("FPGA control panel")
+            self.fpga_control_panel.geometry("800x600")
+            self.fpga_control_panel.protocol("WM_DELETE_WINDOW", self.fpga_control_panel_onclose)
+
+            # entries
+            
+
+            self.frequency_bias_label = ttk.Label(self.fpga_control_panel, text = "Frequency bias:")
+            self.frequency_bias_label.place(x = 10, y = 60, anchor = tk.NW)
+            self.frequency_bias_format = custom_widgets.QuantityFormat((6, 6, 0), {"M": 1e6, "k": 1e3}, "Hz")
+            self.frequency_bias_entry = custom_widgets.QuantityEntry(self.fpga_control_panel, self.frequency_bias_format, self.frequency_bias_report, width = 10)
+            self.frequency_bias_entry.place(x = 10, y = 80, anchor = tk.NW)
+            if self.mim is None or self.mim.fb is None:
+                self.logger.debug("mim/mim.fb not found. Skipping setting default value of frequency bias entry.")
+            else:
+                self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.fb.get_parameter("frequency_bias")))
+                self.frequency_bias_entry.store()
+                self.frequency_bias_entry.call()
+        except Exception as e:
+            self.logger.error("%s"%e.__repr__())
+            self.information["text"] = "Error encountered when generating FPGA control panel: %s"%e.__repr__()
+        else:
+            self.logger.debug("FPGA control panel generated.")
+            self.fpga_control_panel.mainloop()
+        return
+    
+    def fpga_control_panel_onclose(self) -> None:
+        self.logger.debug("FPGA control panel closed.")
+        self.fpga_control_panel_state = self.FPGA_CONTROL_PANEL_STATE_OFF
+        self.fpga_control_panel.destroy()
+        return
+
     def frequency_bias_report(self, value) -> None:
         try:
             self.logger.debug("Setting frequency bias to %s."%self.frequency_bias_entry.get_text())
+            if self.mim is None or self.mim.fb is None:
+                self.logger.debug("mim/mim.fb not found. Aborting setting frequency bias.")
+                self.information["text"] = "Module not found. Did you forget to initialize?"
+                return
             self.mim.fb.set_parameter("frequency_bias", self.frequency_bias_value2control(value))
             if self.fpga_uploading_flag == False:
                 self.fpga_uploading_flag = True
