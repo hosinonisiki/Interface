@@ -201,7 +201,7 @@ class QuantityEntry(tk.Text):
         self.bind("<Key>", self.handle_key)
         self.bind("<Button-1>", self.handle_button)
         self.bind("<<Selection>>", self.handle_selection)
-        self.bind("<<Destroy>>", self.handle_destroy)
+        self.bind("<<Destroy>>", self.destroy)
     
         self.destroying = False
         self.check_thread = threading.Thread(target = self.check, args = (), daemon = True)
@@ -224,19 +224,24 @@ class QuantityEntry(tk.Text):
         return self.get("1.0", "end-1c")
 
     def check(self):
-        while self.destroying == False:
+        last_state = None
+        while True:
             time.sleep(0.05)
+            if self.destroying:
+                return
             if self.state == "unchanged" and self.get("1.0", "end-1c") != self.stored:
                 self.state = "changed"
                 self.tag_remove("unchanged", "1.0", "end-1c")
             if self.state == "changed":
                 self.tag_add("changed", "1.0", "end-1c")
-            if self["state"] == "disabled":
-                self.tag_add("disabled", "1.0", "end-1c")
-                self["bg"] = "#d3d3d3"
-            else:
-                self.tag_remove("disabled", "1.0", "end-1c")
-                self["bg"] = "white"
+            if self["state"] != last_state:
+                last_state = self["state"]
+                if self["state"] == "disabled":
+                    self.tag_add("disabled", "1.0", "end-1c")
+                    self["bg"] = "#d3d3d3"
+                else:
+                    self.tag_remove("disabled", "1.0", "end-1c")
+                    self["bg"] = "white"
              
     def handle_key(self, event):
         if self["state"] == "disabled":
@@ -329,9 +334,8 @@ class QuantityEntry(tk.Text):
             case "rolling":
                 return
             
-    def handle_destroy(self, event):
+    def destroy(self):
         self.destroying = True
-        self.check_thread.join()
 
     def store(self):
         text = self.get("1.0", "end-1c")
@@ -716,28 +720,23 @@ class WaveformDisplay(tk.Canvas):
 
     def draw(self):
         self.delete("all")
-        print("method called")
         if self.waveform == []:
-            print("no waveform")
             self.create_line(0, self.winfo_height() / 2, self.winfo_width(), self.winfo_height() / 2, fill = "black")
         else:
             try:
                 #transform waveform into relative coordinates
-                sequence = [(0, 0)]
+                self.sequence = [(0, 0)]
                 for segment in self.waveform[:self.enabled_segments]:
-                    sequence.append((sequence[-1][0] + segment[0], sequence[-1][1] + segment[1]))
-                points = [(self.scale(x, 0, sequence[-1][0], self.horizontal_proportion) * self.winfo_width(), (1 - self.scale(y, min([y for x, y in sequence]), max([y for x, y in sequence]), self.vertical_proportion)) * self.winfo_height()) for x, y in sequence]
+                    self.sequence.append((self.sequence[-1][0] + segment[0], self.sequence[-1][1] + segment[1]))
+                points = [(self.scale(x, 0, self.sequence[-1][0], self.horizontal_proportion) * self.winfo_width(), (1 - self.scale(y, min([y for x, y in self.sequence]), max([y for x, y in self.sequence]), self.vertical_proportion)) * self.winfo_height()) for x, y in self.sequence]
             except ZeroDivisionError:
                 # draw grid only
-                print("zero division")
-                print(self.waveform[:self.enabled_segments])
-                print(sequence)
                 for i in range(1, 10):
                     self.create_line(0, i / 10 * self.winfo_height(), self.winfo_width(), i / 10 * self.winfo_height(), fill = "#d3d3d3")
                     self.create_line(i / 10 * self.winfo_width(), 0, i / 10 * self.winfo_width(), self.winfo_height(), fill = "#d3d3d3")
+                return False
             else:
                 #draw grid
-                print("drawing waveform")
                 for i in range(1, 10):
                     self.create_line(0, i / 10 * self.winfo_height(), self.winfo_width(), i / 10 * self.winfo_height(), fill = "#d3d3d3")
                     self.create_line(i / 10 * self.winfo_width(), 0, i / 10 * self.winfo_width(), self.winfo_height(), fill = "#d3d3d3")
@@ -750,6 +749,8 @@ class WaveformDisplay(tk.Canvas):
                         self.create_oval((points[i + 1][0] + points[i][0]) / 2 - 6, self.winfo_height() - 4, (points[i + 1][0] + points[i][0]) / 2 + 6, self.winfo_height() - 16, fill = "", outline = "#922B21")
                 for i in range(len(points)):
                     self.create_line(points[i][0], 0, points[i][0], self.winfo_height(), fill = "#922B21", dash = (4, 4))       
+                self.create_line(0, (1 - self.vertical_proportion) / 2 * self.winfo_height(), self.winfo_width(), (1 - self.vertical_proportion) / 2 * self.winfo_height(), fill = "#922B21", dash = (4, 4))
+                self.create_line(0, (1 + self.vertical_proportion) / 2 * self.winfo_height(), self.winfo_width(), (1 + self.vertical_proportion) / 2 * self.winfo_height(), fill = "#922B21", dash = (4, 4))
                 match self.periodic, self.prolong:
                     case True, True:
                         translated_left = [(points[i][0] - self.winfo_width() * self.horizontal_proportion, points[i][1]) for i in range(len(points))]
@@ -787,13 +788,11 @@ class WaveformDisplay(tk.Canvas):
                         self.create_line(0, points[0][1], points[0][0], points[0][1], fill = "black")
                         self.create_line(points[-1][0], points[-1][1], points[-1][0], points[0][1], fill = "black")
                         self.create_line(points[-1][0], points[0][1], self.winfo_width(), points[0][1], fill = "black")
+                return True
 
-# better layout
-# add scales
-# handle destoy event
 class WaveformControl(tk.Frame):
     def __init__(self, master = None, uploader = lambda x, y, z: None, launcher = lambda: None, terminator = lambda: None, **kw):
-        super().__init__(master, height = 600, width = 1000, relief = tk.GROOVE, **kw)
+        super().__init__(master, height = 420, width = 872, relief = tk.GROOVE, borderwidth = 2, **kw)
         self.uploader = uploader
         self.launcher = launcher
         self.terminator = terminator
@@ -801,48 +800,65 @@ class WaveformControl(tk.Frame):
         # a combobox for selecting the number of segments, 8 * 2 QuanitityEntry for setting the segments, 4 buttons for periodic, prolong, uploading and initiating
         self.segments = ttk.Combobox(self, values = [str(i) for i in range(1, 9)], width = 5)
         self.segments.current(0)
-        self.segments.place(x = 700, y = 10)
+        self.segments.place(x = 620, y = 14)
         
+        self.state = "normal"
         self.periodic = False
         self.prolong = True
         self.uploaded = True
+        self.periodically_running = False
 
         self.periodic_button = tk.Button(self, text = "Periodic", width = 32, relief = tk.RAISED, command = self.toggle_periodic)
         self.prolong_button = tk.Button(self, text = "Hold", width = 32, relief = tk.SUNKEN, command = self.toggle_prolong)
         self.upload_button = tk.Button(self, text = "Upload waveform", width = 32, relief = tk.SUNKEN, state = tk.DISABLED, command = self.upload_waveform)
 
-        self.periodic_button.place(x = 700, y = 430)
-        self.prolong_button.place(x = 700, y = 465)
-        self.upload_button.place(x = 700, y = 500)
+        self.periodic_button.place(x = 620, y = 264)
+        self.prolong_button.place(x = 620, y = 296)
+        self.upload_button.place(x = 620, y = 328)
 
         self.initiate_button = tk.Button(self, text = "Initiate frequency control", width = 32, relief = tk.RAISED, command = self.handle_initiate)
-        self.initiate_button.place(x = 700, y = 535)
-        self.periodically_running = False
+        self.initiate_button.place(x = 620, y = 360)
         
-        self.display = WaveformDisplay(self, height = 500, width = 600)
-        self.display.place(x = 50, y = 50)
+        self.display = WaveformDisplay(self, height = 380, width = 550)
+        self.display.place(x = 10, y = 10)
         
         x_format = QuantityFormat((6, 3, 0), {"m": 1e-3, "u": 1e-6}, "s")
         y_format = QuantityFormat((6, 3, 0), {"k": 1e3, "M": 1e6}, "Hz")
         self.x_entries = [QuantityEntry(self, x_format, lambda x, i = i: self.save_waveform(x, "x" + str(i)), width = 10, font = ("Arial", 12)) for i in range(8)]
         self.y_entries = [QuantityEntry(self, y_format, lambda x, i = i: self.save_waveform(x, "y" + str(i)), width = 10, font = ("Arial", 12)) for i in range(8)]
         for i in range(8):
-            self.x_entries[i].place(x = 700, y = 50 + 50 * i)
-            self.y_entries[i].place(x = 750, y = 50 + 50 * i)
+            self.x_entries[i].place(x = 620, y = 42 + 28 * i)
+            self.y_entries[i].place(x = 718, y = 42 + 28 * i)
             self.x_entries[i].set("0ms")
             self.y_entries[i].set("0MHz")
             self.x_entries[i].store()
             self.y_entries[i].store()
 
-        self.after(100, self.save_all)
+        self.scale_xmin = tk.Label(self, text = "", font = ("Arial", 12))
+        self.scale_xmax = tk.Label(self, text = "", font = ("Arial", 12))
+        self.scale_ymin = tk.Label(self, text = "", font = ("Arial", 12))
+        self.scale_ymax = tk.Label(self, text = "", font = ("Arial", 12))
 
-        self.update_thread = threading.Thread(target = self.update)
+        self.scale_xmin.place(x = 120, y = 390, anchor = tk.N)
+        self.scale_xmax.place(x = 452, y = 390, anchor = tk.N)
+        self.scale_ymin.place(x = 563, y = 317, anchor = tk.W)
+        self.scale_ymax.place(x = 563, y = 87, anchor = tk.W)
+
+        self.after(100, self.save_all)
+        
+        self.bind("<<Destroy>>", self.destroy)
+
+        self.destroying = False
+        self.update_thread = threading.Thread(target = self.update, args = (), daemon = True)
         self.update_thread.start()
 
     def update(self):
         last_segments = 0
+        last_state = (self.state, self.uploaded, self.periodically_running)
         while True:
-            time.sleep(0.03)
+            time.sleep(0.05)
+            if self.destroying:
+                return
             if self.segments.get() != last_segments:
                 last_segments = self.segments.get()
                 for i in range(8):
@@ -853,31 +869,72 @@ class WaveformControl(tk.Frame):
                         self.x_entries[i]["state"] = tk.DISABLED
                         self.y_entries[i]["state"] = tk.DISABLED
                 self.display.enabled_segments = int(last_segments)
-                self.display.draw()
+                self.draw()
+            if last_state != (self.state, self.uploaded, self.periodically_running):
+                last_state = (self.state, self.uploaded, self.periodically_running)
+                match (self.state, self.uploaded):
+                    case "normal", False:
+                        self.upload_button["state"] = tk.NORMAL
+                        self.upload_button["relief"] = tk.RAISED
+                    case "normal", True:
+                        self.upload_button["state"] = tk.DISABLED
+                        self.upload_button["relief"] = tk.SUNKEN
+                    case "disabled", False:
+                        self.upload_button["state"] = tk.DISABLED
+                        self.upload_button["relief"] = tk.RAISED
+                    case "disabled", True:
+                        self.upload_button["state"] = tk.DISABLED
+                        self.upload_button["relief"] = tk.SUNKEN
+                match (self.state, self.periodically_running):
+                    case "normal", True:
+                        self.initiate_button["state"] = tk.NORMAL
+                        self.initiate_button["relief"] = tk.SUNKEN
+                    case "normal", False:
+                        self.initiate_button["state"] = tk.NORMAL
+                        self.initiate_button["relief"] = tk.RAISED
+                    case "disabled", True:
+                        self.initiate_button["state"] = tk.DISABLED
+                        self.initiate_button["relief"] = tk.SUNKEN
+                    case "disabled", False:
+                        self.initiate_button["state"] = tk.DISABLED
+                        self.initiate_button["relief"] = tk.RAISED
+
+    def destroy(self):
+        self.destroying = True
+        for i in range(8):
+            self.x_entries[i].destroy()
+            self.y_entries[i].destroy()
+
+    def draw(self):
+        if self.display.draw():
+            # label scales
+            self.scale_xmin["text"] = "0ms"
+            self.scale_xmax["text"] = "%d"%(max([x for x, y in self.display.sequence]) * 1e3) + "ms"
+            self.scale_ymin["text"] = "%d"%(min([y for x, y in self.display.sequence]) * 1e-6) + "MHz"
+            self.scale_ymax["text"] = "%d"%(max([y for x, y in self.display.sequence]) * 1e-6) + "MHz"
+        else:
+            self.scale_xmin["text"] = ""
+            self.scale_xmax["text"] = ""
+            self.scale_ymin["text"] = ""
+            self.scale_ymax["text"] = ""
 
     def save_all(self):
         self.display.waveform = [[self.x_entries[i].value, self.y_entries[i].value] for i in range(8)]
         self.display.periodic = self.periodic
         self.display.prolong = self.prolong
-        self.display.draw()
+        self.draw()
 
     def save_waveform(self, value, index):
-        print("saving " + index + " as " + str(value))
         self.uploded = False
-        self.upload_button["relief"] = tk.RAISED
-        self.upload_button["state"] = tk.NORMAL
 
         if index[0] == "x":
             self.display.waveform[int(index[1])][0] = value
         else:
             self.display.waveform[int(index[1])][1] = value
-        print(self.display.waveform)
-        self.display.draw()
+        self.draw()
 
     def toggle_periodic(self):
         self.uploaded = False
-        self.upload_button["relief"] = tk.RAISED
-        self.upload_button["state"] = tk.NORMAL
 
         if self.periodic == False:
             self.periodic = True
@@ -886,12 +943,10 @@ class WaveformControl(tk.Frame):
             self.periodic = False
             self.periodic_button["relief"] = tk.RAISED
         self.display.periodic = self.periodic
-        self.display.draw()
+        self.draw()
 
     def toggle_prolong(self):
         self.uploaded = False
-        self.upload_button["relief"] = tk.RAISED
-        self.upload_button["state"] = tk.NORMAL
 
         if self.prolong == False:
             self.prolong = True
@@ -900,30 +955,29 @@ class WaveformControl(tk.Frame):
             self.prolong = False
             self.prolong_button["relief"] = tk.RAISED
         self.display.prolong = self.prolong
-        self.display.draw()
+        self.draw()
 
     def upload_waveform(self):
         self.save_all()
         self.uploaded = True
-        self.upload_button["relief"] = tk.SUNKEN
-        self.upload_button["state"] = tk.DISABLED
-        thread = threading.Thread(target = self.uploader, args = (self.display.waveform, self.periodic, self.prolong), daemon = True)
-        thread.start()
+        self.uploader(self.display.waveform, self.periodic, self.prolong)
 
     def handle_initiate(self):
         if self.periodically_running == True:
             self.periodically_running = False
-            self.initiate_button["relief"] = tk.RAISED
-            self.initiate_button["text"] = "Initiate frequency control"
-            thread = threading.Thread(target = self.terminator, args = (), daemon = True)
-            thread.start()
+            self.terminator()
         else:
             if self.periodic == True:
                 self.periodically_running = True
-                self.initiate_button["relief"] = tk.SUNKEN
-                self.initiate_button["text"] = "Stop frequency control"
-            thread = threading.Thread(target = self.launcher, args = (), daemon = True)
-            thread.start()
+            self.launcher()
+
+def test():
+    time.sleep(5)
+    control.destroy()
+
+def on_close():
+    control.destroy()
+    root.after(10, root.destroy)
 
 if __name__ == "__main__":
     root = tk.Tk()
@@ -950,7 +1004,11 @@ if __name__ == "__main__":
     display.after(100, display.draw)
     '''
 
-    control = WaveformControl(root)
-    control.place(x = 0, y = 0)
+    control = WaveformControl(root, uploader = lambda x, y, z: print(x))
+    control.place(x = 20, y = 20)
 
+    thread = threading.Thread(target = test, args = (), daemon = True)
+    #thread.start()
+
+    root.protocol("WM_DELETE_WINDOW", on_close)  # Override close button
     root.mainloop()

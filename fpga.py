@@ -247,28 +247,28 @@ class Feedback(MCC):
         "fast_PID_K_D": {"index": 4, "high": 31, "low": 0},
         "monitorC" : {"index": 1, "high": 15, "low": 14},
         "monitorD" : {"index": 1, "high": 13, "low": 12},
-        "segments_enabled": {"index": 1, "high": 11, "low": 8}, # open to user with encapsulation
-        "set_address": {"index": 1, "high": 7, "low": 4}, # open to user with encapsulation
+        "segments_enabled": {"index": 1, "high": 11, "low": 8},
+        "set_address": {"index": 1, "high": 7, "low": 4},
         "rate": {"index": 1, "high": 3, "low": 0},
         "slow_PID_K_P": {"index": 8, "high": 31, "low": 0},
         "slow_PID_K_I": {"index": 9, "high": 31, "low": 0},
         "slow_PID_K_D": {"index": 10, "high": 31, "low": 0},
-        "set_x": {"index": 5, "high": 31, "low": 0}, # open to user with encapsulation
-        "set_y": {"index": 6, "high": 31, "low": 16}, # open to user with encapsulation
-        "set_slope": {"index": 6, "high": 15, "low": 0}, # open to user with encapsulation
+        "set_x": {"index": 5, "high": 31, "low": 0},
+        "set_y": {"index": 6, "high": 31, "low": 16},
+        "set_slope": {"index": 6, "high": 15, "low": 0},
         "frequency_bias": {"index": 7, "high": 31, "low": 16},
         "amplitude": {"index": 7, "high": 15, "low": 0},
-        "fast_PID_Reset": {"index": 0, "high": 10, "low": 10}, # open to user with turnkey
-        "slow_PID_Reset": {"index": 0, "high": 11, "low": 11}, # open to user with turnkey
+        "fast_PID_Reset": {"index": 0, "high": 10, "low": 10},
+        "slow_PID_Reset": {"index": 0, "high": 11, "low": 11},
         # control0 0 is empty for now
-        "LO_Reset": {"index": 0, "high": 1, "low": 1}, # open to user with turnkey
-        "set_sign": {"index": 0, "high": 2, "low": 2}, # open to user with encapsulation
-        "initiate": {"index": 0, "high": 3, "low": 3}, # open to user with encapsulation
-        "periodic": {"index": 0, "high": 4, "low": 4}, # open to user with encapsulation
-        "prolong": {"index": 0, "high": 5, "low": 5}, # open to user with encapsulation
+        "LO_Reset": {"index": 0, "high": 1, "low": 1},
+        "set_sign": {"index": 0, "high": 2, "low": 2},
+        "initiate": {"index": 0, "high": 3, "low": 3},
+        "periodic": {"index": 0, "high": 4, "low": 4},
+        "prolong": {"index": 0, "high": 5, "low": 5},
         "lock_mode": {"index": 0, "high": 9, "low": 8},
         "slow_input": {"index": 0, "high": 6, "low": 6},
-        "set": {"index": 0, "high": 7, "low": 7}, # open to user with encapsulation
+        "set": {"index": 0, "high": 7, "low": 7},
 
         "enable_auto_match": {"index": 0, "high": 12, "low": 12},
         "initiate_auto_match": {"index": 0, "high": 13, "low": 13},
@@ -314,8 +314,6 @@ class Feedback(MCC):
         location = Feedback.mapping[name]
         bits = bin(self.get_control(location["index"]))[2:].zfill(32)
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
-    
-    # todo: a method to set parameters in waveform
 
     def upload_waveform(self) -> object:
         self.set_parameter("segments_enabled", len(self.waveform) - 1)
