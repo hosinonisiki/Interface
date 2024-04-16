@@ -7,3 +7,5 @@ compiled/
 tb & tests/
 
 *.bat
+
+templog.py

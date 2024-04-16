@@ -21,14 +21,12 @@ def characteristic(waveform: list[float]) -> float:
     return np.max(waveform)
 
 # add a thread to constantly check the connection to FPGA
-# better analyzing algorithm for the temperature setpoint
 # add new states to developer panel
 # rearchitecture feedback module into a plugin
 # move to moku:go
+# better analyzing algorithm for the temperature setpoint
 # change to datalogger for gathering data
 # verify auto matching frequency and add to control panel
-# handle destruction of the main window
-# a small program to test temeprature stability
 
 class Interface():
     def __init__(self):
