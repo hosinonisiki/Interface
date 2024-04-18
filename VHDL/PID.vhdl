@@ -32,6 +32,7 @@ END PID;
 ARCHITECTURE bhvr OF PID IS
     SIGNAL error : signed(15 DOWNTO 0);
     SIGNAL last_error : signed(15 DOWNTO 0) := x"0000";
+    SIGNAL difference : signed(15 DOWNTO 0);
     SIGNAL buf_sum : signed(47 DOWNTO 0);
     SIGNAL sum : signed(15 DOWNTO 0);
 
@@ -64,6 +65,7 @@ BEGIN
             END IF;
             last_error <= error;
             error <= actual - setpoint;
+            difference <= error - last_error;
             control <= sum;
             buf_K_P <= K_P;
             buf_K_I <= K_I;
@@ -79,7 +81,8 @@ BEGIN
                 -limit_I WHEN I + ((15 DOWNTO 0 => buf_I(47)) & buf_I) < -limit_I ELSE
                 I + ((15 DOWNTO 0 => buf_I(47)) & buf_I);
 
-    reg_D <= buf_K_D * (error - last_error);
+    
+    reg_D <= buf_K_D * difference;
 
     buf_sum <= P + I(63 DOWNTO 16) + (x"00000000000" & "000" & I(15)) + D;
 

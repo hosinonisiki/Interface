@@ -11,6 +11,8 @@ ENTITY QI_demodulator IS
 END QI_demodulator;
 
 ARCHITECTURE older OF QI_demodulator IS
+    SIGNAL buf_input : signed(15 DOWNTO 0);
+
     SIGNAL mixerI : signed(31 DOWNTO 0);
     SIGNAL mixerQ : signed(31 DOWNTO 0);
     SIGNAL bufI1 : signed(15 DOWNTO 0);
@@ -31,8 +33,9 @@ BEGIN
     Process(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
-            mixerI <= input * ref;
-            mixerQ <= input * ref_shift;
+            buf_input <= input;
+            mixerI <= buf_input * ref;
+            mixerQ <= buf_input * ref_shift;
             I <= regI4;
             Q <= regQ4;
             bufI1 <= regI1;
@@ -118,6 +121,8 @@ BEGIN
 END older;
 
 ARCHITECTURE newer OF QI_demodulator IS
+    SIGNAL buf_input : signed(15 DOWNTO 0);
+
     SIGNAL mixerI : signed(31 DOWNTO 0);
     SIGNAL mixerQ : signed(31 DOWNTO 0);
     SIGNAL bufI2 : signed(15 DOWNTO 0);
@@ -126,8 +131,9 @@ BEGIN
     Process(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
-            mixerI <= input * ref;
-            mixerQ <= input * ref_shift;
+            buf_input <= input;
+            mixerI <= buf_input * ref;
+            mixerQ <= buf_input * ref_shift;
             I <= bufI2;
             Q <= bufQ2;
         END IF;
