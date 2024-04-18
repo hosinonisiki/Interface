@@ -150,18 +150,13 @@ BEGIN
         Reset => LO_Reset,
         Clk => Clk
     );
-    DUT2 : ENTITY WORK.CDC PORT MAP(
-        Clk => Clk,
-        rate => unsigned(Control1(3 DOWNTO 0)), -- rate = 1, cut-off around 1.5MHz
-        MyClk => MyClk
-    );
     DUT3 : ENTITY WORK.QI_demodulator(newer) PORT MAP(
         input => InputA,
         ref => ref,
         ref_shift => ref_shift,
         I => I,
         Q => Q,
-        Clk => MyClk,
+        Clk => Clk,
         Reset => '0'
     );
     DUT4 : ENTITY WORK.atan PORT MAP(

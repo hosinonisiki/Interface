@@ -214,7 +214,6 @@ class Feedback(MCC):
         "monitorD": 1,
         "segments_enabled": 3,
         "set_address": 0,
-        "rate": 1, # modified from 8 to 1 due to the new IIR entity with cutoff freqeuncy around 1.5MHz already
         "slow_PID_K_P": 4096,
         "slow_PID_K_I": 4096,
         "slow_PID_K_D": 0,
@@ -249,7 +248,7 @@ class Feedback(MCC):
         "monitorD" : {"index": 1, "high": 13, "low": 12},
         "segments_enabled": {"index": 1, "high": 11, "low": 8},
         "set_address": {"index": 1, "high": 7, "low": 4},
-        "rate": {"index": 1, "high": 3, "low": 0},
+        # control1 3 downto 0 is empty
         "slow_PID_K_P": {"index": 8, "high": 31, "low": 0},
         "slow_PID_K_I": {"index": 9, "high": 31, "low": 0},
         "slow_PID_K_D": {"index": 10, "high": 31, "low": 0},
