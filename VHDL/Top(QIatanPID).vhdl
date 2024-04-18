@@ -167,7 +167,7 @@ BEGIN
     );
     
     -- this module will be used for auto matching instead of frequency locking
-    DUT7 : ENTITY WORK.phase2freq GENERIC MAP(
+    DUT7 : ENTITY WORK.phase2freq(bhvr) GENERIC MAP(
         gain => 5 -- resolves +- 4.8MHz
     )PORT MAP(
         phase => phase,
