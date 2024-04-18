@@ -925,7 +925,7 @@ class WaveformControl(tk.Frame):
         self.draw()
 
     def save_waveform(self, value, index):
-        self.uploded = False
+        self.uploaded = False
 
         if index[0] == "x":
             self.display.waveform[int(index[1])][0] = value
