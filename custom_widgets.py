@@ -421,7 +421,9 @@ class QuantityEntry(tk.Text):
                         self.insert("1.%d"%(current), self.quantity[current])
                     self.tag_add("selected", "1.%d"%(self.selected), "1.%d"%(self.selected + 1))
                     self.integer, self.fraction = self.break_up(self.quantity)
-                self.report(self.format.match(self.get("1.0", "end-1c"))[1])
+                text = self.get("1.0", "end-1c")
+                self.result, self.value = self.format.match(text)
+                self.report(self.value)
             case "Down", False:
                 if self.quantity[self.selected] != "0":
                     self.quantity = self.quantity[:self.selected] + str(int(self.quantity[self.selected]) - 1) + self.quantity[self.selected + 1:]
@@ -470,7 +472,9 @@ class QuantityEntry(tk.Text):
                     self.insert("1.1", self.quantity)
                     self.tag_add("selected", "1.%d"%(self.selected + 1), "1.%d"%(self.selected + 2))
                     self.integer, self.fraction = self.break_up(self.quantity)
-                self.report(self.format.match(self.get("1.0", "end-1c"))[1])
+                text = self.get("1.0", "end-1c")
+                self.result, self.value = self.format.match(text)
+                self.report(self.value)
             case "Left", False:
                 if self.selected > 0 and self.selected < len(self.quantity) - 1 or len(self.quantity) != 1 and self.selected == len(self.quantity) - 1 and (self.quantity[-1] != "0" or len(self.fraction) <= self.format.digits_limit[2]):
                     self.tag_remove("selected", "1.%d"%(self.selected), "1.%d"%(self.selected + 1))
@@ -576,7 +580,9 @@ class QuantityEntry(tk.Text):
                     self.insert("1.0", self.quantity)
                     self.tag_add("selected", "1.%d"%(self.selected), "1.%d"%(self.selected + 1))
                     self.integer, self.fraction = self.break_up(self.quantity)
-                self.report(self.format.match(self.get("1.0", "end-1c"))[1])
+                text = self.get("1.0", "end-1c")
+                self.result, self.value = self.format.match(text)
+                self.report(self.value)
             case "Down", True:
                 if self.quantity[self.selected] != "9":
                     self.quantity = self.quantity[:self.selected] + str(int(self.quantity[self.selected]) + 1) + self.quantity[self.selected + 1:]
@@ -602,7 +608,9 @@ class QuantityEntry(tk.Text):
                         self.insert("1.%d"%(current + 1), self.quantity[current])
                     self.tag_add("selected", "1.%d"%(self.selected + 1), "1.%d"%(self.selected + 2))
                     self.integer, self.fraction = self.break_up(self.quantity)
-                self.report(self.format.match(self.get("1.0", "end-1c"))[1])
+                text = self.get("1.0", "end-1c")
+                self.result, self.value = self.format.match(text)
+                self.report(self.value)
             case "Left", True:
                 if self.selected > 0 and self.selected < len(self.quantity) - 1 or len(self.quantity) != 1 and self.selected == len(self.quantity) - 1 and (self.quantity[-1] != "0" or len(self.fraction) <= self.format.digits_limit[2]):
                     self.tag_remove("selected", "1.%d"%(self.selected + 1), "1.%d"%(self.selected + 2))
@@ -889,15 +897,19 @@ class WaveformControl(tk.Frame):
                     case "normal", True:
                         self.initiate_button["state"] = tk.NORMAL
                         self.initiate_button["relief"] = tk.SUNKEN
+                        self.initiate_button["text"] = "Terminate frequency control"
                     case "normal", False:
                         self.initiate_button["state"] = tk.NORMAL
                         self.initiate_button["relief"] = tk.RAISED
+                        self.initiate_button["text"] = "Initiate frequency control"
                     case "disabled", True:
                         self.initiate_button["state"] = tk.DISABLED
                         self.initiate_button["relief"] = tk.SUNKEN
+                        self.initiate_button["text"] = "Terminate frequency control"
                     case "disabled", False:
                         self.initiate_button["state"] = tk.DISABLED
                         self.initiate_button["relief"] = tk.RAISED
+                        self.initiate_button["text"] = "Initiate frequency control"
 
     def destroy(self):
         self.destroying = True
@@ -960,7 +972,7 @@ class WaveformControl(tk.Frame):
     def upload_waveform(self):
         self.save_all()
         self.uploaded = True
-        self.uploader(self.display.waveform, self.periodic, self.prolong)
+        self.uploader(self.display.waveform[:self.display.enabled_segments], self.periodic, self.prolong)
 
     def handle_initiate(self):
         if self.periodically_running == True:

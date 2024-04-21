@@ -27,6 +27,9 @@ def characteristic(waveform: list[float]) -> float:
 # better analyzing algorithm for the temperature setpoint
 # change to datalogger for gathering data
 # verify auto matching frequency and add to control panel
+# log terminal commands
+# be more verbose with waveform control panel
+# enable waveform upload when LO is turned off and on again
 
 class Interface():
     def __init__(self):
@@ -1239,7 +1242,7 @@ class Interface():
                         "sign": 1 if waveform[i][1] < 0 else 0,
                         "x": int(np.round(waveform[i][0] * 312.5e6)),
                         "y": int(np.round(np.abs(waveform[i][1] / 298.023))),
-                        "slope": int(np.ceil(np.round(np.abs(waveform[i][1] / 298.023)) / np.round(waveform[i][0] * 312.5e6)))
+                        "slope": int(np.floor(np.round(np.abs(waveform[i][1] / 298.023)) / np.round(waveform[i][0] * 312.5e6)))
                     } for i in range(len(waveform))]
         self.mim.fb.waveform = converted
         self.frequency_control_periodic_next = 0 if periodic else 1

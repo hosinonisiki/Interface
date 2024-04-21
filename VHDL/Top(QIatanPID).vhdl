@@ -1,7 +1,6 @@
 ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL ref, ref_shift : signed(15 DOWNTO 0);
     SIGNAL I,Q : signed(15 DOWNTO 0);
-    SIGNAL MyClk : std_logic;
     SIGNAL phase : signed(15 DOWNTO 0);
     SIGNAL freq : signed(15 DOWNTO 0);
 
@@ -27,7 +26,16 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL monitorC : signed(15 DOWNTO 0);
     SIGNAL monitorD : signed(15 DOWNTO 0);
+
+    SIGNAL TestA : signed(15 DOWNTO 0);
+    SIGNAL TestB : signed(15 DOWNTO 0);
+    SIGNAL TestC : signed(15 DOWNTO 0);
+    SIGNAL TestD : signed(15 DOWNTO 0);
 BEGIN
+    -- try to acquire a faster frequency sweeping speed by actively sweeping the output voltage
+    -- find a way to reduce fluctuations when sweeping
+    -- revise the logic of auto matching
+    
     enable_auto_match <= Control0(12);
     initiate_auto_match <= Control0(13);
 
@@ -61,9 +69,6 @@ BEGIN
         SIGNAL frequency_match_threshold : signed(15 DOWNTO 0);
         SIGNAL frequency_lock_threshold : signed(15 DOWNTO 0);
     BEGIN
-        -- try to acquire a faster frequency sweeping speed by actively sweeping the output voltage
-        -- find a way to reduce fluctuations when sweeping
-        -- figure out why sometimes the locking is unstable
 
         frequency_match_threshold <= signed(Control11(31 DOWNTO 16));
         frequency_lock_threshold <= signed(Control11(15 DOWNTO 0));
@@ -83,6 +88,7 @@ BEGIN
                     auto_slow_PID_Reset <= '1';
                     auto_match_freq <= x"0000";
                 ELSE
+                    last_initiate <= initiate_auto_match;
                     CASE current_state IS
                         WHEN ready =>
                             IF initiate_auto_match = '0' AND last_initiate = '1' THEN
@@ -90,7 +96,6 @@ BEGIN
                                 auto_slow_PID_Reset <= '1';
                                 current_state <= match;
                             END IF;
-                            last_initiate <= initiate_auto_match;
                         WHEN match =>
                             PID_Reset <= '0';
                             auto_match_freq <= auto_match_freq_control + auto_match_freq_bias;
@@ -157,7 +162,11 @@ BEGIN
         I => I,
         Q => Q,
         Clk => Clk,
-        Reset => '0'
+        Reset => '0',
+
+        TestA => TestA,
+        TestB => TestB,
+        TestC => TestC
     );
     DUT4 : ENTITY WORK.atan PORT MAP(
         inputC => I,
@@ -170,7 +179,7 @@ BEGIN
     DUT7 : ENTITY WORK.phase2freq(bhvr) GENERIC MAP(
         tap => 256,
         logtap => 8,
-        gain => 5 -- resolves +- 4.8MHz
+        gain => 4 -- resolves +- 4.8MHz
     )PORT MAP(
         phase => phase,
         freq => freq,
@@ -229,15 +238,32 @@ BEGIN
                     fast_control;
 
     -- monitor
-    monitorC <= phase WHEN Control1(15 DOWNTO 14) = "00" ELSE
-                freq WHEN Control1(15 DOWNTO 14) = "01" ELSE
-                I WHEN Control1(15 DOWNTO 14) = "10" ELSE
-                auto_match_freq;
+    monitorC <= phase WHEN Control1(15 DOWNTO 12) = "0000" ELSE
+                freq WHEN Control1(15 DOWNTO 12) = "0001" ELSE
+                I WHEN Control1(15 DOWNTO 12) = "0010" ELSE
+                Q WHEN Control1(15 DOWNTO 12) = "0011" ELSE
+                error WHEN Control1(15 DOWNTO 12) = "0100" ELSE
+                ref WHEN Control1(15 DOWNTO 12) = "0101" ELSE
+                ref_shift WHEN Control1(15 DOWNTO 12) = "0110" ELSE
+                auto_match_freq WHEN Control1(15 DOWNTO 12) = "0111" ELSE
+                TestA WHEN Control1(15 DOWNTO 12) = "1000" ELSE
+                TestB WHEN Control1(15 DOWNTO 12) = "1001" ELSE
+                TestC WHEN Control1(15 DOWNTO 12) = "1010" ELSE
+                TestD;
 
-    monitorD <= phase WHEN Control1(13 DOWNTO 12) = "00" ELSE
-                freq WHEN Control1(13 DOWNTO 12) = "01" ELSE
-                I WHEN Control1(13 DOWNTO 12) = "10" ELSE
-                auto_match_freq;
+
+    monitorD <= phase WHEN Control1(15 DOWNTO 12) = "0000" ELSE
+                freq WHEN Control1(15 DOWNTO 12) = "0001" ELSE
+                I WHEN Control1(15 DOWNTO 12) = "0010" ELSE
+                Q WHEN Control1(15 DOWNTO 12) = "0011" ELSE
+                error WHEN Control1(15 DOWNTO 12) = "0100" ELSE
+                ref WHEN Control1(15 DOWNTO 12) = "0101" ELSE
+                ref_shift WHEN Control1(15 DOWNTO 12) = "0110" ELSE
+                auto_match_freq WHEN Control1(15 DOWNTO 12) = "0111" ELSE
+                TestA WHEN Control1(15 DOWNTO 12) = "1000" ELSE
+                TestB WHEN Control1(15 DOWNTO 12) = "1001" ELSE
+                TestC WHEN Control1(15 DOWNTO 12) = "1010" ELSE
+                TestD;
 
     PROCESS(Clk)
     BEGIN

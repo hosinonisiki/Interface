@@ -207,9 +207,9 @@ class Turnkey(MCC):
 
 class Feedback(MCC):
     default_controls = {
-        "fast_PID_K_P": 4294443008,
-        "fast_PID_K_I": 4261412864,
-        "fast_PID_K_D": 4294836224,
+        "fast_PID_K_P": 4294967296 - 524288,
+        "fast_PID_K_I": 4294967296 - 33554432,
+        "fast_PID_K_D": 4294967296 - 131072,
         "monitorC": 0,
         "monitorD": 1,
         "segments_enabled": 3,
@@ -236,16 +236,16 @@ class Feedback(MCC):
         "initiate_auto_match": 1,
         "frequency_match_threshold": 268,
         "frequency_lock_threshold": 3,
-        "frequency_match_K_P": 16384,
-        "frequency_match_K_I": 8192, # should match in around 1 ms
+        "frequency_match_K_P": 4294967296 - 16384,
+        "frequency_match_K_I": 4294967296 - 8192,
         "frequency_match_K_D": 0
     } # {<name>:<value>}
     mapping = {
         "fast_PID_K_P": {"index": 2, "high": 31, "low": 0},
         "fast_PID_K_I": {"index": 3, "high": 31, "low": 0},
         "fast_PID_K_D": {"index": 4, "high": 31, "low": 0},
-        "monitorC" : {"index": 1, "high": 15, "low": 14},
-        "monitorD" : {"index": 1, "high": 13, "low": 12},
+        "monitorC" : {"index": 1, "high": 15, "low": 12},
+        "monitorD" : {"index": 1, "high": 19, "low": 16},
         "segments_enabled": {"index": 1, "high": 11, "low": 8},
         "set_address": {"index": 1, "high": 7, "low": 4},
         # control1 3 downto 0 is empty
