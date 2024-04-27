@@ -17,9 +17,6 @@ import fpga
 import tcm
 import custom_widgets
 
-def characteristic(waveform: list[float]) -> float:
-    return np.max(waveform)
-
 class Interface():
 
     FPGA_STATE_OFFLINE = 0
@@ -926,6 +923,10 @@ class Interface():
         N = 21
         templist = np.linspace(32.5, 34.5, N)
         waveforms = []
+
+        def characteristic(waveform: list[float]) -> float:
+            return np.max(waveform)
+        
         try:
             for t in templist:
                 self.temperature_setpoint = t
