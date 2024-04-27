@@ -1604,5 +1604,6 @@ class Interface():
 if __name__ == "__main__":
 
     main = Interface()
+    main.logger.info("Comprehensive control v1.0.8")
     main.logger.info("Main panel initialized.")
     main.loop()
