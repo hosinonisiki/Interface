@@ -20,7 +20,7 @@ ENTITY PID IS
 
         limit_sum : IN signed(15 DOWNTO 0);
 
-        decay_I : IN signed(15 DOWNTO 0); -- let x4000 represent 1.0
+        decay_I : IN signed(31 DOWNTO 0); -- let x40000000 represent 1.0
 
         Reset : IN std_logic;
         Clk : IN std_logic
@@ -49,11 +49,11 @@ ARCHITECTURE bhvr OF PID IS
     -- I[n] = x[n] * coef1 + x[n-1] * coef2 + I[n-2] * coef3
     SIGNAL coef1 : signed(31 DOWNTO 0);
     SIGNAL coef2 : signed(31 DOWNTO 0);
-    SIGNAL coef3 : signed(15 DOWNTO 0);
+    SIGNAL coef3 : signed(31 DOWNTO 0);
 
     SIGNAL reg_coef1 : signed(31 DOWNTO 0);
-    SIGNAL reg_coef2 : signed(47 DOWNTO 0);
-    SIGNAL reg_coef3 : signed(31 DOWNTO 0);
+    SIGNAL reg_coef2 : signed(63 DOWNTO 0);
+    SIGNAL reg_coef3 : signed(63 DOWNTO 0);
 
     SIGNAL product1: signed(47 DOWNTO 0);
     SIGNAL product2: signed(47 DOWNTO 0);
@@ -69,7 +69,7 @@ ARCHITECTURE bhvr OF PID IS
 
     SIGNAL decayed : signed(63 DOWNTO 0);
 
-    SIGNAL reg_decayed : signed(79 DOWNTO 0);
+    SIGNAL reg_decayed : signed(95 DOWNTO 0);
 BEGIN
     PID : PROCESS(Clk)
     BEGIN
@@ -91,8 +91,8 @@ BEGIN
             buf_K_I <= K_I;
             buf_K_D <= K_D;
             coef1 <= reg_coef1;
-            coef2 <= reg_coef2(45 DOWNTO 14);
-            coef3 <= reg_coef3(29 DOWNTO 14);
+            coef2 <= reg_coef2(61 DOWNTO 30);
+            coef3 <= reg_coef3(61 DOWNTO 30);
 
             product1 <= reg_product1;
             product2 <= reg_product2;
@@ -100,7 +100,7 @@ BEGIN
             sum1 <= reg_sum1;
             sum2 <= reg_sum2;
 
-            decayed <= reg_decayed(77 DOWNTO 14);
+            decayed <= reg_decayed(93 DOWNTO 30);
         END IF;
     END PROCESS PID;    
 
