@@ -50,7 +50,6 @@ class MCC():
         self.download_control()
         self.set_control(controls) # initialize control
     
-    # needs an http implementation
     def download_control(self) -> object:
         try:
             self.controls = {index:value for index, value in zip(range(16), [self.mcc.get_control(i)[i] for i in range(16)])}
@@ -92,7 +91,6 @@ class MCC():
             return "queued"
         return "rejected"
 
-    # needs an http implementation    
     def uploader_function(self) -> NoReturn:
         while True:
             time.sleep(0.05)
@@ -275,7 +273,6 @@ class Feedback(MCC):
         self.upload_control()
         return self
 
-# todo : check if the setup exists upon initialization
 class MIM():
     def __init__(self, ip, config_id = "1", logger = None):
         self.mim = instruments.MultiInstrument(ip, force_connect = True, platform_id = 4)

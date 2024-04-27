@@ -9,3 +9,5 @@ tb & tests/
 *.bat
 
 templog.py
+
+issues.txt

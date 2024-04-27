@@ -20,14 +20,6 @@ import custom_widgets
 def characteristic(waveform: list[float]) -> float:
     return np.max(waveform)
 
-# add a thread to constantly check the connection to FPGA
-# refactor control panel into another class
-# refactor feedback module into a plugin
-# move to moku:go
-# better analyzing algorithm for the temperature setpoint
-# change to datalogger for gathering data
-# initialize all threads upon startup?
-
 class Interface():
 
     FPGA_STATE_OFFLINE = 0

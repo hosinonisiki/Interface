@@ -35,9 +35,6 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL TestC : signed(15 DOWNTO 0);
     SIGNAL TestD : signed(15 DOWNTO 0);
 BEGIN
-    -- try to acquire a faster frequency sweeping speed by using more complicated strategies instead of pure PID
-    -- dynamic PID coefficients
-
     enable_auto_match <= Control0(12);
     initiate_auto_match <= Control0(13);
 
