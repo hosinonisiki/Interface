@@ -173,7 +173,7 @@ class QuantityFormat():
         else:
             self.prefix = prefix
         self.unit = unit
-        self.re = re.compile("^([-])?([0-9]{1,%d})(\.[0-9]{0,%d})?([%s])?(%s)?$"%(digits_limit[0], digits_limit[1], "".join(self.prefix.keys()), unit))     
+        self.re = re.compile("^([-])?([0-9]{1,%d})(\.[0-9]{1,%d})?([%s])?(%s)?$"%(digits_limit[0], max(1, digits_limit[1]), "".join(self.prefix.keys()), unit))     
 
     def match(self, str):
         result = self.re.match(str)
@@ -281,7 +281,8 @@ class QuantityEntry(tk.Text):
             case "Up" | "Down" | "Left" | "Right":
                 return self.roll(event) 
             case "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "0":
-                return self.overwrite(event)
+                # return self.overwrite(event)
+                return "break"
             case _:
                 return "break"
             
@@ -862,7 +863,11 @@ class WaveformControl(tk.Frame):
 
     def update(self):
         last_segments = 0
-        last_state = (self.state, self.uploaded, self.periodically_running)
+        last_state = {
+            "state": self.state,
+            "uploaded": self.uploaded,
+            "periodically_running": self.periodically_running
+        }
         while True:
             time.sleep(0.05)
             if self.destroying:
@@ -878,8 +883,13 @@ class WaveformControl(tk.Frame):
                         self.y_entries[i]["state"] = tk.DISABLED
                 self.display.enabled_segments = int(last_segments)
                 self.draw()
-            if last_state != (self.state, self.uploaded, self.periodically_running):
-                last_state = (self.state, self.uploaded, self.periodically_running)
+            current_state = {
+                "state": self.state,
+                "uploaded": self.uploaded,
+                "periodically_running": self.periodically_running
+            }
+            if current_state != last_state:
+                last_state = current_state
                 match (self.state, self.uploaded):
                     case "normal", False:
                         self.upload_button["state"] = tk.NORMAL
@@ -994,31 +1004,31 @@ def on_close():
 if __name__ == "__main__":
     root = tk.Tk()
     root.geometry("1000x600")
-    '''
+    
     knob = KnobFrame(root, "icons/knob.png", 100, name = "Manual offset", scale = 0.334, unit = "mV", relief = tk.GROOVE, borderwidth = 2)
     knob.knob.value_step = 30
     knob.knob.on_spin = knob.update
     knob.knob.max = 32767
     knob.knob.min = -32767
-    knob.place(x = 50, y = 50)
+    #knob.place(x = 50, y = 50)
     knob.update()
     
     knob.knob.step = 36
     knob.knob.resistance = 1.4
     knob.knob.lag = 0.65
     
-    format = QuantityFormat((5,5,3), unit = "V")
+    format = QuantityFormat((5,5,0), unit = "V")
     entry = QuantityEntry(root, format, lambda x: print(x), width = 10, font = ("Arial", 12))
     entry.place(x = 50, y = 50)
 
     display = WaveformDisplay(root, [(10, 10), (20, 0), (10, -10), (20, -10)], periodic = False, prolong = False, horizontal_proportion = 0.6, vertical_proportion = 0.6, width = 500, height = 400)
-    display.place(x = 50, y = 100)
+    #display.place(x = 50, y = 100)
     display.after(100, display.draw)
-    '''
+    
 
     control = WaveformControl(root, uploader = lambda x, y, z: print(x))
-    control.place(x = 20, y = 20)
-
+    #control.place(x = 20, y = 20)
+    
     thread = threading.Thread(target = test, args = (), daemon = True)
     #thread.start()
 

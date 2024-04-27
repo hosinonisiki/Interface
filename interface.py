@@ -21,17 +21,60 @@ def characteristic(waveform: list[float]) -> float:
     return np.max(waveform)
 
 # add a thread to constantly check the connection to FPGA
-# add new states to developer panel
-# rearchitecture feedback module into a plugin
+# refactor control panel into another class
+# refactor feedback module into a plugin
 # move to moku:go
 # better analyzing algorithm for the temperature setpoint
 # change to datalogger for gathering data
-# verify auto matching frequency and add to control panel
-# log terminal commands
-# be more verbose with waveform control panel
-# enable waveform upload when LO is turned off and on again
+# initialize all threads upon startup?
 
 class Interface():
+
+    FPGA_STATE_OFFLINE = 0
+    FPGA_STATE_STANDBY = 1
+    FPGA_STATE_BUSY = 2
+    FPGA_STATE_UNKNOWN = 3
+    FPGA_STATE_CONNECTING = 4
+
+    TCM_STATE_OFFLINE = 0
+    TCM_STATE_STANDBY = 1
+    TCM_STATE_BUSY = 2
+    TCM_STATE_UNKNOWN = 3
+    TCM_STATE_CONNECTING = 4
+
+    SOLITON_STATE_OFF = 0
+    SOLITON_STATE_ON = 1
+
+    LOCKTEMP_STATE_OFF = 0
+    LOCKTEMP_STATE_ON = 1
+
+    SETPOINT_STATE_OFF = 0
+    SETPOINT_STATE_ON = 1
+
+    SWEEPING_STATE_OFF = 0
+    SWEEPING_STATE_ON = 1
+
+    POWERLOCK_STATE_OFF = 0
+    POWERLOCK_STATE_ON = 1
+
+    KNOB_PANEL_STATE_OFF = 0
+    KNOB_PANEL_STATE_ON = 1
+
+    FPGA_CONTROL_PANEL_STATE_OFF = 0
+    FPGA_CONTROL_PANEL_STATE_ON = 1
+
+    LO_STATE_OFF = 0
+    LO_STATE_ON = 1
+
+    FAST_PID_STATE_OFF = 0
+    FAST_PID_STATE_ON = 1
+
+    SLOW_PID_STATE_OFF = 0
+    SLOW_PID_STATE_ON = 1
+
+    AUTO_MATCH_STATE_OFF = 0
+    AUTO_MATCH_STATE_ON = 1
+
     def __init__(self):
         # loggings
 
@@ -57,75 +100,35 @@ class Interface():
 
         # fpga states
 
-        self.FPGA_STATE_OFFLINE = 0
-        self.FPGA_STATE_STANDBY = 1
-        self.FPGA_STATE_BUSY = 2
-        self.FPGA_STATE_UNKNOWN = 3
-        self.FPGA_STATE_CONNECTING = 4
-
         self.fpga_state = self.FPGA_STATE_OFFLINE
 
         # tcm states
-
-        self.TCM_STATE_OFFLINE = 0
-        self.TCM_STATE_STANDBY = 1
-        self.TCM_STATE_BUSY = 2
-        self.TCM_STATE_UNKNOWN = 3
-        self.TCM_STATE_CONNECTING = 4
 
         self.tcm_state = self.TCM_STATE_OFFLINE
 
         # state of commands
 
-        self.SOLITON_STATE_OFF = 0
-        self.SOLITON_STATE_ON = 1
-
         self.soliton_state = self.SOLITON_STATE_OFF
-
-        self.LOCKTEMP_STATE_OFF = 0
-        self.LOCKTEMP_STATE_ON = 1
 
         self.locktemp_state = self.LOCKTEMP_STATE_OFF
 
-        self.SETPOINT_STATE_OFF = 0
-        self.SETPOINT_STATE_ON = 1
-
         self.setpoint_state = self.SETPOINT_STATE_OFF
-
-        self.SWEEPING_STATE_OFF = 0
-        self.SWEEPING_STATE_ON = 1
 
         self.sweeping_state = self.SWEEPING_STATE_OFF
 
-        self.POWERLOCK_STATE_OFF = 0
-        self.POWERLOCK_STATE_ON = 1
-
         self.powerlock_state = self.POWERLOCK_STATE_OFF
 
-        self.KNOB_PANEL_STATE_OFF = 0
-        self.KNOB_PANEL_STATE_ON = 1
-
         self.knob_panel_state = self.KNOB_PANEL_STATE_OFF
-        
-        self.FPGA_CONTROL_PANEL_STATE_OFF = 0
-        self.FPGA_CONTROL_PANEL_STATE_ON = 1
 
         self.fpga_control_panel_state = self.FPGA_CONTROL_PANEL_STATE_OFF
 
-        self.LO_STATE_OFF = 0
-        self.LO_STATE_ON = 1
-
         self.LO_state = self.LO_STATE_OFF
-
-        self.FAST_PID_STATE_OFF = 0
-        self.FAST_PID_STATE_ON = 1
 
         self.fast_PID_state = self.FAST_PID_STATE_OFF
 
-        self.SLOW_PID_STATE_OFF = 0
-        self.SLOW_PID_STATE_ON = 1
-
         self.slow_PID_state = self.SLOW_PID_STATE_OFF
+
+        self.auto_match_state = self.AUTO_MATCH_STATE_OFF
 
         # temperature parameters
         
@@ -141,8 +144,6 @@ class Interface():
         self.setpoint_disconnection_flag = False
 
         self.knob_uploading_flag = False
-
-        self.fpga_uploading_flag = False
 
         self.destroying_flag = False
 
@@ -290,16 +291,49 @@ class Interface():
 
     def update_thread_function(self) -> NoReturn:
         self.logger.info("Update thread started.")
-        last = (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state, self.fpga_control_panel_state, self.LO_state, self.fast_PID_state, self.slow_PID_state)
+        last = {
+            "fpga_state": self.fpga_state,
+            "tcm_state": self.tcm_state,
+            "soliton_state": self.soliton_state,
+            "locktemp_state": self.locktemp_state,
+            "setpoint_state": self.setpoint_state,
+            "sweeping_state": self.sweeping_state,
+            "powerlock_state": self.powerlock_state,
+            "knob_panel_state": self.knob_panel_state,
+            "fpga_control_panel_state": self.fpga_control_panel_state,
+            "LO_state": self.LO_state,
+            "fast_PID_state": self.fast_PID_state,
+            "slow_PID_state": self.slow_PID_state,
+            "auto_match_state": self.auto_match_state
+        }
         while(True):
             time.sleep(0.03)
             if self.destroying_flag:
                 self.logger.info("Stopping update thread.")
                 return
-            if (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state, self.fpga_control_panel_state, self.LO_state, self.fast_PID_state, self.slow_PID_state) != last:
-                self.logger.debug("State change detected: %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %d"%(self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state, self.fpga_control_panel_state, self.LO_state, self.fast_PID_state, self.slow_PID_state))
+            current = {
+                "fpga_state": self.fpga_state,
+                "tcm_state": self.tcm_state,
+                "soliton_state": self.soliton_state,
+                "locktemp_state": self.locktemp_state,
+                "setpoint_state": self.setpoint_state,
+                "sweeping_state": self.sweeping_state,
+                "powerlock_state": self.powerlock_state,
+                "knob_panel_state": self.knob_panel_state,
+                "fpga_control_panel_state": self.fpga_control_panel_state,
+                "LO_state": self.LO_state,
+                "fast_PID_state": self.fast_PID_state,
+                "slow_PID_state": self.slow_PID_state,
+                "auto_match_state": self.auto_match_state
+            }
+            changed = False
+            for state in current:
+                if current[state] != last[state]:
+                    self.logger.info("State change detected in %s: %d -> %d"%(state, last[state], current[state]))
+                    changed = True
+                    last[state] = current[state]
+            if changed:
                 self.update()
-                last = (self.fpga_state, self.tcm_state, self.soliton_state, self.locktemp_state, self.setpoint_state, self.sweeping_state, self.powerlock_state, self.knob_panel_state, self.fpga_control_panel_state, self.LO_state, self.fast_PID_state, self.slow_PID_state)
             # widgets that need real-time updates
             match self.tcm_state:
                 case self.TCM_STATE_OFFLINE:
@@ -442,10 +476,67 @@ class Interface():
         match self.setpoint_state:
             case self.SETPOINT_STATE_OFF:
                 if self.developer:
-                    self.developer_state_sweeping_label["text"] = "setpoint_state = SETPOINT_STATE_OFF"
+                    self.developer_state_setpoint_label["text"] = "setpoint_state = SETPOINT_STATE_OFF"
             case self.SETPOINT_STATE_ON:
                 if self.developer:
-                    self.developer_state_sweeping_label["text"] = "setpoint_state = SETPOINT_STATE_ON"
+                    self.developer_state_setpoint_label["text"] = "setpoint_state = SETPOINT_STATE_ON"
+        match self.sweeping_state:
+            case self.SWEEPING_STATE_OFF:
+                if self.developer:
+                    self.developer_state_sweeping_label["text"] = "sweeping_state = SWEEPING_STATE_OFF"
+            case self.SWEEPING_STATE_ON:
+                if self.developer:
+                    self.developer_state_sweeping_label["text"] = "sweeping_state = SWEEPING_STATE_ON"
+        match self.powerlock_state:
+            case self.POWERLOCK_STATE_OFF:
+                if self.developer:
+                    self.developer_state_powerlock_label["text"] = "powerlock_state = POWERLOCK_STATE_OFF"
+            case self.POWERLOCK_STATE_ON:
+                if self.developer:
+                    self.developer_state_powerlock_label["text"] = "powerlock_state = POWERLOCK_STATE_ON"
+        match self.knob_panel_state:
+            case self.KNOB_PANEL_STATE_OFF:
+                if self.developer:
+                    self.developer_state_knob_panel_label["text"] = "knob_panel_state = KNOB_PANEL_STATE_OFF"
+            case self.KNOB_PANEL_STATE_ON:
+                if self.developer:
+                    self.developer_state_knob_panel_label["text"] = "knob_panel_state = KNOB_PANEL_STATE_ON"
+        match self.fpga_control_panel_state:
+            case self.FPGA_CONTROL_PANEL_STATE_OFF:
+                if self.developer:
+                    self.developer_state_fpga_control_panel_label["text"] = "fpga_control_panel_state = FPGA_CONTROL_PANEL_STATE_OFF"
+            case self.FPGA_CONTROL_PANEL_STATE_ON:
+                if self.developer:
+                    self.developer_state_fpga_control_panel_label["text"] = "fpga_control_panel_state = FPGA_CONTROL_PANEL_STATE_ON"
+        match self.LO_state:
+            case self.LO_STATE_OFF:
+                if self.developer:
+                    self.developer_state_LO_label["text"] = "LO_state = LO_STATE_OFF"
+            case self.LO_STATE_ON:
+                if self.developer:
+                    self.developer_state_LO_label["text"] = "LO_state = LO_STATE_ON"
+        match self.fast_PID_state:
+            case self.FAST_PID_STATE_OFF:
+                if self.developer:
+                    self.developer_state_fast_PID_label["text"] = "fast_PID_state = FAST_PID_STATE_OFF"
+            case self.FAST_PID_STATE_ON:
+                if self.developer:
+                    self.developer_state_fast_PID_label["text"] = "fast_PID_state = FAST_PID_STATE_ON"
+        match self.slow_PID_state:
+            case self.SLOW_PID_STATE_OFF:
+                if self.developer:
+                    self.developer_state_slow_PID_label["text"] = "slow_PID_state = SLOW_PID_STATE_OFF"
+            case self.SLOW_PID_STATE_ON:
+                if self.developer:
+                    self.developer_state_slow_PID_label["text"] = "slow_PID_state = SLOW_PID_STATE_ON"
+        match self.auto_match_state:
+            case self.AUTO_MATCH_STATE_OFF:
+                if self.developer:
+                    self.developer_state_auto_match_label["text"] = "auto_match_state = AUTO_MATCH_STATE_OFF"
+            case self.AUTO_MATCH_STATE_ON:
+                if self.developer:
+                    self.developer_state_auto_match_label["text"] = "auto_match_state = AUTO_MATCH_STATE_ON"
+        
         # command panel widgets
         match (self.fpga_state, self.soliton_state):
             case (self.FPGA_STATE_STANDBY, self.SOLITON_STATE_OFF):
@@ -558,6 +649,16 @@ class Interface():
                     self.waveform_control_panel.state = "normal"
                 case _:
                     self.waveform_control_panel.state = "disabled"
+            match (self.fpga_state, self.soliton_state, self.auto_match_state):
+                case self.FPGA_STATE_BUSY, self.SOLITON_STATE_ON, self.AUTO_MATCH_STATE_OFF:
+                    self.enable_auto_match_button["state"] = tk.NORMAL
+                    self.enable_auto_match_button["relief"] = tk.RAISED
+                case self.FPGA_STATE_BUSY, self.SOLITON_STATE_ON, self.AUTO_MATCH_STATE_ON:
+                    self.enable_auto_match_button["state"] = tk.NORMAL
+                    self.enable_auto_match_button["relief"] = tk.SUNKEN
+                case _:
+                    self.enable_auto_match_button["state"] = tk.DISABLED
+                    self.enable_auto_match_button["relief"] = tk.RAISED
         return
 
     def developer_entrance_onclick(self) -> None:
@@ -604,7 +705,7 @@ class Interface():
 
             # display internal states
 
-            self.developer_state_frame = ttk.LabelFrame(self.developer_mode, text = "Internal states", width = 260, height = 125, relief = tk.GROOVE)
+            self.developer_state_frame = ttk.LabelFrame(self.developer_mode, text = "Internal states", width = 720, height = 245, relief = tk.GROOVE)
             self.developer_state_frame.place(x = 10, y = 0, anchor = tk.NW)
 
             self.developer_state_fpga_label = ttk.Label(self.developer_state_frame, text = "")
@@ -619,9 +720,51 @@ class Interface():
             self.developer_state_locktemp_label = ttk.Label(self.developer_state_frame, text = "")
             self.developer_state_locktemp_label.place(x = 10, y = 60, anchor = tk.NW)
 
-            self.developer_state_sweeping_label = ttk.Label(self.developer_state_frame, text = "")
-            self.developer_state_sweeping_label.place(x = 10, y = 80, anchor = tk.NW)
+            self.developer_state_setpoint_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_setpoint_label.place(x = 10, y = 80, anchor = tk.NW)
 
+            self.developer_state_sweeping_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_sweeping_label.place(x = 10, y = 100, anchor = tk.NW)
+
+            self.developer_state_powerlock_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_powerlock_label.place(x = 10, y = 120, anchor = tk.NW)
+
+            self.developer_state_knob_panel_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_knob_panel_label.place(x = 10, y = 140, anchor = tk.NW)
+
+            self.developer_state_fpga_control_panel_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_fpga_control_panel_label.place(x = 10, y = 160, anchor = tk.NW)
+
+            self.developer_state_LO_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_LO_label.place(x = 10, y = 180, anchor = tk.NW)
+
+            self.developer_state_fast_PID_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_fast_PID_label.place(x = 10, y = 200, anchor = tk.NW)
+
+            self.developer_state_slow_PID_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_slow_PID_label.place(x = 400, y = 0, anchor = tk.NW)
+
+            self.developer_state_auto_match_label = ttk.Label(self.developer_state_frame, text = "")
+            self.developer_state_auto_match_label.place(x = 400, y = 20, anchor = tk.NW)
+
+            self.developer_monitorC_box = ttk.Combobox(self.developer_mode, values = [
+                "phase", "freq", "I", "Q", "error", "ref", "ref shift", "auto match freq", "TestA", "TestB", "TestC", "TestD", "LO freq", "LO freq diff"
+            ])
+            self.developer_monitorC_box.set("phase")
+            self.developer_monitorC_box.place(x = 750, y = 10, anchor = tk.NW)
+
+            self.developer_monitorC_button = ttk.Button(self.developer_mode, text = "upload to MonitorC", command = self.developer_monitorC_button_onclick, width = 20)
+            self.developer_monitorC_button.place(x = 750, y = 35, anchor = tk.NW)
+            
+            self.developer_monitorD_box = ttk.Combobox(self.developer_mode, values = [
+                "phase", "freq", "I", "Q", "error", "ref", "ref shift", "auto match freq", "TestA", "TestB", "TestC", "TestD", "LO freq", "LO freq diff"
+            ])
+            self.developer_monitorD_box.set("freq")
+            self.developer_monitorD_box.place(x = 750, y = 65, anchor = tk.NW)
+
+            self.developer_monitorD_button = ttk.Button(self.developer_mode, text = "upload to MonitorD", command = self.developer_monitorD_button_onclick, width = 20)
+            self.developer_monitorD_button.place(x = 750, y = 90, anchor = tk.NW)
+            
             self.update()
 
             self.logger.debug("Developer panel generated.")
@@ -630,6 +773,18 @@ class Interface():
             self.information["text"] = "Wrong password."
         return
     
+    def developer_monitorC_button_onclick(self) -> None:
+        self.logger.info("Uploading selected channel to MonitorC.")
+        self.mim.get_fb().set_parameter("monitorC", self.developer_monitorC_box["values"].index(self.developer_monitorC_box.get()))
+        self.mim.get_fb().upload_control()
+        return
+    
+    def developer_monitorD_button_onclick(self) -> None:
+        self.logger.info("Uploading selected channel to MonitorD.")
+        self.mim.get_fb().set_parameter("monitorD", self.developer_monitorC_box["values"].index(self.developer_monitorC_box.get()))
+        self.mim.get_fb().upload_control()
+        return
+
     def knob_panel_button_onclick(self) -> None:
         self.logger.debug("Knob panel button clicked.")
         self.information["text"] = "Deprecated."
@@ -638,7 +793,7 @@ class Interface():
         self.knob_panel_thread.start()
         '''
         return
-    '''
+
     def knob_panel_thread_function(self) -> None:
         self.logger.info("Knob panel thread started.")
         try:
@@ -650,7 +805,7 @@ class Interface():
 
             self.manual_offset_knob = custom_widgets.KnobFrame(self.knob_panel, image_path = "icons/knob.png", size = 100, name = "Manual offset", scale = 0.334, unit = "mV")
             self.manual_offset_knob.place(x = 10, y = 10, anchor = tk.NW)
-            self.manual_offset_knob.knob.set_value(self.mim.tk.get_parameter("manual_offset"))
+            self.manual_offset_knob.knob.set_value(self.mim.get_tk().get_parameter("manual_offset"))
             self.manual_offset_knob.knob.on_spin = self.manual_offset_knob_onspin
             self.manual_offset_knob.knob.max = 32767
             self.manual_offset_knob.knob.min = -32767
@@ -674,7 +829,7 @@ class Interface():
         try:
             self.logger.debug("Setting manual offset to %d."%self.manual_offset_knob.knob.get_value())
             self.manual_offset_knob.update()
-            self.mim.tk.set_parameter("manual_offset", self.manual_offset_knob.knob.get_value())
+            self.mim.get_tk().set_parameter("manual_offset", self.manual_offset_knob.knob.get_value())
             if self.knob_uploading_flag == False:
                 self.knob_uploading_flag = True
                 self.knob_uploading_thread = threading.Thread(target = self.knob_uploading_thread_function, args = (), daemon = True)
@@ -686,15 +841,15 @@ class Interface():
 
     def knob_uploading_thread_function(self) -> None:
         self.logger.info("Knob uploading thread started.")
-        self.mim.tk.upload_control()
+        self.mim.get_tk().upload_control()
         self.knob_uploading_flag = False
         self.logger.debug("Knob parameter uploaded.")
         return
-    '''
+
     def command_soliton_button_onclick(self) -> None:
         self.logger.info("Soliton button clicked.")
-        if self.mim.tk is None:
-            self.logger.debug("mim.tk not found.")
+        if self.mim.get_tk() is None:
+            self.logger.debug("turnkey not found.")
             self.information["text"] = "Module not found. Try initializing first."
             return
         match self.soliton_state:
@@ -702,8 +857,9 @@ class Interface():
                 try:
                     self.logger.debug("Stopping soliton generation.")
                     self.mim.stop()
-                    self.mim.fb.fast_PID_off()
-                    self.mim.fb.slow_PID_off()
+                    self.mim.get_fb().fast_PID_off()
+                    self.mim.get_fb().slow_PID_off()
+                    self.mim.get_fb().auto_match_off()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -714,6 +870,7 @@ class Interface():
                     self.soliton_state = self.SOLITON_STATE_OFF
                     self.fast_PID_state = self.FAST_PID_STATE_OFF
                     self.slow_PID_state = self.SLOW_PID_STATE_OFF
+                    self.auto_match_state = self.AUTO_MATCH_STATE_OFF
             case self.SOLITON_STATE_OFF:
                 try:
                     self.logger.debug("Starting soliton generation.")
@@ -838,8 +995,8 @@ class Interface():
     
     def command_sweeping_button_onclick(self) -> None:
         self.logger.info("Sweeping button clicked.")
-        if self.mim.tk is None:
-            self.logger.debug("mim.tk not found.")
+        if self.mim.get_tk() is None:
+            self.logger.debug("turnkey not found.")
             self.information["text"] = "Module not found. Try initializing first."
             return
         match self.sweeping_state:
@@ -875,15 +1032,15 @@ class Interface():
     
     def command_powerlock_button_onclick(self) -> None:
         self.logger.info("Powerlock button clicked.")
-        if self.tk is None:
-            self.logger.debug("mim.tk not found.")
+        if self.mim.get_tk() is None:
+            self.logger.debug("turnkey not found.")
             self.information["text"] = "Module not found. Try initializing first."
             return
         match self.powerlock_state:
             case self.POWERLOCK_STATE_ON:
                 try:
                     self.logger.debug("Stopping power lock.")
-                    self.mim.tk.power_lock_OFF()
+                    self.mim.get_tk().power_lock_OFF()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -894,7 +1051,7 @@ class Interface():
             case self.POWERLOCK_STATE_OFF:
                 try:
                     self.logger.debug("Starting power lock.")
-                    self.mim.tk.power_lock_ON()
+                    self.mim.get_tk().power_lock_ON()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -922,31 +1079,34 @@ class Interface():
         self.logger.info("FPGA connection thread started.")
         try:
             self.logger.debug("Connecting to FPGA.")
-            self.mim = fpga.MIM(self.ip, self.logger)
+            self.mim = fpga.MIM(self.ip, config_id = "1", logger = self.logger)
             self.powerlock_state = self.POWERLOCK_STATE_OFF
             self.LO_state = self.LO_STATE_OFF
             self.fast_PID_state = self.FAST_PID_STATE_OFF
             self.slow_PID_state = self.SLOW_PID_STATE_OFF
-            if self.mim.tk is None:
-                self.logger.debug("mim.tk not found. Skipping parameter synchronizations.")
+            self.auto_match_state = self.AUTO_MATCH_STATE_OFF
+            if self.mim.get_tk() is None:
+                self.logger.debug("turnkey not found. Skipping parameter synchronizations.")
             else:
-                if self.mim.tk.get_parameter("PID_lock") == 0:
+                if self.mim.get_tk().get_parameter("PID_lock") == 0:
                     self.powerlock_state = self.POWERLOCK_STATE_ON
-                self.manual_offset_entry.set(self.manual_offset_control2quantity(self.mim.tk.get_parameter("manual_offset")))
+                self.manual_offset_entry.set(self.manual_offset_control2quantity(self.mim.get_tk().get_parameter("manual_offset")))
                 self.manual_offset_entry.store()
-            if self.mim.fb is None:
-                self.logger.debug("mim.fb not found. Skipping parameter synchronizations.")
+            if self.mim.get_fb() is None:
+                self.logger.debug("feedback not found. Skipping parameter synchronizations.")
             else:
                 if self.fpga_control_panel_state == self.FPGA_CONTROL_PANEL_STATE_ON:
-                    self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.fb.get_parameter("frequency_bias")))
+                    self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.get_fb().get_parameter("frequency_bias")))
                     self.frequency_bias_entry.store()
-                    if self.mim.fb.get_parameter("LO_Reset") == 0:
+                    if self.mim.get_fb().get_parameter("LO_Reset") == 0:
                         self.LO_state = self.LO_STATE_ON
-                    if self.mim.fb.get_parameter("fast_PID_Reset") == 0:
+                    if self.mim.get_fb().get_parameter("fast_PID_Reset") == 0:
                         self.fast_PID_state = self.FAST_PID_STATE_ON
-                    if self.mim.fb.get_parameter("slow_PID_Reset") == 0:
+                    if self.mim.get_fb().get_parameter("slow_PID_Reset") == 0:
                         self.slow_PID_state = self.SLOW_PID_STATE_ON
-        except BaseException as e:
+                    if self.mim.get_fb().get_parameter("enable_auto_match") == 0:
+                        self.auto_match_state = self.AUTO_MATCH_STATE_ON
+        except Exception as e:
             self.logger.error("Failed to connect to FPGA: %s"%e.__repr__())
             self.information["text"] = "Failed to connect to FPGA: %s"%e.__repr__()
             self.fpga_state = self.FPGA_STATE_OFFLINE
@@ -1000,24 +1160,26 @@ class Interface():
         try:
             self.logger.debug("Initializing FPGA.")
             self.mim.initialize()
-            if self.mim.tk.get_parameter("PID_lock") == 0:
+            if self.mim.get_tk().get_parameter("PID_lock") == 0:
                 self.powerlock_state = self.POWERLOCK_STATE_ON
             else:
                 self.powerlock_state = self.POWERLOCK_STATE_OFF
-            self.manual_offset_entry.set(self.manual_offset_control2quantity(self.mim.tk.get_parameter("manual_offset")))
+            self.manual_offset_entry.set(self.manual_offset_control2quantity(self.mim.get_tk().get_parameter("manual_offset")))
             self.manual_offset_entry.store()
             if self.fpga_control_panel_state == self.FPGA_CONTROL_PANEL_STATE_ON:
-                self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.fb.get_parameter("frequency_bias")))
+                self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.get_fb().get_parameter("frequency_bias")))
                 self.frequency_bias_entry.store()
-                if self.mim.fb.get_parameter("LO_Reset") == 0:
+                if self.mim.get_fb().get_parameter("LO_Reset") == 0:
                     self.LO_state = self.LO_STATE_ON
-                if self.mim.fb.get_parameter("fast_PID_Reset") == 0:
+                if self.mim.get_fb().get_parameter("fast_PID_Reset") == 0:
                     self.fast_PID_state = self.FAST_PID_STATE_ON
-                if self.mim.fb.get_parameter("slow_PID_Reset") == 0:
+                if self.mim.get_fb().get_parameter("slow_PID_Reset") == 0:
                     self.slow_PID_state = self.SLOW_PID_STATE_ON
+                if self.mim.get_fb().get_parameter("enable_auto_match") == 0:
+                    self.auto_match_state = self.AUTO_MATCH_STATE_ON
                 self.waveform_control_panel.uploaded = False
                 self.waveform_control_panel.periodically_running = False
-        except BaseException as e:
+        except Exception as e:
             self.logger.error("%s"%e.__repr__())
             self.information["text"] = "Failed to initialize: %s"%e.__repr__()
         else:
@@ -1028,20 +1190,18 @@ class Interface():
         return
     
     def manual_offset_report(self, value) -> None:
-        try:
-            self.logger.debug("Setting manual offset to %s."%self.manual_offset_entry.get_text())
-            if self.mim.tk is None:
-                self.logger.debug("mim.tk not found. Aborting setting manual offset.")
-                self.information["text"] = "Module not found. Did you forget to initialize?"
-                return
-            self.mim.tk.set_parameter("manual_offset", self.manual_offset_value2control(value))
-            if self.fpga_uploading_flag == False:
-                self.fpga_uploading_flag = True
-                self.fpga_uploading_thread = threading.Thread(target = self.fpga_tk_uploading_thread_function, args = (), daemon = True)
-                self.fpga_uploading_thread.start()
-        except Exception as e:
-            self.logger.error("%s"%e.__repr__())
-            self.information["text"] = "Error encountered when setting manual offset: %s"%e.__repr__()
+        self.logger.debug("Setting manual offset to %s."%self.manual_offset_entry.get_text())
+        if self.mim.get_tk() is None:
+            self.logger.debug("turnkey not found. Aborting setting manual offset.")
+            self.information["text"] = "Module not found. Did you forget to initialize?"
+            return
+        self.mim.get_tk().set_parameter("manual_offset", self.manual_offset_value2control(value))
+        result = self.mim.get_tk().upload_data()
+        match result:
+            case "queued":
+                self.logger.debug("Parameters queued.")
+            case "rejected":
+                self.logger.debug("Parameters rejected.")
         return
     
     def manual_offset_control2quantity(self, control: int) -> str:
@@ -1080,6 +1240,9 @@ class Interface():
             self.slow_PID_button = tk.Button(self.fpga_control_panel, text = "Slow PID", command = self.slow_PID_button_onclick, width = 32)
             self.slow_PID_button.place(x = 10, y = 114, anchor = tk.NW)
 
+            self.enable_auto_match_button = tk.Button(self.fpga_control_panel, text = "Use auto match", command = self.enable_auto_match_button_onclick, width = 32)
+            self.enable_auto_match_button.place(x = 10, y = 144, anchor = tk.NW)
+
             # panel
             self.waveform_control_panel = custom_widgets.WaveformControl(self.fpga_control_panel, self.upload_waveform, self.initiate_frequency_control, self.terminate_frequency_control)
             self.waveform_control_panel.place(x = 255, y = 10, anchor = tk.NW)
@@ -1087,17 +1250,20 @@ class Interface():
             self.LO_state = self.LO_STATE_OFF
             self.fast_PID_state = self.FAST_PID_STATE_OFF
             self.slow_PID_state = self.SLOW_PID_STATE_OFF
-            if self.mim is None or self.mim.fb is None:
-                self.logger.debug("mim/mim.fb not found. Skipping setting default values.")
+            self.auto_match_state = self.AUTO_MATCH_STATE_OFF
+            if self.mim is None or self.mim.get_fb() is None:
+                self.logger.debug("mim/feedback not found. Skipping setting default values.")
             else:
-                self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.fb.get_parameter("frequency_bias")))
+                self.frequency_bias_entry.set(self.frequency_bias_control2quantity(self.mim.get_fb().get_parameter("frequency_bias")))
                 self.frequency_bias_entry.store()
-                if self.mim.fb.get_parameter("LO_Reset") == 0:
+                if self.mim.get_fb().get_parameter("LO_Reset") == 0:
                     self.LO_state = self.LO_STATE_ON
-                if self.mim.fb.get_parameter("fast_PID_Reset") == 0:
+                if self.mim.get_fb().get_parameter("fast_PID_Reset") == 0:
                     self.fast_PID_state = self.FAST_PID_STATE_ON
-                if self.mim.fb.get_parameter("slow_PID_Reset") == 0:
+                if self.mim.get_fb().get_parameter("slow_PID_Reset") == 0:
                     self.slow_PID_state = self.SLOW_PID_STATE_ON
+                if self.mim.get_fb().get_parameter("enable_auto_match") == 0:
+                    self.auto_match_state = self.AUTO_MATCH_STATE_ON
 
         except Exception as e:
             self.logger.error("%s"%e.__repr__())
@@ -1115,20 +1281,18 @@ class Interface():
         return
 
     def frequency_bias_report(self, value) -> None:
-        try:
-            self.logger.debug("Setting frequency bias to %s."%self.frequency_bias_entry.get_text())
-            if self.mim.fb is None:
-                self.logger.debug("mim.fb not found. Aborting setting frequency bias.")
-                self.information["text"] = "Module not found. Did you forget to initialize?"
-                return
-            self.mim.fb.set_parameter("frequency_bias", self.frequency_bias_value2control(value))
-            if self.fpga_uploading_flag == False:
-                self.fpga_uploading_flag = True
-                self.fpga_uploading_thread = threading.Thread(target = self.fpga_fb_uploading_thread_function, args = (), daemon = True)
-                self.fpga_uploading_thread.start()
-        except Exception as e:
-            self.logger.error("%s"%e.__repr__())
-            self.information["text"] = "Error encountered when setting frequency bias: %s"%e.__repr__()
+        self.logger.debug("Setting frequency bias to %s."%self.frequency_bias_entry.get_text())
+        if self.mim.get_fb() is None:
+            self.logger.debug("feedback not found. Aborting setting frequency bias.")
+            self.information["text"] = "Module not found. Did you forget to initialize?"
+            return
+        self.mim.get_fb().set_parameter("frequency_bias", self.frequency_bias_value2control(value))
+        result = self.mim.get_fb().upload_data()
+        match result:
+            case "queued":
+                self.logger.debug("Parameters queued.")
+            case "rejected":
+                self.logger.debug("Parameters rejected.")
         return
     
     def frequency_bias_control2quantity(self, control: int) -> str:
@@ -1139,17 +1303,17 @@ class Interface():
 
     def LO_button_onclick(self) -> None:
         self.logger.info("Local oscillator button clicked.")
-        if self.mim.fb is None:
-            self.logger.debug("mim.fb not found.")
+        if self.mim.get_fb() is None:
+            self.logger.debug("feedback not found.")
             self.information["text"] = "Module not found. Try initializing first."
             return
         match self.LO_state:
             case self.LO_STATE_ON:
                 try:
                     self.logger.debug("Stopping local oscillator.")
-                    self.mim.fb.LO_off()
-                    self.mim.fb.fast_PID_off()
-                    self.mim.fb.slow_PID_off()
+                    self.mim.get_fb().LO_off()
+                    self.mim.get_fb().fast_PID_off()
+                    self.mim.get_fb().slow_PID_off()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1162,7 +1326,7 @@ class Interface():
             case self.LO_STATE_OFF:
                 try:
                     self.logger.debug("Starting local oscillator.")
-                    self.mim.fb.LO_on()
+                    self.mim.get_fb().LO_on()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1170,19 +1334,20 @@ class Interface():
                     self.logger.debug("Local oscillator started.")
                     self.information["text"] = "Local oscillator turned on."
                     self.LO_state = self.LO_STATE_ON
+                    self.waveform_control_panel.uploaded = False
         return
     
     def fast_PID_button_onclick(self) -> None:
         self.logger.info("Fast PID button clicked.")
-        if self.mim.fb is None:
-            self.logger.debug("mim.fb not found.")
+        if self.mim.get_fb() is None:
+            self.logger.debug("feedback not found.")
             self.information["text"] = "Module not found. Try initializing first."
             return
         match self.fast_PID_state:
             case self.FAST_PID_STATE_ON:
                 try:
                     self.logger.debug("Stopping fast PID.")
-                    self.mim.fb.fast_PID_off()
+                    self.mim.get_fb().fast_PID_off()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1193,7 +1358,7 @@ class Interface():
             case self.FAST_PID_STATE_OFF:
                 try:
                     self.logger.debug("Starting fast PID.")
-                    self.mim.fb.fast_PID_on()
+                    self.mim.get_fb().fast_PID_on()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1205,15 +1370,15 @@ class Interface():
     
     def slow_PID_button_onclick(self) -> None:
         self.logger.info("Slow PID button clicked.")
-        if self.mim.fb is None:
-            self.logger.debug("mim.fb not found.")
+        if self.mim.get_fb() is None:
+            self.logger.debug("feedback not found.")
             self.information["text"] = "Module not found. Try initializing first."
             return
         match self.slow_PID_state:
             case self.SLOW_PID_STATE_ON:
                 try:
                     self.logger.debug("Stopping slow PID.")
-                    self.mim.fb.slow_PID_off()
+                    self.mim.get_fb().slow_PID_off()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1224,7 +1389,7 @@ class Interface():
             case self.SLOW_PID_STATE_OFF:
                 try:
                     self.logger.debug("Starting slow PID.")
-                    self.mim.fb.slow_PID_on()
+                    self.mim.get_fb().slow_PID_on()
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1234,80 +1399,67 @@ class Interface():
                     self.slow_PID_state = self.SLOW_PID_STATE_ON
         return
 
+    def enable_auto_match_button_onclick(self) -> None:
+        self.logger.info("Enable auto match button clicked.")
+        if self.mim.get_fb() is None:
+            self.logger.debug("feedback not found.")
+            self.information["text"] = "Module not found. Try initializing first."
+            return
+        match self.auto_match_state:
+            case self.AUTO_MATCH_STATE_ON:
+                try:
+                    self.logger.debug("Disabling auto match.")
+                    self.mim.get_fb().auto_match_off()
+                except Exception as e:
+                    self.logger.error("%s"%e.__repr__())
+                    self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
+                else:
+                    self.logger.debug("Auto match disabled.")
+                    self.information["text"] = "Auto match disabled."
+                    self.auto_match_state = self.AUTO_MATCH_STATE_OFF
+            case self.AUTO_MATCH_STATE_OFF:
+                try:
+                    self.logger.debug("Enabling auto match.")
+                    self.mim.get_fb().auto_match_on()
+                    self.mim.get_fb().launch_auto_match() # may need to decouple this later
+                except Exception as e:
+                    self.logger.error("%s"%e.__repr__())
+                    self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
+                else:
+                    self.logger.debug("Auto match enabled.")
+                    self.information["text"] = "Auto match enabled."
+                    self.auto_match_state = self.AUTO_MATCH_STATE_ON
+        return
+
     def upload_waveform(self, waveform: list[list[float]], periodic: bool, prolong: bool) -> None:
         # waveform [[time(s), frequency(Hz)], ...]
         # bit rate: 3.2ns/bit & 298.023Hz/bit
-        self.logger.info("Uploading waveform.")
         converted = [{
                         "sign": 1 if waveform[i][1] < 0 else 0,
                         "x": int(np.round(waveform[i][0] * 312.5e6)),
                         "y": int(np.round(np.abs(waveform[i][1] / 298.023))),
                         "slope": int(np.floor(np.round(np.abs(waveform[i][1] / 298.023)) / np.round(waveform[i][0] * 312.5e6)))
                     } for i in range(len(waveform))]
-        self.mim.fb.waveform = converted
+        self.logger.info("Uploading waveform : %s."%converted)
+        self.mim.get_fb().waveform = converted
         self.frequency_control_periodic_next = 0 if periodic else 1
-        self.mim.fb.set_parameter("prolong", 0 if prolong else 1)
-        self.upload_waveform_thread = threading.Thread(target = self.upload_waveform_thread_function, args = (), daemon = True)
-        self.upload_waveform_thread.start()
-
-    def upload_waveform_thread_function(self) -> None:
-        self.logger.info("Waveform uploading thread started.")
-        try:
-            self.mim.fb.upload_waveform()
-        except Exception as e:
-            self.logger.error("%s"%e.__repr__())
-            self.information["text"] = "Error encountered when uploading waveform: %s"%e.__repr__()
-        else:
-            self.logger.debug("Waveform uploaded.")
+        self.mim.get_fb().set_parameter("prolong", 0 if prolong else 1)
+        self.mim.get_fb().upload_waveform()
+        self.logger.debug("Waveform uploaded.")
         return
 
     def initiate_frequency_control(self) -> None:
         self.logger.info("Initiating frequency control.")
-        self.mim.fb.set_parameter("periodic", self.frequency_control_periodic_next)
-        self.initiate_frequency_control_thread = threading.Thread(target = self.initiate_frequency_control_thread_function, args = (), daemon = True)
-        self.initiate_frequency_control_thread.start()
-
-    def initiate_frequency_control_thread_function(self) -> None:
-        self.logger.info("Frequency control initiation thread started.")
-        try:
-            self.mim.fb.launch_frequency_control()
-        except Exception as e:
-            self.logger.error("%s"%e.__repr__())
-            self.information["text"] = "Error encountered when initiating frequency control: %s"%e.__repr__()
-        else:
-            self.logger.debug("Frequency control initiated.")
+        self.mim.get_fb().set_parameter("periodic", self.frequency_control_periodic_next)
+        self.mim.get_fb().launch_frequency_control()
+        self.logger.debug("Frequency control initiated.")
         return
     
     def terminate_frequency_control(self) -> None:
         self.logger.info("Terminating frequency control.")
-        self.mim.fb.set_parameter("periodic", 1)
-        self.terminate_frequency_control_thread = threading.Thread(target = self.fpga_fb_uploading_thread_function, args = (), daemon = True)
-        self.terminate_frequency_control_thread.start()  
-
-    def fpga_tk_uploading_thread_function(self) -> None:
-        self.logger.info("FPGA uploading thread started.")
-        try:
-            self.mim.tk.upload_control()
-        except Exception as e:
-            self.logger.error("%s"%e.__repr__())
-            self.information["text"] = "Error encountered when communicating with FPGA: %s"%e.__repr__()
-        else:
-            self.logger.debug("FPGA parameter uploaded.")
-        finally:
-            self.fpga_uploading_flag = False
-        return
-    
-    def fpga_fb_uploading_thread_function(self) -> None:
-        self.logger.info("FPGA uploading thread started.")
-        try:
-            self.mim.fb.upload_control()
-        except Exception as e:
-            self.logger.error("%s"%e.__repr__())
-            self.information["text"] = "Error encountered when communicating with FPGA: %s"%e.__repr__()
-        else:
-            self.logger.debug("FPGA parameter uploaded.")
-        finally:
-            self.fpga_uploading_flag = False
+        self.mim.get_fb().set_parameter("periodic", 1)
+        self.mim.get_fb().upload_control()
+        self.logger.debug("Frequency control terminated.")
         return
     
     def tcm_connection_button_onclick(self) -> None:
@@ -1426,10 +1578,13 @@ class Interface():
     def terminal_enter(self) -> None:
         command = self.terminal.get()
         try:
+            self.logger.info("Terminal command entered: %s"%command)
             eval(command)
-        except BaseException as e:                         
+        except Exception as e:
+            self.logger.error("%s"%e.__repr__())                         
             self.information["text"] = "Error encountered when implementing code: %s"%e.__repr__()
         else:
+            self.logger.debug("Terminal command implemented.")
             self.information["text"] = command
             self.terminal.delete(0, tk.END)
             if len(self.terminal_history) == 1 and self.terminal_history[0] == "":

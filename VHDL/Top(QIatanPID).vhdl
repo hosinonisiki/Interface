@@ -10,6 +10,7 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL fast_control : signed(15 DOWNTO 0);
     SIGNAL slow_actual : signed(15 DOWNTO 0);
+    SIGNAL slow_control : signed(15 DOWNTO 0);
 
     SIGNAL enable_auto_match : std_logic;
     SIGNAL initiate_auto_match : std_logic;
@@ -22,6 +23,8 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL slow_PID_Reset : std_logic;
 
     SIGNAL auto_match_freq : signed(15 DOWNTO 0) := x"0000";
+    SIGNAL LO_freq_bias : unsigned(15 DOWNTO 0);
+
     SIGNAL LO_freq : unsigned(15 DOWNTO 0);
 
     SIGNAL monitorC : signed(15 DOWNTO 0);
@@ -32,10 +35,9 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL TestC : signed(15 DOWNTO 0);
     SIGNAL TestD : signed(15 DOWNTO 0);
 BEGIN
-    -- try to acquire a faster frequency sweeping speed by actively sweeping the output voltage
-    -- find a way to reduce fluctuations when sweeping
-    -- revise the logic of auto matching
-    
+    -- try to acquire a faster frequency sweeping speed by using more complicated strategies instead of pure PID
+    -- dynamic PID coefficients
+
     enable_auto_match <= Control0(12);
     initiate_auto_match <= Control0(13);
 
@@ -46,12 +48,12 @@ BEGIN
                 LO_Reset <= Control0(1);
                 fast_PID_Reset <= Control0(10);
                 slow_PID_Reset <= Control0(11);
-                LO_freq <= unsigned(Control7(31 DOWNTO 16));
+                LO_freq_bias <= unsigned(Control7(31 DOWNTO 16));
             ELSE
                 LO_Reset <= auto_LO_Reset;
                 fast_PID_Reset <= auto_fast_PID_Reset;
                 slow_PID_Reset <= auto_slow_PID_Reset;
-                LO_freq <= unsigned(auto_match_freq) + unsigned(Control7(31 DOWNTO 16));
+                LO_freq_bias <= unsigned(auto_match_freq) + unsigned(Control7(31 DOWNTO 16));
             END IF;
         END IF;
     END PROCESS;
@@ -128,13 +130,15 @@ BEGIN
 
             limit_sum => x"3400", -- maximum +- 4MHz
 
+            decay_I => x"4000",
+
             Reset => PID_Reset,
             Clk => Clk
         );
     END BLOCK auto_match_logic;
 
     DUT1 : ENTITY WORK.AWG PORT MAP(
-        frequency_bias => LO_freq,
+        frequency_bias => LO_freq_bias,
 
         set_sign => Control0(2),
         set_x => unsigned(Control5),
@@ -148,6 +152,8 @@ BEGIN
         prolong => Control0(5),
 
         amplitude => signed(Control7(15 DOWNTO 0)),
+
+        outputF => LO_freq,
 
         outputC => ref,
         outputS => ref_shift,
@@ -211,6 +217,8 @@ BEGIN
 
         limit_sum => x"7FFF",
 
+        decay_I => signed(Control15(31 DOWNTO 16)),
+
         Reset => fast_PID_Reset,
         Clk => Clk
     );
@@ -221,7 +229,7 @@ BEGIN
     DUT6 : ENTITY WORK.PID PORT MAP(
         actual => slow_actual,
         setpoint => x"0000",
-        control => OutputB,
+        control => slow_control,
 
         K_P => signed(Control8(31 DOWNTO 0)),
         K_I => signed(Control9(31 DOWNTO 0)),
@@ -230,6 +238,8 @@ BEGIN
         limit_I => x"0001000000000000",
 
         limit_sum => x"7FFF",
+
+        decay_I => signed(Control15(15 DOWNTO 0)),
 
         Reset => slow_PID_Reset,
         Clk => Clk
@@ -249,7 +259,9 @@ BEGIN
                 TestA WHEN Control1(15 DOWNTO 12) = "1000" ELSE
                 TestB WHEN Control1(15 DOWNTO 12) = "1001" ELSE
                 TestC WHEN Control1(15 DOWNTO 12) = "1010" ELSE
-                TestD;
+                TestD WHEN Control1(15 DOWNTO 12) = "1011" ELSE
+                signed(LO_freq) WHEN Control1(15 DOWNTO 12) = "1100" ELSE
+                signed(LO_freq - LO_freq_bias);
 
 
     monitorD <= phase WHEN Control1(15 DOWNTO 12) = "0000" ELSE
@@ -263,11 +275,14 @@ BEGIN
                 TestA WHEN Control1(15 DOWNTO 12) = "1000" ELSE
                 TestB WHEN Control1(15 DOWNTO 12) = "1001" ELSE
                 TestC WHEN Control1(15 DOWNTO 12) = "1010" ELSE
-                TestD;
+                TestD WHEN Control1(15 DOWNTO 12) = "1011" ELSE
+                signed(LO_freq) WHEN Control1(15 DOWNTO 12) = "1100" ELSE
+                signed(LO_freq - LO_freq_bias);
 
     PROCESS(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
+            OutputB <= slow_control;
             OutputC <= monitorC;
             OutputD <= monitorD;
         END IF;

@@ -1,9 +1,12 @@
 import moku.instruments as instruments
 import numpy as np
 import time
-import typing
+from typing import Union, NoReturn
 import requests
 import json
+import xml.etree.ElementTree as ET
+import threading
+import queue
 
 # for testing
 import matplotlib.pyplot as plt
@@ -34,12 +37,18 @@ def convert_bits(integer: int, length: int) -> str:
     
 
 class MCC():
-    def __init__(self, mcc: object, slot: int, controls: dict[int, int] = {}):
+    def __init__(self, mcc: object, slot: int, controls: dict[int, int] = None):
         self.mcc = mcc
         self.slot = slot
+        self.controls = {}
+
+        self.uploading_queue = queue.Queue() 
+        self.data_uploading_queue = queue.Queue() # only allows one queueing at a time
+        self.uploader = threading.Thread(target = self.uploader_function, args = (), daemon = True)
+        self.uploader.start()
+
         self.download_control()
         self.set_control(controls) # initialize control
-        self.upload_control()
     
     # needs an http implementation
     def download_control(self) -> object:
@@ -48,7 +57,8 @@ class MCC():
         except Exception as e:
             raise Exception("Connection error: %s"%e.__repr__())
         return self
-        
+    
+    '''   
     def upload_control(self, mode: str = "default", url: str = "http://localhost:8090/api/v2/registers") -> object:
         if mode == "default":
             try:
@@ -56,6 +66,7 @@ class MCC():
                     self.mcc.set_control(i, self.controls[i])
             except Exception as e:
                 raise Exception("Connection error: %s"%e.__repr__())
+            
         elif mode == "http":
             post = "[[\"instr" + str(self.slot) + "\", {"
             for i in range(0, 16):
@@ -69,14 +80,42 @@ class MCC():
             except Exception as e:
                 raise Exception("Connection error: %s"%e.__repr__())
         return self
-    
+    '''
+
+    def upload_control(self) -> object:
+        self.uploading_queue.put(self.controls.copy())
+        return self
+
+    def upload_data(self) -> str:
+        if self.data_uploading_queue.empty():
+            self.data_uploading_queue.put(self.controls.copy())
+            return "queued"
+        return "rejected"
+
+    # needs an http implementation    
+    def uploader_function(self) -> NoReturn:
+        while True:
+            time.sleep(0.05)
+            if not self.uploading_queue.empty():
+                self.upload(self.uploading_queue.get())
+            if not self.data_uploading_queue.empty():
+                self.upload(self.data_uploading_queue.get())
+
+    def upload(self, controls: dict[int, int]) -> object:
+        try:
+            for i in range(15, -1, -1):
+                self.mcc.set_control(i, controls[i])
+        except Exception as e:
+            raise Exception("Connection error: %s"%e.__repr__())
+        return self
+
     def set_control(self, *arg) -> object:
-        if len(arg) == 1:
+        if len(arg) == 1 and arg[0] is not None:
             self.controls.update(arg[0])
         elif len(arg) == 2:
             self.controls[arg[0]] = arg[1]
         return self
-    
+
     def get_control(self, i: int) -> int:
         return self.controls[i]
     
@@ -89,81 +128,15 @@ class MCC():
         return self
 
 class Turnkey(MCC):
-    default_controls = {
-        "drop_period": 7324,
-        "climb_period": 24028,
-        "kick_period": 488,
-        "hold_period": 7324,
-        "max_voltage": 14927,
-        "min_voltage": 5971,
-        "step_voltage": 20,
-        "drop_amplitude": 14634,
-        "climb_amplitude": 15232,
-        "kick_amplitude": 598,
-        "soliton_threshold_max": 4608,
-        "soliton_threshold_min": 1536,
-        "attempts": 1,
-        "approaches": 64,
-        "coarse_target": 1008,
-        "fine_target": 96,
-        "coarse_period": 4077,
-        "fine_period": 20385,
-        "stab_target": 2048,
-        "stab_period": 2548,
-        "floor": 65472,
-        "PID_K_P": 65280,
-        "PID_K_I": 57088,
-        "PID_K_D": 0,
-        "mode": 0,
-        "sweep_period": 404,
-        "PID_lock": 1,
-        "input_gain": 16, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
-        "output_gain": 32, # 256 indicates 16 time gain while 1 indicates 16 time attenuation
-        "manual_offset": 0,
-        "Reset": 0
-    } # {<name>:<value>}
-    mapping = {
-        "drop_period": {"index": 1, "high": 31, "low": 16},
-        "climb_period": {"index": 1, "high": 15, "low": 0},
-        "kick_period": {"index": 2, "high": 31, "low": 16},
-        "hold_period": {"index": 2, "high": 15, "low": 0},
-        "max_voltage": {"index": 3, "high": 31, "low": 16},
-        "min_voltage": {"index": 3, "high": 15, "low": 0},
-        "step_voltage": {"index": 4, "high": 31, "low": 16},
-        "drop_amplitude": {"index": 4, "high": 15, "low": 0},
-        "climb_amplitude": {"index": 5, "high": 31, "low": 16},
-        "kick_amplitude": {"index": 5, "high": 15, "low": 0},
-        "soliton_threshold_max": {"index": 6, "high": 31, "low": 16},
-        "soliton_threshold_min": {"index": 6, "high": 15, "low": 0},
-        "attempts": {"index": 7, "high": 31, "low": 24},
-        "approaches": {"index": 7, "high": 23, "low": 16},
-        "coarse_target": {"index": 7, "high": 15, "low": 0},
-        "fine_target": {"index": 8, "high": 31, "low": 16},
-        "coarse_period": {"index": 8, "high": 15, "low": 0},
-        "fine_period": {"index": 9, "high": 31, "low": 16},
-        "stab_target": {"index": 9, "high": 15, "low": 0},
-        "stab_period": {"index": 10, "high": 31, "low": 16}, 
-        "floor": {"index": 10, "high": 15, "low": 0},
-        "PID_K_P": {"index": 11, "high": 31, "low": 0},
-        "PID_K_I": {"index": 12, "high": 31, "low": 0},
-        "PID_K_D": {"index": 13, "high": 31, "low": 0},
-        "mode": {"index": 0, "high": 1, "low": 1},
-        "sweep_period": {"index": 14, "high": 31, "low": 16},
-        "PID_lock": {"index": 0, "high": 2, "low": 2},
-        "input_gain": {"index": 14, "high": 7, "low": 0},
-        "output_gain": {"index": 14, "high": 15, "low": 8},
-        "manual_offset": {"index": 15, "high": 31, "low": 16},
-        "Reset": {"index": 0, "high": 0, "low": 0}
-    } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
-        
-    def set_default(self) -> object:
-        for name in self.mapping:
-            self.set_parameter(name, self.default_controls[name])
-        self.upload_control()
-        return self
-        
+    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None):
+        super().__init__(mcc, slot, controls)
+        self.parameters = parameters
+        self.mapping = mapping
+        for i in self.parameters:
+            self.set_parameter(i, self.parameters[i])
+
     def set_parameter(self, name: str, value: int) -> object:
-        location = Turnkey.mapping[name]
+        location = self.mapping[name]
         bits = convert_bits(value, location["high"] - location["low"] + 1)
         pointer = location["high"]
         for i in bits:
@@ -172,7 +145,7 @@ class Turnkey(MCC):
         return self
     
     def get_parameter(self, name: str) -> int:
-        location = Turnkey.mapping[name]
+        location = self.mapping[name]
         bits = bin(self.get_control(location["index"]))[2:].zfill(32)
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
     
@@ -206,102 +179,16 @@ class Turnkey(MCC):
         return self
 
 class Feedback(MCC):
-    default_controls = {
-        "fast_PID_K_P": 4294967296 - 524288,
-        "fast_PID_K_I": 4294967296 - 33554432,
-        "fast_PID_K_D": 4294967296 - 131072,
-        "monitorC": 0,
-        "monitorD": 1,
-        "segments_enabled": 3,
-        "set_address": 0,
-        "slow_PID_K_P": 4096,
-        "slow_PID_K_I": 4096,
-        "slow_PID_K_D": 0,
-        "set_x": 31250000,
-        "set_y": 3355,
-        "set_slope": 0,
-        "frequency_bias": 33554,
-        "amplitude": 28672,
-        "fast_PID_Reset": 1,
-        "slow_PID_Reset": 1,
-        "LO_Reset": 1,
-        "set_sign": 0,
-        "initiate": 1,
-        "periodic": 1,
-        "prolong": 0,
-        "lock_mode": 0,
-        "slow_input": 1,
-        "set": 1,
-        "enable_auto_match": 1,
-        "initiate_auto_match": 1,
-        "frequency_match_threshold": 268,
-        "frequency_lock_threshold": 3,
-        "frequency_match_K_P": 4294967296 - 16384,
-        "frequency_match_K_I": 4294967296 - 8192,
-        "frequency_match_K_D": 0
-    } # {<name>:<value>}
-    mapping = {
-        "fast_PID_K_P": {"index": 2, "high": 31, "low": 0},
-        "fast_PID_K_I": {"index": 3, "high": 31, "low": 0},
-        "fast_PID_K_D": {"index": 4, "high": 31, "low": 0},
-        "monitorC" : {"index": 1, "high": 15, "low": 12},
-        "monitorD" : {"index": 1, "high": 19, "low": 16},
-        "segments_enabled": {"index": 1, "high": 11, "low": 8},
-        "set_address": {"index": 1, "high": 7, "low": 4},
-        # control1 3 downto 0 is empty
-        "slow_PID_K_P": {"index": 8, "high": 31, "low": 0},
-        "slow_PID_K_I": {"index": 9, "high": 31, "low": 0},
-        "slow_PID_K_D": {"index": 10, "high": 31, "low": 0},
-        "set_x": {"index": 5, "high": 31, "low": 0},
-        "set_y": {"index": 6, "high": 31, "low": 16},
-        "set_slope": {"index": 6, "high": 15, "low": 0},
-        "frequency_bias": {"index": 7, "high": 31, "low": 16},
-        "amplitude": {"index": 7, "high": 15, "low": 0},
-        "fast_PID_Reset": {"index": 0, "high": 10, "low": 10},
-        "slow_PID_Reset": {"index": 0, "high": 11, "low": 11},
-        # control0 0 is empty for now
-        "LO_Reset": {"index": 0, "high": 1, "low": 1},
-        "set_sign": {"index": 0, "high": 2, "low": 2},
-        "initiate": {"index": 0, "high": 3, "low": 3},
-        "periodic": {"index": 0, "high": 4, "low": 4},
-        "prolong": {"index": 0, "high": 5, "low": 5},
-        "lock_mode": {"index": 0, "high": 9, "low": 8},
-        "slow_input": {"index": 0, "high": 6, "low": 6},
-        "set": {"index": 0, "high": 7, "low": 7},
-
-        "enable_auto_match": {"index": 0, "high": 12, "low": 12},
-        "initiate_auto_match": {"index": 0, "high": 13, "low": 13},
-        "frequency_match_threshold": {"index": 11, "high": 31, "low": 16},
-        "frequency_lock_threshold": {"index": 11, "high": 15, "low": 0},
-        "frequency_match_K_P": {"index": 12, "high": 31, "low": 0},
-        "frequency_match_K_I": {"index": 13, "high": 31, "low": 0},
-        "frequency_match_K_D": {"index": 14, "high": 31, "low": 0}
-    } # {<name>:{"index":<index>, "high":<high>, "low":<low>}}
-    # open frequency_bias and three resets first
-    default_waveform = [
-        {"sign": 1, "x": 1562500, "y": 3355, "slope": 0},
-        {"sign": 0, "x": 31250000, "y": 0, "slope": 0},
-        {"sign": 0, "x": 1562500, "y": 3355, "slope": 0},
-        {"sign": 0, "x": 31250000, "y": 0, "slope": 0}
-    ]
-    def __init__(self, mcc: object, slot: int, controls: dict[int, int] = {}, waveform: list[dict[str, int]] = []):
+    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None):
         super().__init__(mcc, slot, controls)
-        if waveform:
-            self.waveform = waveform
-        else:
-            self.waveform = self.default_waveform
-        self.upload_waveform()
-
-    def set_default(self) -> object:
-        for name in self.mapping:
-            self.set_parameter(name, self.default_controls[name])
-        self.upload_control()
-        self.waveform = self.default_waveform
-        self.upload_waveform()
-        return self
+        self.parameters = parameters
+        self.mapping = mapping
+        for i in self.parameters:
+            self.set_parameter(i, self.parameters[i])
+        self.waveform = []
     
     def set_parameter(self, name: str, value: int) -> object:
-        location = Feedback.mapping[name]
+        location = self.mapping[name]
         bits = convert_bits(value, location["high"] - location["low"] + 1)
         pointer = location["high"]
         for i in bits:
@@ -310,7 +197,7 @@ class Feedback(MCC):
         return self
 
     def get_parameter(self, name: str) -> int:
-        location = Feedback.mapping[name]
+        location = self.mapping[name]
         bits = bin(self.get_control(location["index"]))[2:].zfill(32)
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
 
@@ -360,6 +247,25 @@ class Feedback(MCC):
         self.upload_control()
         return self
 
+    def auto_match_on(self) -> object:
+        self.set_parameter("enable_auto_match", 0)
+        self.upload_control()
+        return self
+    
+    def auto_match_off(self) -> object:
+        self.set_parameter("enable_auto_match", 1)
+        self.upload_control()
+        return self
+
+    def launch_auto_match(self) -> object:
+        self.set_parameter("initiate_auto_match", 1)
+        self.upload_control()
+        self.set_parameter("initiate_auto_match", 0)
+        self.upload_control()
+        self.set_parameter("initiate_auto_match", 1)
+        self.upload_control()
+        return self
+
     def launch_frequency_control(self) -> object:
         self.set_parameter("initiate", 1)
         self.upload_control()
@@ -371,53 +277,86 @@ class Feedback(MCC):
 
 # todo : check if the setup exists upon initialization
 class MIM():
-    def __init__(self, ip, logger = None):
+    def __init__(self, ip, config_id = "1", logger = None):
         self.mim = instruments.MultiInstrument(ip, force_connect = True, platform_id = 4)
+        self.config_id = config_id
         self.logger = logger
         if self.logger:
             self.logger.debug("MIM Created.")
-        self.tk = None
-        self.fb = None
-        
+        self.instruments = {1:None, 2:None, 3:None, 4:None}
+
+    def get_tk(self) -> Union[Turnkey, None]:
+        for i in self.instruments:
+            if self.instruments[i] is not None and self.instruments[i][0] == "turnkey":
+                return self.instruments[i][1]
+        return None
+    
+    def get_fb(self) -> Union[Feedback, None]:
+        for i in self.instruments:
+            if self.instruments[i] is not None and self.instruments[i][0] == "feedback":
+                return self.instruments[i][1]
+        return None
+
     def initialize(self) -> object:
-        # Set the MultiInstrument configuration here
+        # parse config from xml
         if self.logger:
             self.logger.info("Initializing MIM.")
-            self.logger.debug("Creating turnkey.")
-        self.tk = Turnkey(self.mim.set_instrument(2, instruments.CloudCompile, bitstream = "bitstreams/turnkey.tar.gz"), 2)
+            self.logger.debug("Parsing configuration.")
+        root = ET.parse("config.xml").getroot()
+        for i in root.findall("./configurations/config"):
+            if i.get("id") == self.config_id:
+                self.config = i
+                break
+            else:
+                raise Exception("Configuration not found.")
         if self.logger:
-            self.logger.debug("Initializing turnkey.")
-        self.tk.set_default()
-        if self.logger:
-            self.logger.debug("Creating feedback.")
-        self.fb = Feedback(self.mim.set_instrument(3, instruments.CloudCompile, bitstream = "bitstreams/feedback.tar.gz"), 3)
-        if self.logger:
-            self.logger.debug("Initializing feedback.")
-        self.fb.set_default()
-        if self.logger:
-            self.logger.debug("Creating oscilloscope.")
-        self.osc = self.mim.set_instrument(4, instruments.Oscilloscope)
+            self.logger.debug("Configuration found, working on %s firmware version %s with comb No.%s. %s"%(self.config.get("platform"), self.config.get("firmware"), self.config.get("comb_id"), self.config.get("description")))
+
+        # set up instruments
+        for i in self.config.findall("./instruments/instrument"):
+            match i.get("type"):
+                case "CloudCompile":
+                    match i.get("purpose"):
+                        case "turnkey":
+                            if self.logger:
+                                self.logger.debug("Creating turnkey.")
+                            slot = int(i.get("slot"))
+                            parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
+                            mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
+                            self.instruments[slot] = ("turnkey", Turnkey(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping))
+                        case "feedback":
+                            if self.logger:
+                                self.logger.debug("Creating feedback.")
+                            slot = int(i.get("slot"))
+                            parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
+                            mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
+                            self.instruments[slot] = ("feedback", Feedback(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping))
+                        case _:
+                            raise Exception("Unknown MCC purpose.")
+                case _:
+                    if self.logger:
+                        self.logger.debug("Creating %s."%i.get("type"))
+                    self.instruments[int(i.get("slot"))] = (i.get("type"), self.mim.set_instrument(int(i.get("slot")), eval("instruments.%s"%i.get("type"))))
+
+        # set up connections, frontends and outputs
         if self.logger:
             self.logger.debug("Setting connections.")
-        self.con = self.mim.set_connections([{"source": "Input1", "destination": "Slot2InA"},
-                                            {"source": "Slot2OutA", "destination": "Output1"},
-                                            {"source": "Input2", "destination": "Slot3InA"},
-                                            {"source": "Slot3OutA", "destination": "Output4"},
-                                            {"source": "Slot3OutB", "destination": "Output3"},
-                                            {"source": "Slot3OutC", "destination": "Output2"},
-                                            {"source": "Input2", "destination": "Slot4InA"},
-                                            {"source": "Slot3OutC", "destination": "Slot4InB"}])
+        self.con = []
+        for i in self.config.findall("./connections/connection"):
+            self.con.append({"source": i.get("source"), "destination": i.get("destination")})
+        self.mim.set_connections(self.con)
+
         if self.logger:
             self.logger.debug("Setting frontends and outputs.")
-        self.mim.set_frontend(1, "1MOhm", "DC", "0dB")
-        self.mim.set_frontend(2, "1MOhm", "DC", "0dB")
-        self.mim.set_output(1, "14dB")
-        self.mim.set_output(2, "0dB")
-        self.mim.set_output(3, "14dB")
-        self.mim.set_output(4, "14dB")
+        for i in self.config.findall("./io_settings/input"):
+            self.mim.set_frontend(int(i.get("channel")), i.get("impedance"), i.get("coupling"), i.get("attenuation"))
+        for i in self.config.findall("./io_settings/output"):
+            self.mim.set_output(int(i.get("channel")), i.get("gain"))
         if self.logger:
             self.logger.debug("Final steps.")
-        self.tk.stop()
+        self.get_tk().upload(self.get_tk().controls)
+        self.get_fb().upload(self.get_fb().controls)
+        self.get_tk().stop()
         return self
     
     def disconnect(self) -> object:
@@ -429,25 +368,25 @@ class MIM():
     def run(self) -> object:
         if self.logger:
             self.logger.info("Running MIM.")
-        self.tk.run()
+        self.get_tk().run()
         return self
     
     def stop(self) -> object:
         if self.logger:
             self.logger.info("Stopping MIM.")
-        self.tk.stop()
+        self.get_tk().stop()
         return self
     
     def sweep(self) -> object:
         if self.logger:
             self.logger.info("MIM starting sweeping.")
-        self.tk.sweep()
+        self.get_tk().sweep()
         return self
     
     def power_lock(self, switch: bool) -> object:
         if self.logger:
             self.logger.info("MIM power lock switching.")
-        self.tk.power_lock(switch)
+        self.get_tk().power_lock(switch)
         return self
     
     def get_waveform(self, frames: int = 50, delay: float = 0.000) -> list[float]:
@@ -458,14 +397,6 @@ class MIM():
             result = self.osc.get_data()["ch1"] + result
             time.sleep(delay)
         return result
-
-    def get_module(self, name: str) -> typing.Union[Turnkey, Feedback, None]:
-        if name == "turnkey" and self.tk:
-            return self.tk
-        elif name == "feedback" and self.fb:
-            return self.fb
-        else:
-            return None
 
 def test(mim, N, delay):
     fig, ax = plt.subplots()

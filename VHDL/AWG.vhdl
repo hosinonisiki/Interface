@@ -22,6 +22,8 @@ ENTITY AWG IS
 
         amplitude : IN signed(15 DOWNTO 0);
 
+        outputF : OUT unsigned(15 DOWNTO 0);
+
         outputC : OUT signed(15 DOWNTO 0);
         outputS : OUT signed(15 DOWNTO 0);
 
@@ -34,6 +36,7 @@ ARCHITECTURE bhvr OF AWG IS
     SIGNAL frequency : unsigned(15 DOWNTO 0);
     SIGNAL waveformC : signed(15 DOWNTO 0);
     SIGNAL waveformS : signed(15 DOWNTO 0);
+    SIGNAL outputF_buf : unsigned(15 DOWNTO 0);
     SIGNAL outputC_buf : signed(31 DOWNTO 0);
     SIGNAL outputS_buf : signed(31 DOWNTO 0);
 
@@ -55,6 +58,7 @@ BEGIN
     PROCESS(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
+            outputF <= outputF_buf;
             outputC <= outputC_buf(31 DOWNTO 16);
             outputS <= outputS_buf(31 DOWNTO 16);
         END IF;
@@ -159,6 +163,7 @@ BEGIN
         Clk => Clk
     );
 
+    outputF_buf <= frequency;
     outputC_buf <= amplitude * waveformC;
     outputS_buf <= amplitude * waveformS;
 END bhvr;
