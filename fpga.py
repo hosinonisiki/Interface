@@ -42,11 +42,6 @@ class MCC():
         self.slot = slot
         self.controls = {}
 
-        self.uploading_queue = queue.Queue() 
-        self.data_uploading_queue = queue.Queue() # only allows one queueing at a time
-        self.uploader = threading.Thread(target = self.uploader_function, args = (), daemon = True)
-        self.uploader.start()
-
         self.download_control()
         self.set_control(controls) # initialize control
     
@@ -80,24 +75,6 @@ class MCC():
                 raise Exception("Connection error: %s"%e.__repr__())
         return self
     '''
-
-    def upload_control(self) -> object:
-        self.uploading_queue.put(self.controls.copy())
-        return self
-
-    def upload_data(self) -> str:
-        if self.data_uploading_queue.empty():
-            self.data_uploading_queue.put(self.controls.copy())
-            return "queued"
-        return "rejected"
-
-    def uploader_function(self) -> NoReturn:
-        while True:
-            time.sleep(0.05)
-            if not self.uploading_queue.empty():
-                self.upload(self.uploading_queue.get())
-            if not self.data_uploading_queue.empty():
-                self.upload(self.data_uploading_queue.get())
 
     def upload(self, controls: dict[int, int]) -> object:
         try:
@@ -146,35 +123,6 @@ class Turnkey(MCC):
         location = self.mapping[name]
         bits = bin(self.get_control(location["index"]))[2:].zfill(32)
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
-    
-    def run(self) -> object:
-        self.set_parameter("mode", 0)
-        self.set_parameter("Reset", 0)
-        self.set_parameter("manual_offset", 0)
-        self.upload_control()
-        return self
-        
-    def stop(self) -> object:
-        self.set_parameter("Reset", 1)
-        self.upload_control()
-        return self
-    
-    def sweep(self) -> object:
-        self.set_parameter("mode", 1)
-        self.set_parameter("Reset", 0)
-        self.set_parameter("manual_offset", 0)
-        self.upload_control()
-        return self
-
-    def power_lock_ON(self) -> object:
-        self.set_parameter("PID_lock", 0)
-        self.upload_control()
-        return self
-    
-    def power_lock_OFF(self) -> object:
-        self.set_parameter("PID_lock", 1)
-        self.upload_control()
-        return self
 
 class Feedback(MCC):
     def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None):
@@ -199,80 +147,6 @@ class Feedback(MCC):
         bits = bin(self.get_control(location["index"]))[2:].zfill(32)
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
 
-    def upload_waveform(self) -> object:
-        self.set_parameter("segments_enabled", len(self.waveform) - 1)
-        for i in range(len(self.waveform)):
-            self.set_parameter("set_sign", self.waveform[i]["sign"])
-            self.set_parameter("set_x", self.waveform[i]["x"])
-            self.set_parameter("set_y", self.waveform[i]["y"])
-            self.set_parameter("set_slope", self.waveform[i]["slope"])
-            self.set_parameter("set_address", i)
-            self.set_parameter("set", 1)
-            self.upload_control()
-            self.set_parameter("set", 0)
-            self.upload_control()
-            self.set_parameter("set", 1)
-            self.upload_control()
-        return self
-
-    def LO_on(self) -> object:
-        self.set_parameter("LO_Reset", 0)
-        self.upload_control()
-        return self
-    
-    def LO_off(self) -> object:
-        self.set_parameter("LO_Reset", 1)
-        self.upload_control()
-        return self
-    
-    def fast_PID_on(self) -> object:
-        self.set_parameter("fast_PID_Reset", 0)
-        self.upload_control()
-        return self
-
-    def fast_PID_off(self) -> object:
-        self.set_parameter("fast_PID_Reset", 1)
-        self.upload_control()
-        return self
-    
-    def slow_PID_on(self) -> object:
-        self.set_parameter("slow_PID_Reset", 0)
-        self.upload_control()
-        return self
-    
-    def slow_PID_off(self) -> object:
-        self.set_parameter("slow_PID_Reset", 1)
-        self.upload_control()
-        return self
-
-    def auto_match_on(self) -> object:
-        self.set_parameter("enable_auto_match", 0)
-        self.upload_control()
-        return self
-    
-    def auto_match_off(self) -> object:
-        self.set_parameter("enable_auto_match", 1)
-        self.upload_control()
-        return self
-
-    def launch_auto_match(self) -> object:
-        self.set_parameter("initiate_auto_match", 1)
-        self.upload_control()
-        self.set_parameter("initiate_auto_match", 0)
-        self.upload_control()
-        self.set_parameter("initiate_auto_match", 1)
-        self.upload_control()
-        return self
-
-    def launch_frequency_control(self) -> object:
-        self.set_parameter("initiate", 1)
-        self.upload_control()
-        self.set_parameter("initiate", 0)
-        self.upload_control()
-        self.set_parameter("initiate", 1)
-        self.upload_control()
-        return self
-
 class MIM():
     def __init__(self, ip, config_id = "1", logger = None):
         self.mim = instruments.MultiInstrument(ip, force_connect = True, platform_id = 4)
@@ -281,17 +155,24 @@ class MIM():
         if self.logger:
             self.logger.debug("MIM Created.")
         self.instruments = {1:None, 2:None, 3:None, 4:None}
+        self.config = None
+        
+        self.uploading_queue = queue.Queue() 
+        self.data_uploading_queue = queue.Queue() # only allows one queueing at a time
+        self.uploader = threading.Thread(target = self.uploader_function, args = (), daemon = True)
+        self.uploader.start()
 
-    def get_tk(self) -> Union[Turnkey, None]:
+    def get_slot(self, type: str) -> Union[int, None]:
         for i in self.instruments:
-            if self.instruments[i] is not None and self.instruments[i][0] == "turnkey":
-                return self.instruments[i][1]
+            if self.instruments[i] is not None and self.instruments[i][0] == type:
+                return i
         return None
-    
-    def get_fb(self) -> Union[Feedback, None]:
-        for i in self.instruments:
-            if self.instruments[i] is not None and self.instruments[i][0] == "feedback":
-                return self.instruments[i][1]
+
+    def get_instrument(self, arg: Union[int, str, None]) -> Union[Turnkey, Feedback, None]:
+        if type(arg) == int:
+            return self.instruments[arg][1]
+        elif type(arg) == str:
+            return self.get_instrument(self.get_slot(arg))
         return None
 
     def initialize(self) -> object:
@@ -351,39 +232,139 @@ class MIM():
             self.mim.set_output(int(i.get("channel")), i.get("gain"))
         if self.logger:
             self.logger.debug("Final steps.")
-        self.get_tk().upload(self.get_tk().controls)
-        self.get_fb().upload(self.get_fb().controls)
-        self.get_tk().stop()
+        self.upload_control("turnkey")
+        self.upload_control("feedback")
+        self.command("turnkey", "stop")
         return self
     
+    def upload_control(self, purpose: str) -> object:
+        if self.logger:
+            self.logger.debug("Queued control for %s."%purpose)
+        instrument = self.get_instrument(purpose)
+        self.uploading_queue.put((instrument, instrument.controls.copy()))
+
+    def upload_data(self, purpose: str) -> str:
+        if self.data_uploading_queue.empty():
+            if self.logger:
+                self.logger.debug("Queued data for %s."%purpose)
+            instrument = self.get_instrument(purpose)
+            self.data_uploading_queue.put((instrument, instrument.controls.copy()))
+            return "queued"
+        if self.logger:
+            self.logger.debug("Data uploading queue is busy.")
+        return "rejected"
+    
+    def uploader_function(self) -> NoReturn:
+        while True:
+            time.sleep(0.05)
+            if not self.uploading_queue.empty():
+                if self.logger:
+                    self.logger.debug("Uploading control.")
+                self.upload(self.uploading_queue.get())
+            if not self.data_uploading_queue.empty():
+                if self.logger:
+                    self.logger.debug("Uploading data.")
+                self.upload(self.data_uploading_queue.get())
+
+    def upload(self, package: tuple[object, dict[int, int]]) -> object:
+        package[0].upload(package[1])
+        return self
+
+    # intercept all mcc commands
+    def command(self, purpose: str, operation: str) -> object:
+        if self.logger:
+            self.logger.debug("Implementing operation \"%s\" for %s."%(operation, purpose))
+        match purpose:
+            case "turnkey":
+                instrument = self.get_instrument("turnkey")
+                match operation:
+                    case "run":
+                        instrument.set_parameter("mode", 0)
+                        instrument.set_parameter("Reset", 0)
+                        instrument.set_parameter("manual_offset", 0)
+                        self.upload_control("turnkey")
+                    case "stop":
+                        instrument.set_parameter("Reset", 1)
+                        self.upload_control("turnkey")
+                    case "sweep":
+                        instrument.set_parameter("mode", 1)
+                        instrument.set_parameter("Reset", 0)
+                        instrument.set_parameter("manual_offset", 0)
+                        self.upload_control("turnkey")
+                    case "power_lock_on":
+                        instrument.set_parameter("PID_lock", 0)
+                        self.upload_control("turnkey")
+                    case "power_lock_off":
+                        instrument.set_parameter("PID_lock", 1)
+                        self.upload_control("turnkey")
+                    case _:
+                        raise Exception("Unknown operation.")
+            case "feedback":
+                instrument = self.get_instrument("feedback")
+                match operation:
+                    case "LO_on":
+                        instrument.set_parameter("LO_Reset", 0)
+                        self.upload_control("feedback")
+                    case "LO_off":
+                        instrument.set_parameter("LO_Reset", 1)
+                        self.upload_control("feedback")
+                    case "fast_PID_on":
+                        instrument.set_parameter("fast_PID_Reset", 0)
+                        self.upload_control("feedback")
+                    case "fast_PID_off":
+                        instrument.set_parameter("fast_PID_Reset", 1)
+                        self.upload_control("feedback")
+                    case "slow_PID_on":
+                        instrument.set_parameter("slow_PID_Reset", 0)
+                        self.upload_control("feedback")
+                    case "slow_PID_off":
+                        instrument.set_parameter("slow_PID_Reset", 1)
+                        self.upload_control("feedback")
+                    case "auto_match_on":
+                        instrument.set_parameter("enable_auto_match", 0)
+                        self.upload_control("feedback")
+                    case "auto_match_off":
+                        instrument.set_parameter("enable_auto_match", 1)
+                        self.upload_control("feedback")
+                    case "launch_auto_match":
+                        instrument.set_parameter("initiate_auto_match", 1)
+                        self.upload_control("feedback")
+                        instrument.set_parameter("initiate_auto_match", 0)
+                        self.upload_control("feedback")
+                        instrument.set_parameter("initiate_auto_match", 1)
+                        self.upload_control("feedback")
+                    case "launch_frequency_control":
+                        instrument.set_parameter("initiate", 1)
+                        self.upload_control("feedback")
+                        instrument.set_parameter("initiate", 0)
+                        self.upload_control("feedback")
+                        instrument.set_parameter("initiate", 1)
+                        self.upload_control("feedback")
+                    case "upload_waveform":
+                        instrument.set_parameter("segments_enabled", len(instrument.waveform) - 1)
+                        for i in range(len(instrument.waveform)):
+                            instrument.set_parameter("set_sign", instrument.waveform[i]["sign"])
+                            instrument.set_parameter("set_x", instrument.waveform[i]["x"])
+                            instrument.set_parameter("set_y", instrument.waveform[i]["y"])
+                            instrument.set_parameter("set_slope", instrument.waveform[i]["slope"])
+                            instrument.set_parameter("set_address", i)
+                            instrument.set_parameter("set", 1)
+                            self.upload_control("feedback")
+                            instrument.set_parameter("set", 0)
+                            self.upload_control("feedback")
+                            instrument.set_parameter("set", 1)
+                            self.upload_control("feedback")
+                    case _:
+                        raise Exception("Unknown operation.")
+            case _:
+                raise Exception("Unknown purpose.")
+        return self
+
+
     def disconnect(self) -> object:
         if self.logger:
             self.logger.info("Disconnecting MIM.")
         self.mim.relinquish_ownership()
-        return self
-    
-    def run(self) -> object:
-        if self.logger:
-            self.logger.info("Running MIM.")
-        self.get_tk().run()
-        return self
-    
-    def stop(self) -> object:
-        if self.logger:
-            self.logger.info("Stopping MIM.")
-        self.get_tk().stop()
-        return self
-    
-    def sweep(self) -> object:
-        if self.logger:
-            self.logger.info("MIM starting sweeping.")
-        self.get_tk().sweep()
-        return self
-    
-    def power_lock(self, switch: bool) -> object:
-        if self.logger:
-            self.logger.info("MIM power lock switching.")
-        self.get_tk().power_lock(switch)
         return self
     
     def get_waveform(self, frames: int = 50, delay: float = 0.000) -> list[float]:
@@ -405,7 +386,6 @@ def test(mim, N, delay):
 if __name__ == "__main__":
     mim = MIM("192.168.73.1")
     mim.initialize()
-    mim.sweep()
     
     # testing
     test(mim, 100, 0.0005)
