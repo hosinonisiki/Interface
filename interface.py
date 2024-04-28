@@ -757,6 +757,22 @@ class Interface():
             self.developer_monitorD_button = ttk.Button(self.developer_mode, text = "upload to MonitorD", command = self.developer_monitorD_button_onclick, width = 20)
             self.developer_monitorD_button.place(x = 750, y = 90, anchor = tk.NW)
             
+            # assuming that fpga is already initialized
+            instruments = [i.get("purpose") for i in self.mim.config.findall("./instruments/instrument") if i.get("type") == "CloudCompile"]
+            self.developer_instrument_box = ttk.Combobox(self.developer_mode, values = [""] + instruments)
+            self.developer_instrument_box.current(0)
+            self.developer_instrument_box.place(x = 750, y = 120, anchor = tk.NW)
+            self.developer_instrument_box.bind("<<ComboboxSelected>>", lambda event:self.developer_parameter_setting("replace instrument"))
+
+            self.developer_parameter_name_box = ttk.Combobox(self.developer_mode, values = [""])
+            self.developer_parameter_name_box.current(0)
+            self.developer_parameter_name_box.place(x = 750, y = 150, anchor = tk.NW)
+            self.developer_parameter_name_box.bind("<<ComboboxSelected>>", lambda event:self.developer_parameter_setting("replace parameter"))
+
+            self.developer_parameter_value_format = custom_widgets.QuantityFormat((10, 0, 0), {}, "")
+            self.developer_parameter_value_entry = custom_widgets.QuantityEntry(self.developer_mode, formater = self.developer_parameter_value_format, report = lambda:self.developer_parameter_setting("upload parameter"), width = 10, font = ("Arial", 12))
+            self.developer_parameter_value_entry.place(x = 750, y = 180, anchor = tk.NW)
+
             self.update()
 
             self.logger.debug("Developer panel generated.")
@@ -776,6 +792,26 @@ class Interface():
         self.mim.get_fb().set_parameter("monitorD", self.developer_monitorC_box["values"].index(self.developer_monitorC_box.get()))
         self.mim.get_fb().upload_control()
         return
+
+    def developer_parameter_setting(self, action: str) -> None:
+        match action:
+            case "replace instrument":
+                if self.developer_instrument_box.get() == "":
+                    self.developer_parameter_name_box["values"] = [""]
+                else:
+                    instrument = self.mim.config.find("./instruments/instrument[@purpose='%s']"%self.developer_instrument_box.get())
+                    self.developer_parameter_name_box["values"] = [""] + [i.get("name") for i in instrument.findall("./parameters/parameter")]
+                self.developer_parameter_name_box.current(0)
+                self.developer_parameter_value_entry.set("")
+                self.developer_parameter_value_entry.store()
+            case "replace parameter":
+                if self.developer_parameter_name_box.get() == "":
+                    self.developer_parameter_value_entry.set("")
+                else:
+                    # using new ports that would be updated with branch issues/#4
+                    pass
+                self.developer_parameter_value_entry.store()
+
 
     def knob_panel_button_onclick(self) -> None:
         self.logger.debug("Knob panel button clicked.")

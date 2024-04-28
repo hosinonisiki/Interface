@@ -281,6 +281,7 @@ class MIM():
         if self.logger:
             self.logger.debug("MIM Created.")
         self.instruments = {1:None, 2:None, 3:None, 4:None}
+        self.config = None
 
     def get_tk(self) -> Union[Turnkey, None]:
         for i in self.instruments:

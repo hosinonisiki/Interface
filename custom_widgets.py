@@ -173,20 +173,57 @@ class QuantityFormat():
         else:
             self.prefix = prefix
         self.unit = unit
-        self.re = re.compile("^([-])?([0-9]{1,%d})(\.[0-9]{1,%d})?([%s])?(%s)?$"%(digits_limit[0], max(1, digits_limit[1]), "".join(self.prefix.keys()), unit))     
+        self.re = "^([-])?([0-9]{1,%d})"%digits_limit[0]
+        if digits_limit[1] != 0:
+            self.re += "(\.[0-9]{1,%d})?"%digits_limit[1]
+        else:
+            self.re += "(SomeRandomStringThatWillNeverOccur)?"
+        if self.prefix != {}:
+            self.re += "([%s])?"%"".join(self.prefix.keys())
+        else:
+            self.re += "(AnotherRandomStringThatWillNeverOccur)?"
+        if self.unit != "":
+            self.re += "(%s)?$"%unit
+        else:
+            self.re += "(YetAnotherRandomStringThatWillNeverOccur)?$"
+        self.re = re.compile(self.re)
 
     def match(self, str):
         result = self.re.match(str)
         if result == None:
-            return None, None
+            return None, None, None
         value = "" if result.group(1) == None else "-"
         value += result.group(2)
         value += "" if result.group(3) == None else result.group(3)
         value = float(value)
-        if result.group(4) == None:
-            return result, value
+        formalized = "" if result.group(1) == None else "-"
+        formalized += result.group(2)
+        if result.group(3) == None:
+            if self.digits_limit[2] != 0:
+                formalized += "." + "0" * self.digits_limit[2]
+        elif len(result.group(3)) < self.digits_limit[2] + 1:
+            formalized += result.group(3) + "0" * (self.digits_limit[2] - len(result.group(3)) + 1)
         else:
-            return result, value * self.prefix[result.group(4)]
+            formalized += result.group(3)
+        formalized += "" if result.group(4) == None else result.group(4)
+        formalized += self.unit
+        if result.group(4) == None:
+            return result, value, formalized
+        else:
+            return result, value * self.prefix[result.group(4)], formalized
+        
+    def break_up(self, formalized):
+        digits_re = re.compile("[0-9\.]+")
+        digits = digits_re.findall(formalized)
+        split = digits[0].split(".")
+        minus = False if formalized[0] != "-" else True
+        if len(split) == 1:
+            integer = split[0]
+            fraction = ""
+        else:
+            integer = split[0]
+            fraction = split[1]
+        return minus, integer, fraction
 
 class QuantityEntry(tk.Text):
     def __init__(self, master = None, formater = QuantityFormat(), report = lambda x: None, **kw):
@@ -340,23 +377,11 @@ class QuantityEntry(tk.Text):
 
     def store(self):
         text = self.get("1.0", "end-1c")
-        self.result, self.value = self.format.match(text)
+        self.result, self.value, self.formalized = self.format.match(text)
         if self.result != None:
-            formalize = "" if self.result.group(1) == None else "-"
-            formalize += self.result.group(2)
-            if self.result.group(3) == None:
-                if self.format.digits_limit[2] != 0:
-                    formalize += "." + "0" * self.format.digits_limit[2]
-            elif len(self.result.group(3)) < self.format.digits_limit[2] + 1:
-                formalize += self.result.group(3) + "0" * (self.format.digits_limit[2] - len(self.result.group(3)) + 1)
-            else:
-                formalize += self.result.group(3)
-            formalize += "" if self.result.group(4) == None else self.result.group(4)
-            formalize += self.format.unit
-            self.result, self.value = self.format.match(formalize)
             self.delete("1.0", "end-1c")
-            self.insert("1.0", formalize)
-            self.stored = formalize
+            self.insert("1.0", self.formalized)
+            self.stored = self.formalized
             self.state = "unchanged"
             self.tag_remove("changed", "1.0", "end-1c")
             self.tag_add("unchanged", "1.0", "end-1c")
@@ -365,9 +390,7 @@ class QuantityEntry(tk.Text):
     def enter_roll(self, event):
         self["insertwidth"] = 0
         self.state = "rolling"
-        self.minus = False if self.result.group(1) == None else True
-        self.integer = self.result.group(2)
-        self.fraction = "" if self.result.group(3) == None else self.result.group(3)[1:]
+        self.minus, self.integer, self.fraction = self.format.break_up(self.formalized)
         self.quantity = self.integer if self.fraction == "" else self.integer + "." + self.fraction
         self.tag_remove("highlight", "1.0", "end")
         if event.keysym == "Left":
@@ -423,7 +446,7 @@ class QuantityEntry(tk.Text):
                     self.tag_add("selected", "1.%d"%(self.selected), "1.%d"%(self.selected + 1))
                     self.integer, self.fraction = self.break_up(self.quantity)
                 text = self.get("1.0", "end-1c")
-                self.result, self.value = self.format.match(text)
+                self.result, self.value, self.formalized = self.format.match(text)
                 self.report(self.value)
             case "Down", False:
                 if self.quantity[self.selected] != "0":
@@ -474,7 +497,7 @@ class QuantityEntry(tk.Text):
                     self.tag_add("selected", "1.%d"%(self.selected + 1), "1.%d"%(self.selected + 2))
                     self.integer, self.fraction = self.break_up(self.quantity)
                 text = self.get("1.0", "end-1c")
-                self.result, self.value = self.format.match(text)
+                self.result, self.value, self.formalized = self.format.match(text)
                 self.report(self.value)
             case "Left", False:
                 if self.selected > 0 and self.selected < len(self.quantity) - 1 or len(self.quantity) != 1 and self.selected == len(self.quantity) - 1 and (self.quantity[-1] != "0" or len(self.fraction) <= self.format.digits_limit[2]):
@@ -582,7 +605,7 @@ class QuantityEntry(tk.Text):
                     self.tag_add("selected", "1.%d"%(self.selected), "1.%d"%(self.selected + 1))
                     self.integer, self.fraction = self.break_up(self.quantity)
                 text = self.get("1.0", "end-1c")
-                self.result, self.value = self.format.match(text)
+                self.result, self.value, self.formalized = self.format.match(text)
                 self.report(self.value)
             case "Down", True:
                 if self.quantity[self.selected] != "9":
@@ -610,7 +633,7 @@ class QuantityEntry(tk.Text):
                     self.tag_add("selected", "1.%d"%(self.selected + 1), "1.%d"%(self.selected + 2))
                     self.integer, self.fraction = self.break_up(self.quantity)
                 text = self.get("1.0", "end-1c")
-                self.result, self.value = self.format.match(text)
+                self.result, self.value, self.formalized = self.format.match(text)
                 self.report(self.value)
             case "Left", True:
                 if self.selected > 0 and self.selected < len(self.quantity) - 1 or len(self.quantity) != 1 and self.selected == len(self.quantity) - 1 and (self.quantity[-1] != "0" or len(self.fraction) <= self.format.digits_limit[2]):
@@ -1017,7 +1040,7 @@ if __name__ == "__main__":
     knob.knob.resistance = 1.4
     knob.knob.lag = 0.65
     
-    format = QuantityFormat((5,5,0), unit = "V")
+    format = QuantityFormat((9, 0, 0), {}, "")
     entry = QuantityEntry(root, format, lambda x: print(x), width = 10, font = ("Arial", 12))
     entry.place(x = 50, y = 50)
 
