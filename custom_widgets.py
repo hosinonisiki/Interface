@@ -249,13 +249,16 @@ class QuantityEntry(tk.Text):
         self.tag_config("selected", background = "black", foreground = "white")
         self.tag_config("highlight", background = "blue", foreground = "white")
         self.tag_config("disabled", background = "#d3d3d3", foreground = "black")
-
+        
     def call(self):
-        self.report(self.value)
+        self.report()
 
     def set(self, str):
         self.delete("1.0", "end-1c")
         self.insert("1.0", str)
+
+    def get_value(self):
+        return self.value
 
     def get_text(self):
         return self.get("1.0", "end-1c")
@@ -304,7 +307,7 @@ class QuantityEntry(tk.Text):
         match event.keysym:
             case "Return":
                 self.store()
-                self.report(self.value)
+                self.report()
                 return "break"
             case "Left" | "Right":
                 return "break"
@@ -447,7 +450,7 @@ class QuantityEntry(tk.Text):
                     self.integer, self.fraction = self.break_up(self.quantity)
                 text = self.get("1.0", "end-1c")
                 self.result, self.value, self.formalized = self.format.match(text)
-                self.report(self.value)
+                self.report()
             case "Down", False:
                 if self.quantity[self.selected] != "0":
                     self.quantity = self.quantity[:self.selected] + str(int(self.quantity[self.selected]) - 1) + self.quantity[self.selected + 1:]
@@ -498,7 +501,7 @@ class QuantityEntry(tk.Text):
                     self.integer, self.fraction = self.break_up(self.quantity)
                 text = self.get("1.0", "end-1c")
                 self.result, self.value, self.formalized = self.format.match(text)
-                self.report(self.value)
+                self.report()
             case "Left", False:
                 if self.selected > 0 and self.selected < len(self.quantity) - 1 or len(self.quantity) != 1 and self.selected == len(self.quantity) - 1 and (self.quantity[-1] != "0" or len(self.fraction) <= self.format.digits_limit[2]):
                     self.tag_remove("selected", "1.%d"%(self.selected), "1.%d"%(self.selected + 1))
@@ -606,7 +609,7 @@ class QuantityEntry(tk.Text):
                     self.integer, self.fraction = self.break_up(self.quantity)
                 text = self.get("1.0", "end-1c")
                 self.result, self.value, self.formalized = self.format.match(text)
-                self.report(self.value)
+                self.report()
             case "Down", True:
                 if self.quantity[self.selected] != "9":
                     self.quantity = self.quantity[:self.selected] + str(int(self.quantity[self.selected]) + 1) + self.quantity[self.selected + 1:]
@@ -634,7 +637,7 @@ class QuantityEntry(tk.Text):
                     self.integer, self.fraction = self.break_up(self.quantity)
                 text = self.get("1.0", "end-1c")
                 self.result, self.value, self.formalized = self.format.match(text)
-                self.report(self.value)
+                self.report()
             case "Left", True:
                 if self.selected > 0 and self.selected < len(self.quantity) - 1 or len(self.quantity) != 1 and self.selected == len(self.quantity) - 1 and (self.quantity[-1] != "0" or len(self.fraction) <= self.format.digits_limit[2]):
                     self.tag_remove("selected", "1.%d"%(self.selected + 1), "1.%d"%(self.selected + 2))
@@ -716,7 +719,8 @@ class QuantityEntry(tk.Text):
         else:
             self.tag_add("selected", "1.%d"%(self.selected + 1), "1.%d"%(self.selected + 2))
         self.integer, self.fraction = self.break_up(self.quantity)
-        self.report(self.format.match(self.get("1.0", "end-1c"))[1])
+        self.result, self.value, self.formalized = self.format.match(self.get("1.0", "end-1c"))
+        self.report()
         return "break"
 
     def exit_roll_key(self, event):
@@ -725,7 +729,7 @@ class QuantityEntry(tk.Text):
         self.tag_remove("selected", "1.0", "end-1c")
         self.tag_add("unchanged", "1.0", "end-1c")
         self.store()
-        self.report(self.value)
+        self.report()
         return "break"
     
     def exit_roll_button(self, event):
@@ -734,7 +738,7 @@ class QuantityEntry(tk.Text):
         self.tag_remove("selected", "1.0", "end-1c")
         self.tag_add("unchanged", "1.0", "end-1c")
         self.store()
-        self.report(self.value)
+        self.report()
         return
 
 class WaveformDisplay(tk.Canvas):
@@ -856,8 +860,8 @@ class WaveformControl(tk.Frame):
         
         x_format = QuantityFormat((6, 3, 0), {"m": 1e-3, "u": 1e-6}, "s")
         y_format = QuantityFormat((6, 3, 0), {"k": 1e3, "M": 1e6}, "Hz")
-        self.x_entries = [QuantityEntry(self, x_format, lambda x, i = i: self.save_waveform(x, "x" + str(i)), width = 10, font = ("Arial", 12)) for i in range(8)]
-        self.y_entries = [QuantityEntry(self, y_format, lambda x, i = i: self.save_waveform(x, "y" + str(i)), width = 10, font = ("Arial", 12)) for i in range(8)]
+        self.x_entries = [QuantityEntry(self, x_format, lambda i = i: self.save_waveform("x" + str(i)), width = 10, font = ("Arial", 12)) for i in range(8)]
+        self.y_entries = [QuantityEntry(self, y_format, lambda i = i: self.save_waveform("y" + str(i)), width = 10, font = ("Arial", 12)) for i in range(8)]
         for i in range(8):
             self.x_entries[i].place(x = 620, y = 42 + 28 * i)
             self.y_entries[i].place(x = 718, y = 42 + 28 * i)
@@ -964,13 +968,13 @@ class WaveformControl(tk.Frame):
             self.scale_ymax["text"] = ""
 
     def save_all(self):
-        self.display.waveform = [[self.x_entries[i].value, self.y_entries[i].value] for i in range(8)]
+        self.display.waveform = [[self.x_entries[i].get_value(), self.y_entries[i].get_value()] for i in range(8)]
         self.display.periodic = self.periodic
         self.display.prolong = self.prolong
         self.draw()
 
-    def save_waveform(self, value, index):
-        self.uploaded = False
+    def save_waveform(self, index):
+        value = self.x_entries[int(index[1])].get_value() if index[0] == "x" else self.y_entries[int(index[1])].get_value()
 
         if index[0] == "x":
             self.display.waveform[int(index[1])][0] = value
@@ -1042,7 +1046,7 @@ if __name__ == "__main__":
     
     format = QuantityFormat((9, 0, 0), {}, "")
     entry = QuantityEntry(root, format, lambda x: print(x), width = 10, font = ("Arial", 12))
-    entry.place(x = 50, y = 50)
+    #entry.place(x = 50, y = 50)
 
     display = WaveformDisplay(root, [(10, 10), (20, 0), (10, -10), (20, -10)], periodic = False, prolong = False, horizontal_proportion = 0.6, vertical_proportion = 0.6, width = 500, height = 400)
     #display.place(x = 50, y = 100)
@@ -1050,7 +1054,7 @@ if __name__ == "__main__":
     
 
     control = WaveformControl(root, uploader = lambda x, y, z: print(x))
-    #control.place(x = 20, y = 20)
+    control.place(x = 20, y = 20)
     
     thread = threading.Thread(target = test, args = (), daemon = True)
     #thread.start()

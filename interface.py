@@ -794,8 +794,10 @@ class Interface():
         return
 
     def developer_parameter_setting(self, action: str) -> None:
+        self.logger.info("Developer parameter setting, action: %s."%action)
         match action:
             case "replace instrument":
+                self.logger.debug("Replacing instrument as %s."%self.developer_instrument_box.get())
                 if self.developer_instrument_box.get() == "":
                     self.developer_parameter_name_box["values"] = [""]
                 else:
@@ -805,12 +807,23 @@ class Interface():
                 self.developer_parameter_value_entry.set("")
                 self.developer_parameter_value_entry.store()
             case "replace parameter":
+                self.logger.debug("Replacing parameter as %s."%self.developer_parameter_name_box.get())
                 if self.developer_parameter_name_box.get() == "":
                     self.developer_parameter_value_entry.set("")
                 else:
-                    # using new ports that would be updated with branch issues/#4
-                    pass
+                    value = self.mim.get_instrument(self.developer_instrument_box.get()).get_parameter(self.developer_parameter_name_box.get())
+                    self.developer_parameter_value_entry.set(value)
                 self.developer_parameter_value_entry.store()
+            case "upload parameter":
+                self.logger.debug("Uploading parameter %s to %s, value: %d."%(self.developer_parameter_name_box.get(), self.developer_instrument_box.get(), self.developer_parameter_value_entry.get_value()))
+                self.mim.get_instrument(self.developer_instrument_box.get()).set_parameter(self.developer_parameter_name_box.get(), int(self.developer_parameter_value_entry.get_value()))
+                result = self.mim.upload_data(self.developer_instrument_box.get())
+                match result:
+                    case "queued":
+                        self.information["text"] = "Parameter uploaded."
+                    case "rejected":
+                        self.information["text"] = "Parameter rejected."
+        return
 
 
     def knob_panel_button_onclick(self) -> None:
@@ -1217,19 +1230,19 @@ class Interface():
             self.fpga_state = self.FPGA_STATE_STANDBY
         return
     
-    def manual_offset_report(self, value) -> None:
+    def manual_offset_report(self) -> None:
         self.logger.debug("Setting manual offset to %s."%self.manual_offset_entry.get_text())
         if self.mim.get_instrument("turnkey") is None:
             self.logger.debug("turnkey not found. Aborting setting manual offset.")
             self.information["text"] = "Module not found. Did you forget to initialize?"
             return
-        self.mim.get_instrument("turnkey").set_parameter("manual_offset", self.manual_offset_value2control(value))
+        self.mim.get_instrument("turnkey").set_parameter("manual_offset", self.manual_offset_value2control(self.manual_offset_entry.get_value()))
         result = self.mim.upload_data("turnkey")
         match result:
             case "queued":
-                self.logger.debug("Parameters queued.")
+                self.logger.debug("Parameter queued.")
             case "rejected":
-                self.logger.debug("Parameters rejected.")
+                self.logger.debug("Parameter rejected.")
         return
     
     def manual_offset_control2quantity(self, control: int) -> str:
@@ -1308,19 +1321,19 @@ class Interface():
         self.fpga_control_panel.after(10, self.fpga_control_panel.destroy)
         return
 
-    def frequency_bias_report(self, value) -> None:
+    def frequency_bias_report(self) -> None:
         self.logger.debug("Setting frequency bias to %s."%self.frequency_bias_entry.get_text())
         if self.mim.get_instrument("feedback") is None:
             self.logger.debug("feedback not found. Aborting setting frequency bias.")
             self.information["text"] = "Module not found. Did you forget to initialize?"
             return
-        self.mim.get_instrument("feedback").set_parameter("frequency_bias", self.frequency_bias_value2control(value))
+        self.mim.get_instrument("feedback").set_parameter("frequency_bias", self.frequency_bias_value2control(self.frequency_bias_entry.get_value()))
         result = self.mim.upload_data("feedback")
         match result:
             case "queued":
-                self.logger.debug("Parameters queued.")
+                self.logger.debug("Parameter queued.")
             case "rejected":
-                self.logger.debug("Parameters rejected.")
+                self.logger.debug("Parameter rejected.")
         return
     
     def frequency_bias_control2quantity(self, control: int) -> str:
