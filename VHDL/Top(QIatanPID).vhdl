@@ -119,9 +119,9 @@ BEGIN
             setpoint => x"0000",
             control => auto_match_freq_control,
 
-            K_P => signed(Control12(31 DOWNTO 0)),
-            K_I => signed(Control13(31 DOWNTO 0)),
-            K_D => signed(Control14(31 DOWNTO 0)),
+            K_P => x"FFFFC000",
+            K_I => x"FFFFE000",
+            K_D => x"00000000",
 
             limit_I => x"0000200000000000",
 

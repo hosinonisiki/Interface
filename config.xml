@@ -36,9 +36,6 @@
                         <parameter name="initiate_auto_match" index="0" high="13" low="13" value="1" />
                         <parameter name="frequency_match_threshold" index="11" high="31" low="16" value="268" />
                         <parameter name="frequency_lock_threshold" index="11" high="15" low="0" value="3" />
-                        <parameter name="frequency_match_K_P" index="12" high="31" low="0" value="4294950912" />
-                        <parameter name="frequency_match_K_I" index="13" high="31" low="0" value="4294959104" />
-                        <parameter name="frequency_match_K_D" index="14" high="31" low="0" value="0" />
                         <parameter name="fast_PID_decay" index="15" high="31" low="16" value="16384" />
                         <parameter name="slow_PID_decay" index="15" high="15" low="0" value="16384" />
                     </parameters>
