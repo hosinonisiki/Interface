@@ -26,6 +26,8 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL LO_freq_bias : unsigned(15 DOWNTO 0);
 
     SIGNAL LO_freq : unsigned(15 DOWNTO 0);
+    SIGNAL enable_compensation : std_logic := '1';
+    SIGNAL LO_compensation : signed(31 DOWNTO 0);
 
     SIGNAL monitorC : signed(15 DOWNTO 0);
     SIGNAL monitorD : signed(15 DOWNTO 0);
@@ -243,6 +245,10 @@ BEGIN
     );
     slow_actual <= error WHEN Control0(6) = '0' ELSE
                     fast_control;
+    enable_compensation <= Control0(14);
+    LO_compensation <= (LO_freq - LO_freq_bias) * signed(Control12(31 DOWNTO 16));
+    OutputB <= slow_control + LO_compensation(23 DOWNTO 8) WHEN enable_compensation = '0' ELSE
+               slow_control;
 
     -- monitor
     monitorC <= phase WHEN Control1(15 DOWNTO 12) = "0000" ELSE
@@ -279,7 +285,6 @@ BEGIN
     PROCESS(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
-            OutputB <= slow_control;
             OutputC <= monitorC;
             OutputD <= monitorD;
         END IF;
