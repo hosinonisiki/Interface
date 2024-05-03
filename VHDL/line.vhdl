@@ -29,6 +29,7 @@ ENTITY line_signed IS
 
         segments_enabled : IN INTEGER;
 
+        working : OUT std_logic;
         output : OUT signed(15 DOWNTO 0);
         initiate : IN std_logic;
         periodic : IN std_logic;
@@ -188,6 +189,7 @@ BEGIN
         END IF;
     END PROCESS;
 
+    working <= '1' WHEN current_state = standby ELSE '0';
     output <= offset + waveform;
 END bhvr;
 
@@ -211,6 +213,7 @@ ENTITY line_unsigned IS
 
         segments_enabled : IN INTEGER;
 
+        working : OUT std_logic;
         output : OUT unsigned(15 DOWNTO 0);
         initiate : IN std_logic;
         periodic : IN std_logic;
@@ -370,5 +373,6 @@ BEGIN
         END IF;
     END PROCESS;
 
+    working <= '1' WHEN current_state = standby ELSE '0';
     output <= offset + waveform;
 END bhvr;

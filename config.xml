@@ -41,6 +41,7 @@
                         <parameter name="frequency_match_K_D" index="14" high="31" low="0" value="0" />
                         <parameter name="fast_PID_decay" index="15" high="31" low="16" value="16384" />
                         <parameter name="slow_PID_decay" index="15" high="15" low="0" value="16384" />
+                        <parameter name="phase_unwrap" index="0" high="15" low="15" value="1" />
                     </parameters>
                 </instrument>
                 <instrument type="CloudCompile" slot="2" purpose="turnkey">
