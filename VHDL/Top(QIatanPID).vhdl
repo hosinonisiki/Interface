@@ -35,6 +35,9 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL TestC : signed(15 DOWNTO 0);
     SIGNAL TestD : signed(15 DOWNTO 0);
 BEGIN
+    -- try to acquire a faster frequency sweeping speed by using more complicated strategies instead of pure PID
+    -- dynamic PID coefficients
+
     enable_auto_match <= Control0(12);
     initiate_auto_match <= Control0(13);
 
@@ -127,7 +130,7 @@ BEGIN
 
             limit_sum => x"3400", -- maximum +- 4MHz
 
-            decay_I => x"4000",
+            decay_I => x"40000000",
 
             Reset => PID_Reset,
             Clk => Clk
@@ -201,7 +204,7 @@ BEGIN
     -- fast PID
     -- PI corner at 30Hz - 6kHz, set default PI corner at 759Hz(16 bit)
     -- PD corner at 200kHz - 2MHz, set default PD corner at 777kHz(6 bit)
-    DUT5 : ENTITY WORK.PID PORT MAP(
+    DUT5 : ENTITY WORK.PID(bhvr) PORT MAP(
         actual => error,
         setpoint => x"0000",
         control => fast_control,
@@ -214,7 +217,7 @@ BEGIN
 
         limit_sum => x"7FFF",
 
-        decay_I => signed(Control15(31 DOWNTO 16)),
+        decay_I => x"40000000",
 
         Reset => fast_PID_Reset,
         Clk => Clk
@@ -223,7 +226,7 @@ BEGIN
 
     -- slow PID
     -- PI corner at 650mHz(26 bit)
-    DUT6 : ENTITY WORK.PID PORT MAP(
+    DUT6 : ENTITY WORK.PID(bhvr) PORT MAP(
         actual => slow_actual,
         setpoint => x"0000",
         control => slow_control,
@@ -236,7 +239,7 @@ BEGIN
 
         limit_sum => x"7FFF",
 
-        decay_I => signed(Control15(15 DOWNTO 0)),
+        decay_I => signed(Control15(31 DOWNTO 0)),
 
         Reset => slow_PID_Reset,
         Clk => Clk
