@@ -189,8 +189,17 @@ BEGIN
         END IF;
     END PROCESS;
 
-    working <= '1' WHEN current_state = standby ELSE '0';
-    output <= offset + waveform;
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            IF current_state = standby THEN
+                working <= '1';
+            ELSE
+                working <= '0';
+            END IF;
+            output <= offset + waveform;
+        END IF;
+    END PROCESS;
 END bhvr;
 
 LIBRARY IEEE;
@@ -373,6 +382,15 @@ BEGIN
         END IF;
     END PROCESS;
 
-    working <= '1' WHEN current_state = standby ELSE '0';
-    output <= offset + waveform;
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            IF current_state = standby THEN
+                working <= '1';
+            ELSE
+                working <= '0';
+            END IF;
+            output <= offset + waveform;
+        END IF;
+    END PROCESS;
 END bhvr;

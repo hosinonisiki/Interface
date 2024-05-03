@@ -31,6 +31,10 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL unwrapped : signed(17 DOWNTO 0);
     SIGNAL clamped : signed(15 DOWNTO 0);
+    
+    SIGNAL enable_compensation : std_logic := '1';
+    SIGNAL LO_compensation : signed(15 DOWNTO 0);
+    SIGNAL reg_LO_compensation : signed(31 DOWNTO 0);
 
     SIGNAL monitorC : signed(15 DOWNTO 0);
     SIGNAL monitorD : signed(15 DOWNTO 0);
@@ -127,9 +131,9 @@ BEGIN
             setpoint => x"0000",
             control => auto_match_freq_control,
 
-            K_P => signed(Control12(31 DOWNTO 0)),
-            K_I => signed(Control13(31 DOWNTO 0)),
-            K_D => signed(Control14(31 DOWNTO 0)),
+            K_P => x"FFFFC000",
+            K_I => x"FFFFE000",
+            K_D => x"00000000",
 
             limit_I => x"0000200000000000",
 
@@ -265,6 +269,16 @@ BEGIN
     );
     slow_actual <= error WHEN Control0(6) = '0' ELSE
                     fast_control;
+    enable_compensation <= Control0(14);
+    reg_LO_compensation <= signed(LO_freq - LO_freq_bias) * signed(Control12(31 DOWNTO 16));
+    OutputB <= slow_control + LO_compensation WHEN enable_compensation = '0' ELSE
+               slow_control;
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            LO_compensation <= reg_LO_compensation(23 DOWNTO 8);
+        END IF;
+    END PROCESS;
 
     -- monitor
     monitorC <= phase WHEN Control1(15 DOWNTO 12) = "0000" ELSE
@@ -305,7 +319,6 @@ BEGIN
     PROCESS(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
-            OutputB <= slow_control;
             OutputC <= monitorC;
             OutputD <= monitorD;
         END IF;
