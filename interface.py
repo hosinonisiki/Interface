@@ -737,7 +737,7 @@ class Interface():
             self.developer_state_auto_match_label.place(x = 400, y = 20, anchor = tk.NW)
 
             self.developer_monitorC_box = ttk.Combobox(self.developer_mode, values = [
-                "phase", "freq", "I", "Q", "error", "ref", "ref shift", "auto match freq", "TestA", "TestB", "TestC", "TestD", "LO freq", "LO freq diff"
+                "phase", "freq", "I", "Q", "error", "ref", "ref shift", "auto match freq", "TestA", "TestB", "TestC", "TestD", "LO freq", "LO freq diff", "phase unwrapped", "phase clamped"
             ])
             self.developer_monitorC_box.set("phase")
             self.developer_monitorC_box.place(x = 750, y = 10, anchor = tk.NW)
@@ -746,7 +746,7 @@ class Interface():
             self.developer_monitorC_button.place(x = 750, y = 35, anchor = tk.NW)
             
             self.developer_monitorD_box = ttk.Combobox(self.developer_mode, values = [
-                "phase", "freq", "I", "Q", "error", "ref", "ref shift", "auto match freq", "TestA", "TestB", "TestC", "TestD", "LO freq", "LO freq diff"
+                "phase", "freq", "I", "Q", "error", "ref", "ref shift", "auto match freq", "TestA", "TestB", "TestC", "TestD", "LO freq", "LO freq diff", "phase unwrapped", "phase clamped"
             ])
             self.developer_monitorD_box.set("freq")
             self.developer_monitorD_box.place(x = 750, y = 65, anchor = tk.NW)

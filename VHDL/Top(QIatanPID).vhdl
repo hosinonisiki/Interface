@@ -8,6 +8,7 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL lock_mode : std_logic_vector(1 DOWNTO 0);
 
+    SIGNAL fast_actual : signed(15 DOWNTO 0);
     SIGNAL fast_control : signed(15 DOWNTO 0);
     SIGNAL slow_actual : signed(15 DOWNTO 0);
     SIGNAL slow_control : signed(15 DOWNTO 0);
@@ -26,6 +27,10 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL LO_freq_bias : unsigned(15 DOWNTO 0);
 
     SIGNAL LO_freq : unsigned(15 DOWNTO 0);
+    SIGNAL LO_control_working : std_logic;
+
+    SIGNAL unwrapped : signed(17 DOWNTO 0);
+    SIGNAL clamped : signed(15 DOWNTO 0);
 
     SIGNAL monitorC : signed(15 DOWNTO 0);
     SIGNAL monitorD : signed(15 DOWNTO 0);
@@ -153,6 +158,8 @@ BEGIN
 
         amplitude => signed(Control7(15 DOWNTO 0)),
 
+        control_working => LO_control_working,
+
         outputF => LO_freq,
 
         outputC => ref,
@@ -201,11 +208,21 @@ BEGIN
                 I WHEN lock_mode = "10" ELSE
                 Q;
     
+    DUT8 : ENTITY WORK.unwrap GENERIC MAP(
+        unwrapped_word_length => 18
+    )PORT MAP(
+        input => phase,
+        unwrapped => unwrapped,
+        clamped => clamped,
+        Clk => Clk,
+        Reset => LO_control_working
+    );
+
     -- fast PID
     -- PI corner at 30Hz - 6kHz, set default PI corner at 759Hz(16 bit)
     -- PD corner at 200kHz - 2MHz, set default PD corner at 777kHz(6 bit)
     DUT5 : ENTITY WORK.PID(bhvr) PORT MAP(
-        actual => error,
+        actual => fast_actual,
         setpoint => x"0000",
         control => fast_control,
 
@@ -223,6 +240,8 @@ BEGIN
         Clk => Clk
     );
     OutputA <= fast_control;
+    fast_actual <= error WHEN Control0(15) = '1' ELSE
+                    clamped;
 
     -- slow PID
     -- PI corner at 650mHz(26 bit)
@@ -261,7 +280,9 @@ BEGIN
                 TestC WHEN Control1(15 DOWNTO 12) = "1010" ELSE
                 TestD WHEN Control1(15 DOWNTO 12) = "1011" ELSE
                 signed(LO_freq) WHEN Control1(15 DOWNTO 12) = "1100" ELSE
-                signed(LO_freq - LO_freq_bias);
+                signed(LO_freq - LO_freq_bias) WHEN Control1(15 DOWNTO 12) = "1101" ELSE
+                unwrapped(17 DOWNTO 2) WHEN Control1(15 DOWNTO 12) = "1110" ELSE
+                clamped;
 
 
     monitorD <= phase WHEN Control1(15 DOWNTO 12) = "0000" ELSE
@@ -277,7 +298,9 @@ BEGIN
                 TestC WHEN Control1(15 DOWNTO 12) = "1010" ELSE
                 TestD WHEN Control1(15 DOWNTO 12) = "1011" ELSE
                 signed(LO_freq) WHEN Control1(15 DOWNTO 12) = "1100" ELSE
-                signed(LO_freq - LO_freq_bias);
+                signed(LO_freq - LO_freq_bias) WHEN Control1(15 DOWNTO 12) = "1101" ELSE
+                unwrapped(17 DOWNTO 2) WHEN Control1(15 DOWNTO 12) = "1110" ELSE
+                clamped;
 
     PROCESS(Clk)
     BEGIN
