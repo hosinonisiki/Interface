@@ -188,7 +188,12 @@ BEGIN
         END IF;
     END PROCESS;
 
-    output <= offset + waveform;
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            output <= offset + waveform;
+        END IF;
+    END PROCESS;
 END bhvr;
 
 LIBRARY IEEE;
@@ -370,5 +375,10 @@ BEGIN
         END IF;
     END PROCESS;
 
-    output <= offset + waveform;
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            output <= offset + waveform;
+        END IF;
+    END PROCESS;
 END bhvr;
