@@ -206,7 +206,7 @@ BEGIN
     -- fast PID
     -- PI corner at 30Hz - 6kHz, set default PI corner at 759Hz(16 bit)
     -- PD corner at 200kHz - 2MHz, set default PD corner at 777kHz(6 bit)
-    DUT5 : ENTITY WORK.PID(bhvr) PORT MAP(
+    DUT5 : ENTITY WORK.PID(nodecay) PORT MAP(
         actual => error,
         setpoint => x"0000",
         control => fast_control,
