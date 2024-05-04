@@ -27,6 +27,8 @@ ARCHITECTURE bhvr OF CustomWrapper IS
 
     SIGNAL LO_freq : unsigned(15 DOWNTO 0);
 
+    SIGNAL slow_decay : signed(31 DOWNTO 0);
+
     SIGNAL monitorC : signed(15 DOWNTO 0);
     SIGNAL monitorD : signed(15 DOWNTO 0);
 
@@ -239,13 +241,19 @@ BEGIN
 
         limit_sum => x"7FFF",
 
-        decay_I => signed(Control15(31 DOWNTO 0)),
+        decay_I => slow_decay,
 
         Reset => slow_PID_Reset,
         Clk => Clk
     );
     slow_actual <= error WHEN Control0(6) = '0' ELSE
                     fast_control;
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            slow_decay <= x"40000000" - (x"0000" & signed(Control15(31 DOWNTO 16)));
+        END IF;
+    END PROCESS;
 
     -- monitor
     monitorC <= phase WHEN Control1(15 DOWNTO 12) = "0000" ELSE
