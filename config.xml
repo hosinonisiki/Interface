@@ -14,8 +14,8 @@
                         <parameter name="monitorD" index="1" high="19" low="16" value="0" />
                         <parameter name="segments_enabled" index="1" high="11" low="8" value="0" />
                         <parameter name="set_address" index="1" high="7" low="4" value="0" />
-                        <parameter name="slow_PID_K_P" index="8" high="31" low="0" value="4096" />
-                        <parameter name="slow_PID_K_I" index="9" high="31" low="0" value="4096" />
+                        <parameter name="slow_PID_K_P" index="8" high="31" low="0" value="1200" />
+                        <parameter name="slow_PID_K_I" index="9" high="31" low="0" value="2000" />
                         <parameter name="slow_PID_K_D" index="10" high="31" low="0" value="0" />
                         <parameter name="set_x" index="5" high="31" low="0" value="31250000" />
                         <parameter name="set_y" index="6" high="31" low="16" value="3355" />
@@ -36,10 +36,10 @@
                         <parameter name="initiate_auto_match" index="0" high="13" low="13" value="1" />
                         <parameter name="frequency_match_threshold" index="11" high="31" low="16" value="268" />
                         <parameter name="frequency_lock_threshold" index="11" high="15" low="0" value="3" />
-                        <parameter name="enable_compensation" index="0" high="14" low="14" value="1" />
-                        <parameter name="LO_compensation" index="12" high="31" low="16" value="0" />
+                        <parameter name="enable_compensation" index="0" high="14" low="14" value="0" />
+                        <parameter name="LO_compensation" index="12" high="31" low="16" value="65386" />
                         <parameter name="slow_PID_decay" index="15" high="31" low="0" value="1073741824" />
-                        <parameter name="phase_unwrap" index="0" high="15" low="15" value="1" />
+                        <parameter name="phase_unwrap" index="0" high="15" low="15" value="0" />
                     </parameters>
                 </instrument>
                 <instrument type="CloudCompile" slot="2" purpose="turnkey">

@@ -894,7 +894,7 @@ class Interface():
             case self.SOLITON_STATE_ON:
                 try:
                     self.logger.debug("Stopping soliton generation.")
-                    self.mim.stop()
+                    self.mim.command("turnkey", "stop")
                     self.mim.command("feedback", "fast_PID_off")
                     self.mim.command("feedback", "slow_PID_off")
                     self.mim.command("feedback", "auto_match_off")
@@ -912,7 +912,7 @@ class Interface():
             case self.SOLITON_STATE_OFF:
                 try:
                     self.logger.debug("Starting soliton generation.")
-                    self.mim.run()
+                    self.mim.command("turnkey", "run")
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -952,7 +952,7 @@ class Interface():
             case self.SETPOINT_STATE_OFF:
                 try:
                     self.logger.debug("Starting sweeping.")
-                    self.mim.sweep()
+                    self.mim.command("turnkey", "sweep")
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1031,7 +1031,7 @@ class Interface():
             self.fpga_state = self.FPGA_STATE_STANDBY
             self.tcm_state = self.TCM_STATE_STANDBY
             self.setpoint_state = self.SETPOINT_STATE_OFF
-            self.mim.stop()
+            self.mim.command("turnkey", "stop")
             self.logger.debug("Setpoint thread ended.")
         return
     
@@ -1045,7 +1045,7 @@ class Interface():
             case self.SWEEPING_STATE_ON:
                 try:
                     self.logger.debug("Stopping sweeping.")
-                    self.mim.stop()
+                    self.mim.command("turnkey", "stop")
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1057,7 +1057,7 @@ class Interface():
             case self.SWEEPING_STATE_OFF:
                 try:
                     self.logger.debug("Starting sweeping.")
-                    self.mim.sweep()
+                    self.mim.command("turnkey", "sweep")
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1570,7 +1570,7 @@ class Interface():
                     self.tcm.close()
                     if self.setpoint_state == self.SETPOINT_STATE_ON:
                         self.logger.debug("Stopping FPGA.")
-                        self.mim.stop()
+                        self.mim.command("turnkey", "stop")
                 except Exception:
                     self.logger.error("%s"%e.__repr__())
                     pass
