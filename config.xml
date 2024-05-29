@@ -60,7 +60,7 @@
                         <parameter name="attempts" index="7" high="31" low="24" value="1" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="96" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
                         <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
@@ -118,7 +118,7 @@
                         <parameter name="attempts" index="7" high="31" low="24" value="1" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="96" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
                         <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
@@ -165,7 +165,7 @@
                     <parameter name="attempts" index="7" high="31" low="24" value="1" />
                     <parameter name="approaches" index="7" high="23" low="16" value="64" />
                     <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                    <parameter name="fine_target" index="8" high="31" low="16" value="96" />
+                    <parameter name="fine_target" index="8" high="31" low="16" value="64" />
                     <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                     <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
                     <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
