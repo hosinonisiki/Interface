@@ -84,6 +84,20 @@ class MCC():
             raise Exception("Connection error: %s"%e.__repr__())
         return self
 
+    def upload_to_url(self, controls: dict[int, int], url: str = "http://localhost:8090/api/v2/registers") -> object:
+        post = "[[\"instr" + str(self.slot) + "\", {"
+        for i in range(0, 16):
+            post = post + "\"" + str(i) + "\":" + str(controls[i])
+            if i != 15:
+                post = post + ","
+        post = post + "}]]"
+        try:
+            r_json = json.loads(post)
+            p_confiure = requests.post(url = url, json = r_json)
+        except Exception as e:
+            raise Exception("Connection error: %s"%e.__repr__())
+        return self
+
     def set_control(self, *arg) -> object:
         if len(arg) == 1 and arg[0] is not None:
             self.controls.update(arg[0])
@@ -388,4 +402,4 @@ if __name__ == "__main__":
     mim.initialize()
     
     # testing
-    test(mim, 100, 0.0005)
+    # test(mim, 100, 0.0005)
