@@ -755,6 +755,9 @@ class Interface():
             self.developer_monitorD_button.place(x = 750, y = 90, anchor = tk.NW)
             
             # assuming that fpga is already initialized
+            # instantiate 8 parameter setting widget sets
+            
+            '''
             instruments = [i.get("purpose") for i in self.mim.config.findall("./instruments/instrument") if i.get("type") == "CloudCompile"]
             self.developer_instrument_box = ttk.Combobox(self.developer_mode, values = [""] + instruments)
             self.developer_instrument_box.current(0)
@@ -769,6 +772,24 @@ class Interface():
             self.developer_parameter_value_format = custom_widgets.QuantityFormat((10, 0, 0), {}, "")
             self.developer_parameter_value_entry = custom_widgets.QuantityEntry(self.developer_mode, formater = self.developer_parameter_value_format, report = lambda:self.developer_parameter_setting("upload parameter"), width = 10, font = ("Arial", 12))
             self.developer_parameter_value_entry.place(x = 750, y = 180, anchor = tk.NW)
+            '''
+            instruments = [i.get("purpose") for i in self.mim.config.findall("./instruments/instrument") if i.get("type") == "CloudCompile"]
+            self.developer_instrument_boxes = [ttk.Combobox(self.developer_mode, values = [""] + instruments) for i in range(8)]
+            for i in range(8):
+                self.developer_instrument_boxes[i].current(0)
+                self.developer_instrument_boxes[i].place(x = 750 + 30 * i % 4, y = 120 + 90 * i // 4, anchor = tk.NW)
+                self.developer_instrument_boxes[i].bind("<<ComboboxSelected>>", lambda event, i = i:self.developer_parameter_setting("replace instrument", i))
+
+            self.developer_parameter_name_boxes = [ttk.Combobox(self.developer_mode, values = [""]) for i in range(8)]
+            for i in range(8):
+                self.developer_parameter_name_boxes[i].current(0)
+                self.developer_parameter_name_boxes[i].place(x = 750 + 30 * i % 4, y = 150 + 90 * i // 4, anchor = tk.NW)
+                self.developer_parameter_name_boxes[i].bind("<<ComboboxSelected>>", lambda event, i = i:self.developer_parameter_setting("replace parameter", i))
+
+            self.developer_parameter_value_format = custom_widgets.QuantityFormat((10, 0, 0), {}, "")
+            self.developer_parameter_value_entries = [custom_widgets.QuantityEntry(self.developer_mode, formater = self.developer_parameter_value_format, report = lambda i = i:self.developer_parameter_setting("upload parameter", i), width = 10, font = ("Arial", 12)) for i in range(8)]      
+            for i in range(8):
+                self.developer_parameter_value_entries[i].place(x = 750 + 30 * i % 4, y = 180 + 90 * i // 4, anchor = tk.NW)
 
             self.update()
 
@@ -790,31 +811,31 @@ class Interface():
         self.mim.upload_control("feedback")
         return
 
-    def developer_parameter_setting(self, action: str) -> None:
-        self.logger.info("Developer parameter setting, action: %s."%action)
+    def developer_parameter_setting(self, action: str, index: int) -> None:
+        self.logger.info("Developer parameter setting, action: %s, index: %d."%(action, index))
         match action:
             case "replace instrument":
-                self.logger.debug("Replacing instrument as %s."%self.developer_instrument_box.get())
-                if self.developer_instrument_box.get() == "":
-                    self.developer_parameter_name_box["values"] = [""]
+                self.logger.debug("Replacing instrument of No.%d as %s."%(index, self.developer_instrument_boxes[index].get()))
+                if self.developer_instrument_boxes[index].get() == "":
+                    self.developer_parameter_name_boxes[index]["values"] = [""]
                 else:
-                    instrument = self.mim.config.find("./instruments/instrument[@purpose='%s']"%self.developer_instrument_box.get())
-                    self.developer_parameter_name_box["values"] = [""] + [i.get("name") for i in instrument.findall("./parameters/parameter")]
-                self.developer_parameter_name_box.current(0)
-                self.developer_parameter_value_entry.set("")
-                self.developer_parameter_value_entry.store()
+                    instrument = self.mim.config.find("./instruments/instrument[@purpose='%s']"%self.developer_instrument_boxes[index].get())
+                    self.developer_parameter_name_boxes[index]["values"] = [""] + [i.get("name") for i in instrument.findall("./parameters/parameter")]
+                self.developer_parameter_name_boxes[index].current(0)
+                self.developer_parameter_value_entries[index].set("")
+                self.developer_parameter_value_entries[index].store()
             case "replace parameter":
-                self.logger.debug("Replacing parameter as %s."%self.developer_parameter_name_box.get())
-                if self.developer_parameter_name_box.get() == "":
-                    self.developer_parameter_value_entry.set("")
+                self.logger.debug("Replacing parameter of No.%d as %s."%(index, self.developer_parameter_name_boxes[index].get()))
+                if self.developer_parameter_name_boxes[index].get() == "":
+                    self.developer_parameter_value_entries[index].set("")
                 else:
-                    value = self.mim.get_instrument(self.developer_instrument_box.get()).get_parameter(self.developer_parameter_name_box.get())
-                    self.developer_parameter_value_entry.set(value)
-                self.developer_parameter_value_entry.store()
+                    value = self.mim.get_instrument(self.developer_instrument_boxes[index].get()).get_parameter(self.developer_parameter_name_boxes[index].get())
+                    self.developer_parameter_value_entries[index].set(value)
+                self.developer_parameter_value_entries[index].store()
             case "upload parameter":
-                self.logger.debug("Uploading parameter %s to %s, value: %d."%(self.developer_parameter_name_box.get(), self.developer_instrument_box.get(), self.developer_parameter_value_entry.get_value()))
-                self.mim.get_instrument(self.developer_instrument_box.get()).set_parameter(self.developer_parameter_name_box.get(), int(self.developer_parameter_value_entry.get_value()))
-                result = self.mim.upload_data(self.developer_instrument_box.get())
+                self.logger.debug("Uploading parameter %s to %s, requested by No.%d, value: %d."%(self.developer_parameter_name_boxes[index].get(), self.developer_instrument_boxes[index].get(), index, self.developer_parameter_value_entries[index].get_value()))
+                self.mim.get_instrument(self.developer_instrument_boxes[index].get()).set_parameter(self.developer_parameter_name_boxes[index].get(), int(self.developer_parameter_value_entries[index].get_value()))
+                result = self.mim.upload_data(self.developer_instrument_boxes[index].get())
                 match result:
                     case "queued":
                         self.information["text"] = "Parameter uploaded."
