@@ -25,11 +25,11 @@ ENTITY turnkey_control IS
         coarse_target : IN signed(15 DOWNTO 0);
         fine_target : IN signed(15 DOWNTO 0);
 
-        coarse_period : IN unsigned(23 DOWNTO 0);
-        fine_period : IN unsigned(23 DOWNTO 0);
+        coarse_period : IN unsigned(31 DOWNTO 0);
+        fine_period : IN unsigned(31 DOWNTO 0);
 
         stab_target : IN signed(15 DOWNTO 0);
-        stab_period : IN unsigned(23 DOWNTO 0);
+        stab_period : IN unsigned(31 DOWNTO 0);
 
         floor : IN signed(15 DOWNTO 0);
 
@@ -122,7 +122,7 @@ BEGIN
                         END IF;
                     WHEN s_scan =>
                         -- wait for segment waveform generators to scan voltages
-                        IF is_lst_seg_lsr = '1'  AND detect_soliton = '1' THEN
+                        IF is_lst_seg_lsr = '1'  AND detect_soliton = '0' THEN
                             time_cnt <= (OTHERS => '0');
                             none_counter <= (OTHERS => '0');
                             soliton_counter <= (OTHERS => '0');

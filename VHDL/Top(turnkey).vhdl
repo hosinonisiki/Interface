@@ -103,11 +103,11 @@ BEGIN
         coarse_target => signed(Control7(15 DOWNTO 0)),
         fine_target => signed(Control8(31 DOWNTO 16)),
 
-        coarse_period => unsigned(Control8(15 DOWNTO 0)) & x"00",
-        fine_period => unsigned(Control9(31 DOWNTO 16)) & x"00",
+        coarse_period => unsigned(Control8(15 DOWNTO 0)) & x"0000",
+        fine_period => unsigned(Control9(31 DOWNTO 16)) & x"0000",
         
         stab_target => signed(Control9(15 DOWNTO 0)),
-        stab_period => unsigned(Control10(31 DOWNTO 16)) & x"00",
+        stab_period => unsigned(Control10(31 DOWNTO 16)) & x"0000",
 
         floor => signed(Control10(15 DOWNTO 0)),
 

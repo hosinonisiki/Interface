@@ -60,7 +60,7 @@
                         <parameter name="attempts" index="7" high="31" low="24" value="1" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="96" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
                         <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
@@ -118,7 +118,7 @@
                         <parameter name="attempts" index="7" high="31" low="24" value="1" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="96" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
                         <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
@@ -146,43 +146,45 @@
                 <output channel="1" gain="14dB" />
             </io_settings>
         </config>
-        <config id="3" platform="Moku:Go" firmware="591" comb_id="2" description="Tuenky only.">
-            <instrument type="CloudCompile" slot="2" purpose="turnkey">
-                <bitstream>turnkey_go_591</bitstream>
-                <parameters>
-                    <parameter name="drop_period" index="1" high="31" low="16" value="7324" />
-                    <parameter name="climb_period" index="1" high="15" low="0" value="24028" />
-                    <parameter name="kick_period" index="2" high="31" low="16" value="488" />
-                    <parameter name="hold_period" index="2" high="15" low="0" value="7324" />
-                    <parameter name="max_voltage" index="3" high="31" low="16" value="14927" />
-                    <parameter name="min_voltage" index="3" high="15" low="0" value="5971" />
-                    <parameter name="step_voltage" index="4" high="31" low="16" value="20" />
-                    <parameter name="drop_amplitude" index="4" high="15" low="0" value="14634" />
-                    <parameter name="climb_amplitude" index="5" high="31" low="16" value="15232" />
-                    <parameter name="kick_amplitude" index="5" high="15" low="0" value="598" />
-                    <parameter name="soliton_threshold_max" index="6" high="31" low="16" value="4608" />
-                    <parameter name="soliton_threshold_min" index="6" high="15" low="0" value="1536" />
-                    <parameter name="attempts" index="7" high="31" low="24" value="1" />
-                    <parameter name="approaches" index="7" high="23" low="16" value="64" />
-                    <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                    <parameter name="fine_target" index="8" high="31" low="16" value="96" />
-                    <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
-                    <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
-                    <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
-                    <parameter name="stab_period" index="10" high="31" low="16" value="2548" />
-                    <parameter name="floor" index="10" high="15" low="0" value="65472" />
-                    <parameter name="PID_K_P" index="11" high="31" low="0" value="65280" />
-                    <parameter name="PID_K_I" index="12" high="31" low="0" value="57088" />
-                    <parameter name="PID_K_D" index="13" high="31" low="0" value="0" />
-                    <parameter name="mode" index="0" high="1" low="1" value="0" />
-                    <parameter name="sweep_period" index="14" high="31" low="16" value="404" />
-                    <parameter name="PID_lock" index="0" high="2" low="2" value="1" />
-                    <parameter name="input_gain" index="14" high="7" low="0" value="16" />
-                    <parameter name="output_gain" index="14" high="15" low="8" value="32" />
-                    <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
-                    <parameter name="Reset" index="0" high="0" low="0" value="0" />
-                </parameters>
-            </instrument>
+        <config id="3" platform="Moku:Go" firmware="591" comb_id="2" description="Turnkey only.">
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="turnkey">
+                    <bitstream>turnkey_go_591</bitstream>
+                    <parameters>
+                        <parameter name="drop_period" index="1" high="31" low="16" value="7324" />
+                        <parameter name="climb_period" index="1" high="15" low="0" value="24028" />
+                        <parameter name="kick_period" index="2" high="31" low="16" value="488" />
+                        <parameter name="hold_period" index="2" high="15" low="0" value="7324" />
+                        <parameter name="max_voltage" index="3" high="31" low="16" value="14927" />
+                        <parameter name="min_voltage" index="3" high="15" low="0" value="5971" />
+                        <parameter name="step_voltage" index="4" high="31" low="16" value="20" />
+                        <parameter name="drop_amplitude" index="4" high="15" low="0" value="14634" />
+                        <parameter name="climb_amplitude" index="5" high="31" low="16" value="15232" />
+                        <parameter name="kick_amplitude" index="5" high="15" low="0" value="598" />
+                        <parameter name="soliton_threshold_max" index="6" high="31" low="16" value="4608" />
+                        <parameter name="soliton_threshold_min" index="6" high="15" low="0" value="1536" />
+                        <parameter name="attempts" index="7" high="31" low="24" value="1" />
+                        <parameter name="approaches" index="7" high="23" low="16" value="64" />
+                        <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
+                        <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
+                        <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
+                        <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
+                        <parameter name="stab_period" index="10" high="31" low="16" value="2548" />
+                        <parameter name="floor" index="10" high="15" low="0" value="65472" />
+                        <parameter name="PID_K_P" index="11" high="31" low="0" value="65280" />
+                        <parameter name="PID_K_I" index="12" high="31" low="0" value="57088" />
+                        <parameter name="PID_K_D" index="13" high="31" low="0" value="0" />
+                        <parameter name="mode" index="0" high="1" low="1" value="0" />
+                        <parameter name="sweep_period" index="14" high="31" low="16" value="404" />
+                        <parameter name="PID_lock" index="0" high="2" low="2" value="1" />
+                        <parameter name="input_gain" index="14" high="7" low="0" value="16" />
+                        <parameter name="output_gain" index="14" high="15" low="8" value="32" />
+                        <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="0" />
+                    </parameters>
+                </instrument>
+            </instruments>
             <connections>
                 <connection source="Input1" destination="Slot1InA" />
                 <connection source="Slot1OutA" destination="Output1" />
@@ -190,6 +192,60 @@
             <io_settings>
                 <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
                 <output channel="1" gain="14dB" />
+            </io_settings>
+        </config>
+        <config id = "4" platform="Moku:Pro" firmware="591" comb_id="2" description="The refactored turnkey module." >
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="turnkey_refactored">
+                    <bitstream>turnkey_re_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="input_gain" index="14" high="7" low="0" value="16" />
+                        <parameter name="output_gain_lsr" index="14" high="15" low="8" value="32" />
+                        <parameter name="output_gain_vco" index="14" high="23" low="16" value="32" />
+                        <parameter name="max_voltage" index="3" high="31" low="16" value="14927" />
+                        <parameter name="min_voltage" index="3" high="15" low="0" value="5971" />
+                        <parameter name="soliton_threshold_max" index="6" high="31" low="16" value="4608" />
+                        <parameter name="soliton_threshold_min" index="6" high="15" low="0" value="1536" />
+                        <parameter name="detection_time" index="2" high="31" low="0" value="1250000" />
+                        <parameter name="approaches" index="7" high="23" low="16" value="64" />
+                        <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
+                        <parameter name="coarse_period" index="8" high="15" low="0" value="16" />
+                        <parameter name="fine_period" index="9" high="31" low="16" value="80" />
+                        <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
+                        <parameter name="stab_period" index="10" high="31" low="16" value="10" />
+                        <parameter name="floor" index="10" high="15" low="0" value="65472" />
+                        <parameter name="detect_soliton" index="0" high="1" low="1" value="1" />
+                        <parameter name="PID_lock" index="0" high="2" low="2" value="1" />
+                        <parameter name="immediate_PID" index="0" high="3" low="3" value="1" />
+                        <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
+                        <parameter name="set_sign_lsr" index="0" high="4" low="4" value="0" />
+                        <parameter name="set_x_lsr" index="4" high="31" low="0" value="0" />
+                        <parameter name="set_y_lsr" index="5" high="31" low="16" value="0" />
+                        <parameter name="set_slope_lsr" index="5" high="15" low="0" value="0" />
+                        <parameter name="set_address_lsr" index="1" high="15" low="12" value="0" />
+                        <parameter name="set_lsr" index="0" high="5" low="5" value="1" />
+                        <parameter name="segments_enabled_lsr" index="1" high="11" low="8" value="0" />
+                        <parameter name="set_sign_vco" index="0" high="6" low="6" value="0" />
+                        <parameter name="set_x_vco" index="11" high="31" low="0" value="0" />
+                        <parameter name="set_y_vco" index="12" high="31" low="16" value="0" />
+                        <parameter name="set_slope_vco" index="12" high="15" low="0" value="0" />
+                        <parameter name="set_address_vco" index="1" high="7" low="4" value="0" />
+                        <parameter name="set_vco" index="0" high="7" low="7" value="1" />
+                        <parameter name="segments_enabled_vco" index="1" high="3" low="0" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value ="1" />
+                    </parameters>
+                </instrument>
+            </instruments>
+            <connections>
+                <connection source="Input1" destination="Slot2InA" />
+                <connection source="Slot2OutA" destination="Output1" />
+                <connection source="Slot2OutB" destination="Output2" />
+            </connections>
+            <io_settings>
+                <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
+                <output channel="1" gain="14dB" />
+                <output channel="2" gain="14dB" />
             </io_settings>
         </config>
     </configurations>
