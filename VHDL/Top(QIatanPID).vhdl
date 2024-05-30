@@ -163,6 +163,7 @@ BEGIN
         amplitude => signed(Control7(15 DOWNTO 0)),
 
         control_working => LO_control_working,
+        current_segment => OPEN,
 
         outputF => LO_freq,
 

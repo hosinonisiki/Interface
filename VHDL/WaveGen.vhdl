@@ -46,6 +46,8 @@ BEGIN
 
         segments_enabled => 1,
 
+        working => OPEN,
+        current => OPEN,
         output => phase,
         initiate => Reset,
         prolong => '0',

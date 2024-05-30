@@ -23,6 +23,7 @@ ENTITY AWG IS
         amplitude : IN signed(15 DOWNTO 0);
 
         control_working : OUT std_logic;
+        current_segment : OUT unsigned(3 DOWNTO 0);
 
         outputF : OUT unsigned(15 DOWNTO 0);
 
@@ -142,6 +143,7 @@ BEGIN
         segments_enabled => segments_enabled_translated,
 
         working => control_working,
+        current => current_segment,
         output => frequency,
 
         initiate => initiate,

@@ -27,9 +27,10 @@ ENTITY line_signed IS
         LUT_y : IN LUT_16(0 TO segments - 1);
         LUT_slope : IN LUT_16(0 TO segments - 1);
 
-        segments_enabled : IN INTEGER;
+        segments_enabled : IN unsigned(3 DOWNTO 0);
 
         working : OUT std_logic;
+        current : OUT INTEGER;
         output : OUT signed(15 DOWNTO 0);
         initiate : IN std_logic;
         periodic : IN std_logic;
@@ -197,6 +198,7 @@ BEGIN
             ELSE
                 working <= '0';
             END IF;
+            current <= to_unsigned(next_segment, 4) + x"F";
             output <= offset + waveform;
         END IF;
     END PROCESS;
@@ -223,6 +225,7 @@ ENTITY line_unsigned IS
         segments_enabled : IN INTEGER;
 
         working : OUT std_logic;
+        current : OUT unsigned(3 DOWNTO 0);
         output : OUT unsigned(15 DOWNTO 0);
         initiate : IN std_logic;
         periodic : IN std_logic;
@@ -390,6 +393,7 @@ BEGIN
             ELSE
                 working <= '0';
             END IF;
+            current <= to_unsigned(next_segment, 4) + x"F";
             output <= offset + waveform;
         END IF;
     END PROCESS;
