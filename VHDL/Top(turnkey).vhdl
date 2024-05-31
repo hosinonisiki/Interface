@@ -17,8 +17,8 @@ ARCHITECTURE bhvr OF CustomWrapper IS
     SIGNAL rst_lsr : std_logic; -- reset signal for the laser
     SIGNAL rst_vco : std_logic; -- reset signal for the VCO
 
-    SIGNAL vol_lsr : signed(15 DOWNTO 0); -- voltage output to the laser
-    SIGNAL vol_vco : signed(15 DOWNTO 0); -- voltage output to the VCO
+    SIGNAL vol_lsr : unsigned(15 DOWNTO 0); -- voltage output to the laser
+    SIGNAL vol_vco : unsigned(15 DOWNTO 0); -- voltage output to the VCO
 
     SIGNAL set_sign_lsr : std_logic;
     SIGNAL set_x_lsr : unsigned(31 DOWNTO 0);
@@ -85,9 +85,9 @@ BEGIN
         soliton_power => soliton_power_scaled,
         soliton_power_avg => soliton_power_avg,
 
-        vol_lsr_in => vol_lsr,
+        vol_lsr_in => signed(vol_lsr),
         vol_lsr_out => scanning_voltage_lsr,
-        vol_vco_in => vol_vco,
+        vol_vco_in => signed(vol_vco),
         vol_vco_out => scanning_voltage_vco,
 
         max_vol_lsr => signed(Control3(31 DOWNTO 16)),
@@ -134,7 +134,7 @@ BEGIN
 
     -- signal to laser
     DUT4 : ENTITY WORK.AWG PORT MAP(
-        frequency_bias => max_vol, -- in the original purpose, this is the default output frequency, in this case corresponding to the idle voltage
+        frequency_bias => unsigned(Control3(31 DOWNTO 16)), -- in the original purpose, this is the default output frequency, in this case corresponding to the idle voltage
         -- parameters for setting the waveform, refer to the AWG module for details
         set_sign => Control0(4),
         set_x => unsigned(Control4(31 DOWNTO 0)),
@@ -166,12 +166,12 @@ BEGIN
     -- signal to VCO
     DUT5 : ENTITY WORK.AWG PORT MAP(
         frequency_bias => x"0000", -- VCO voltage is 0 by default
-        set_sign => Control(6),
+        set_sign => Control0(6),
         set_x => unsigned(Control11(31 DOWNTO 0)),
         set_y => unsigned(Control12(31 DOWNTO 16)),
         set_slope => unsigned(Control12(15 DOWNTO 0)),
         set_address => unsigned(Control1(7 DOWNTO 4)),
-        set => Control(7),
+        set => Control0(7),
 
         segments_enabled => unsigned(Control1(3 DOWNTO 0)),
         initiate => initiate_vco,
@@ -193,7 +193,7 @@ BEGIN
     );
 
     DUT6 : ENTITY WORK.moving_average GENERIC MAP(
-        tap => 64;
+        tap => 64,
         logtap => 6
     )PORT MAP(
         input => soliton_power_scaled,

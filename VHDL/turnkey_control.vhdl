@@ -8,9 +8,9 @@ ENTITY turnkey_control IS
         soliton_power_avg : IN signed(15 DOWNTO 0);
 
         vol_lsr_in : IN signed(15 DOWNTO 0);
-        vol_lsr_out : IN IN signed(15 DOWNTO 0);
+        vol_lsr_out : OUT signed(15 DOWNTO 0);
         vol_vco_in : IN signed(15 DOWNTO 0);
-        vol_vco_out : IN signed(15 DOWNTO 0);
+        vol_vco_out : OUT signed(15 DOWNTO 0);
 
         max_vol_lsr : IN signed(15 DOWNTO 0);
         min_vol_lsr : IN signed(15 DOWNTO 0);
@@ -52,7 +52,7 @@ ENTITY turnkey_control IS
     );
 END turnkey_control;
 
-ARCHITECTURE bhvr OF turnkey_contorl IS
+ARCHITECTURE bhvr OF turnkey_control IS
     TYPE state_type IS (s_idle, s_prepare, s_restart, s_scan, s_detect, s_wait, s_coarse, s_fine, s_stabilize, s_longterm, s_failure);
     SIGNAL current_state : state_type := s_idle;
 
@@ -87,7 +87,8 @@ BEGIN
                 rst_vco <= '1';
                 approach_counter <= x"00";
                 MI_detected <= '0';
-                soliton_detected <= '0';
+                soliton_failure <= '0';
+                minimum_reached <= '0';
             ELSE
                 CASE current_state IS
                     WHEN s_idle =>
@@ -159,7 +160,7 @@ BEGIN
                             ELSE 
                                 -- nothing special
                                 current_state <= s_wait; 
-                            END;
+                            END IF;
                         ELSE
                             time_cnt <= time_cnt + x"00000001";
                         END IF;
@@ -173,7 +174,7 @@ BEGIN
                             IF soliton_power_avg > coarse_target THEN
                                 output_voltage_lsr <= output_voltage_lsr - x"0001";
                             ELSIF soliton_power_avg < floor THEN
-                                soliton_failure <= '1'
+                                soliton_failure <= '1';
                                 current_state <= s_prepare;
                             ELSE
                                 current_state <= s_fine;
@@ -187,7 +188,7 @@ BEGIN
                             IF soliton_power_avg > fine_target THEN
                                 output_voltage_lsr <= output_voltage_lsr - x"0001";
                             ELSIF soliton_power_avg < floor THEN
-                                soliton_failure <= '1'
+                                soliton_failure <= '1';
                                 current_state <= s_prepare;
                             ELSE
                                 stab_counter <= (OTHERS => '0');
@@ -200,7 +201,7 @@ BEGIN
                     WHEN s_stabilize =>
                         IF time_cnt = stab_period THEN
                             IF soliton_power_avg < floor THEN
-                                soliton_failure <= '1'
+                                soliton_failure <= '1';
                                 current_state <= s_prepare;
                             ELSE
                                 IF stab_counter < stab_target THEN
@@ -248,6 +249,9 @@ BEGIN
                         vol_lsr_out <= vol_lsr_in + manual_offset;
                         vol_vco_out <= vol_vco_in;
                     WHEN s_detect =>
+                        vol_lsr_out <= vol_lsr_in + manual_offset;
+                        vol_vco_out <= vol_vco_in;
+                    WHEN s_wait =>
                         vol_lsr_out <= vol_lsr_in + manual_offset;
                         vol_vco_out <= vol_vco_in;
                     WHEN s_coarse =>

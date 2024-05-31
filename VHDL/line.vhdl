@@ -30,7 +30,7 @@ ENTITY line_signed IS
         segments_enabled : IN unsigned(3 DOWNTO 0);
 
         working : OUT std_logic;
-        current : OUT INTEGER;
+        current : OUT unsigned(3 DOWNTO 0);
         output : OUT signed(15 DOWNTO 0);
         initiate : IN std_logic;
         periodic : IN std_logic;
@@ -98,7 +98,7 @@ BEGIN
                         slp1_mul_x <= LUT_slp1_mul_x(0);
                     WHEN running =>
                         IF x_counter = x - x"00000001" THEN
-                            IF next_segment = segments_enabled THEN
+                            IF next_segment = to_integer(segments_enabled) THEN
                                 IF periodic = '1' THEN
                                     current_state <= standby;
                                 END IF;
@@ -222,7 +222,7 @@ ENTITY line_unsigned IS
         LUT_y : IN LUT_16(0 TO segments - 1);
         LUT_slope : IN LUT_16(0 TO segments - 1);
 
-        segments_enabled : IN INTEGER;
+        segments_enabled : IN unsigned(3 DOWNTO 0);
 
         working : OUT std_logic;
         current : OUT unsigned(3 DOWNTO 0);
@@ -293,7 +293,7 @@ BEGIN
                         slp1_mul_x <= LUT_slp1_mul_x(0);
                     WHEN running =>
                         IF x_counter = x - x"00000001" THEN
-                            IF next_segment = segments_enabled THEN
+                            IF next_segment = to_integer(segments_enabled) THEN
                                 IF periodic = '1' THEN
                                     current_state <= standby;
                                 END IF;

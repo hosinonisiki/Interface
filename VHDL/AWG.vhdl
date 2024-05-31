@@ -55,7 +55,7 @@ ARCHITECTURE bhvr OF AWG IS
     SIGNAL memory_y : std_logic_vector(127 DOWNTO 0);
     SIGNAL memory_slope : std_logic_vector(127 DOWNTO 0);
 
-    SIGNAL segments_enabled_translated : INTEGER RANGE 1 TO 8;
+    SIGNAL segments_enabled_translated : unsigned(3 DOWNTO 0);
     SIGNAL slope_calculated : unsigned(15 DOWNTO 0);
 BEGIN
     PROCESS(Clk)
@@ -128,7 +128,7 @@ BEGIN
         LUT_slope(i) <= unsigned(memory_slope(i * 16 + 15 DOWNTO i * 16));
     END GENERATE;
 
-    segments_enabled_translated <= to_integer(segments_enabled) + 1; -- verbose due to 2002 standard
+    segments_enabled_translated <= segments_enabled + x"1"; -- verbose due to 2002 standard
 
     frequency_control : ENTITY WORK.line_unsigned GENERIC MAP(
         segments => 8

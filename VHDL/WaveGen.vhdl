@@ -44,7 +44,7 @@ BEGIN
         LUT_y => LUT_y_input,
         LUT_slope => LUT_slope_input,
 
-        segments_enabled => 1,
+        segments_enabled => x"1",
 
         working => OPEN,
         current => OPEN,
