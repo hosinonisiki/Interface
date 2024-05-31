@@ -675,10 +675,10 @@ class Interface():
             self.information["text"] = "Unlocked developer utilities."
             self.developer_identification.destroy()
             self.developer_entrance.destroy()
-            self.root.geometry("1200x700")
+            self.root.geometry("1450x750")
             self.developer = True
             
-            self.developer_mode = ttk.LabelFrame(self.root, text = "Developer mode", width = 1160, height = 300, relief = tk.GROOVE)
+            self.developer_mode = ttk.LabelFrame(self.root, text = "Developer mode", width = 1410, height = 350, relief = tk.GROOVE)
             self.developer_mode.place(x = 20, y = 375, anchor = tk.NW)
             
             # developer mode
@@ -777,19 +777,19 @@ class Interface():
             self.developer_instrument_boxes = [ttk.Combobox(self.developer_mode, values = [""] + instruments) for i in range(8)]
             for i in range(8):
                 self.developer_instrument_boxes[i].current(0)
-                self.developer_instrument_boxes[i].place(x = 750 + 30 * i % 4, y = 120 + 90 * i // 4, anchor = tk.NW)
+                self.developer_instrument_boxes[i].place(x = 750 + 160 * (i % 4), y = 120 + 90 * (i // 4), anchor = tk.NW)
                 self.developer_instrument_boxes[i].bind("<<ComboboxSelected>>", lambda event, i = i:self.developer_parameter_setting("replace instrument", i))
 
             self.developer_parameter_name_boxes = [ttk.Combobox(self.developer_mode, values = [""]) for i in range(8)]
             for i in range(8):
                 self.developer_parameter_name_boxes[i].current(0)
-                self.developer_parameter_name_boxes[i].place(x = 750 + 30 * i % 4, y = 150 + 90 * i // 4, anchor = tk.NW)
+                self.developer_parameter_name_boxes[i].place(x = 750 + 160 * (i % 4), y = 150 + 90 * (i // 4), anchor = tk.NW)
                 self.developer_parameter_name_boxes[i].bind("<<ComboboxSelected>>", lambda event, i = i:self.developer_parameter_setting("replace parameter", i))
 
             self.developer_parameter_value_format = custom_widgets.QuantityFormat((10, 0, 0), {}, "")
             self.developer_parameter_value_entries = [custom_widgets.QuantityEntry(self.developer_mode, formater = self.developer_parameter_value_format, report = lambda i = i:self.developer_parameter_setting("upload parameter", i), width = 10, font = ("Arial", 12)) for i in range(8)]      
             for i in range(8):
-                self.developer_parameter_value_entries[i].place(x = 750 + 30 * i % 4, y = 180 + 90 * i // 4, anchor = tk.NW)
+                self.developer_parameter_value_entries[i].place(x = 750 + 160 * (i % 4), y = 180 + 90 * (i // 4), anchor = tk.NW)
 
             self.update()
 
@@ -1142,7 +1142,7 @@ class Interface():
         self.logger.info("FPGA connection thread started.")
         try:
             self.logger.debug("Connecting to FPGA.")
-            self.mim = fpga.MIM(self.ip, config_id = "1", logger = self.logger)
+            self.mim = fpga.MIM(self.ip, config_id = "4", logger = self.logger)
             self.powerlock_state = self.POWERLOCK_STATE_OFF
             self.LO_state = self.LO_STATE_OFF
             self.fast_PID_state = self.FAST_PID_STATE_OFF

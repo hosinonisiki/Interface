@@ -194,7 +194,7 @@
                 <output channel="1" gain="14dB" />
             </io_settings>
         </config>
-        <config id = "4" platform="Moku:Pro" firmware="591" comb_id="2" description="The refactored turnkey module." >
+        <config id="4" platform="Moku:Pro" firmware="591" comb_id="2" description="The refactored turnkey module." >
             <instruments>
                 <instrument type="CloudCompile" slot="2" purpose="turnkey_refactored">
                     <bitstream>turnkey_re_pro_591</bitstream>

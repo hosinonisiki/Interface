@@ -146,6 +146,28 @@ class Feedback(MCC):
         location = self.mapping[name]
         bits = bin(self.get_control(location["index"]))[2:].zfill(32)
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
+    
+class MCC_Template(MCC):
+    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None):
+        super().__init__(mcc, slot, controls)
+        self.parameters = parameters
+        self.mapping = mapping
+        for i in self.parameters:
+            self.set_parameter(i, self.parameters[i])
+
+    def set_parameter(self, name: str, value: int) -> object:
+        location = self.mapping[name]
+        bits = convert_bits(value, location["high"] - location["low"] + 1)
+        pointer = location["high"]
+        for i in bits:
+            self.set_bit(location["index"], pointer, i)
+            pointer = pointer - 1
+        return self
+    
+    def get_parameter(self, name: str) -> int:
+        location = self.mapping[name]
+        bits = bin(self.get_control(location["index"]))[2:].zfill(32)
+        return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
 
 class MIM():
     def __init__(self, ip, config_id = "1", logger = None):
@@ -185,8 +207,8 @@ class MIM():
             if i.get("id") == self.config_id:
                 self.config = i
                 break
-            else:
-                raise Exception("Configuration not found.")
+        else:
+            raise Exception("Configuration not found.")
         if self.logger:
             self.logger.debug("Configuration found, working on %s firmware version %s with comb No.%s. %s"%(self.config.get("platform"), self.config.get("firmware"), self.config.get("comb_id"), self.config.get("description")))
 
@@ -210,7 +232,12 @@ class MIM():
                             mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
                             self.instruments[slot] = ("feedback", Feedback(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping))
                         case _:
-                            raise Exception("Unknown MCC purpose.")
+                            if self.logger:
+                                self.logger.debug("Unregistered MCC purpose.")
+                            slot = int(i.get("slot"))
+                            parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
+                            mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
+                            self.instruments[slot] = (i.get("purpose"), MCC_Template(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping))
                 case _:
                     if self.logger:
                         self.logger.debug("Creating %s."%i.get("type"))
@@ -232,9 +259,11 @@ class MIM():
             self.mim.set_output(int(i.get("channel")), i.get("gain"))
         if self.logger:
             self.logger.debug("Final steps.")
-        self.upload_control("turnkey")
-        self.upload_control("feedback")
-        self.command("turnkey", "stop")
+        if "turnkey" in self.instruments.values():
+            self.upload_control("turnkey")
+            self.command("turnkey", "stop")
+        if "feedback" in self.instruments.values():
+            self.upload_control("feedback")
         return self
     
     def upload_control(self, purpose: str) -> object:
