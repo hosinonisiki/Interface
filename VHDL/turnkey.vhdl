@@ -15,16 +15,13 @@ USE IEEE.Numeric_std.ALL;
 
 USE WORK.MyPak_turnkey.ALL;
 
--- todo : replace the implement of line state with simpler logic
--- todo : replace averaging with an entity
 ENTITY turnkey IS
     GENERIC(
-        segments : INTEGER := 3; -- enumerated from 1, but array index starts at 0
-        tap : INTEGER := 64; -- for calculating moving averages
-        logtap : INTEGER := 6
+        segments : INTEGER := 3 -- enumerated from 1, but array index starts at 0
     );
     PORT(
         soliton_power_unscaled : IN signed(15 DOWNTO 0);
+        soliton_power_avg_unscaled : IN signed(15 DOWNTO 0);
         scanning_voltage_scaled : OUT signed(15 DOWNTO 0);
 
         hold_period : IN unsigned(23 DOWNTO 0);
@@ -53,36 +50,29 @@ ENTITY turnkey IS
 
         floor : IN signed(15 DOWNTO 0);
 
-        PID_K_P : IN signed(31 DOWNTO 0);
-        PID_K_I : IN signed(31 DOWNTO 0);
-        PID_K_D : IN signed(31 DOWNTO 0);
-
         mode : IN std_logic;
 
         sweep_period : IN unsigned(23 DOWNTO 0);
-        
-        PID_limit_sum : IN signed(15 DOWNTO 0);
-
-        PID_lock : IN std_logic;
 
         input_gain : IN signed(7 DOWNTO 0);
         output_gain : IN signed(7 DOWNTO 0);
 
         manual_offset : IN signed(15 DOWNTO 0);
 
-        Clk : IN std_logic;
-        Reset : IN std_logic;
+        is_longterm : OUT std_logic;
 
-        TestA : OUT signed(15 DOWNTO 0);
-        TestB : OUT signed(15 DOWNTO 0)
+        Clk : IN std_logic;
+        Reset : IN std_logic
     );
 END turnkey;
 
 ARCHITECTURE bhvr OF turnkey IS
     SIGNAL soliton_power : signed(15 DOWNTO 0);
+    SIGNAL soliton_power_avg : signed(15 DOWNTO 0);
     SIGNAL scanning_voltage : signed(15 DOWNTO 0);
     SIGNAL reg_scanning_voltage : signed(15 DOWNTO 0);
     SIGNAL reg_soliton_power : signed(23 DOWNTO 0);
+    SIGNAL reg_soliton_power_avg : signed(23 DOWNTO 0);
     SIGNAL reg_scanning_voltage_scaled : signed(23 DOWNTO 0);
 
     TYPE state IS (standby, confirm, line, hold, failure, coarse, fine, stablize, longterm, sweep, sweeppause);
@@ -118,15 +108,7 @@ ARCHITECTURE bhvr OF turnkey IS
     SIGNAL MI_detected : std_logic := '0';
     SIGNAL soliton_failure : std_logic := '0';
 
-    SIGNAL soliton_power_avg : signed(15 + logtap DOWNTO 0) := (OTHERS => '0');
-    TYPE reg IS ARRAY(0 TO tap - 1) OF signed(15 DOWNTO 0);
-    SIGNAL soliton_power_reg : reg := (OTHERS => x"0000");
-
     SIGNAL stab_counter : signed(15 DOWNTO 0);
-
-    SIGNAL PID_setpoint : signed(15 DOWNTO 0);
-    SIGNAL PID_control : signed(15 DOWNTO 0);
-    SIGNAL PID_reset : std_logic := '1';
 
     SIGNAL startup : std_logic := '0';
 BEGIN
@@ -135,11 +117,13 @@ BEGIN
     BEGIN
         IF rising_edge(Clk) THEN
         soliton_power <= reg_soliton_power(19 DOWNTO 4);
-            scanning_voltage_scaled <= reg_scanning_voltage_scaled(19 DOWNTO 4);
-            scanning_voltage <= reg_scanning_voltage;
+        soliton_power_avg <= reg_soliton_power_avg(19 DOWNTO 4);
+        scanning_voltage_scaled <= reg_scanning_voltage_scaled(19 DOWNTO 4);
+        scanning_voltage <= reg_scanning_voltage;
         END IF;
     END PROCESS;
     reg_soliton_power <= soliton_power_unscaled * input_gain;
+    reg_soliton_power_avg <= soliton_power_avg_unscaled * input_gain;
     reg_scanning_voltage_scaled <= scanning_voltage * output_gain;
     
     -- FSM
@@ -209,7 +193,6 @@ BEGIN
                             slope <= LUT_slope(0);
                             sign <= LUT_sign(0);
                             current_state <= line; --
-                            PID_reset <= '1';
                         END IF;
                     WHEN line =>
                         IF period_counter = period - x"000001" THEN
@@ -274,9 +257,9 @@ BEGIN
                         output_voltage <= max_voltage;
                     WHEN coarse =>
                         IF period_counter = coarse_period - x"000001" THEN
-                            IF soliton_power_avg(15 + logtap DOWNTO logtap) > coarse_target THEN
+                            IF soliton_power_avg > coarse_target THEN
                                 output_voltage <= output_voltage - x"0001";
-                            ELSIF soliton_power_avg(15 + logtap DOWNTO logtap) < floor THEN
+                            ELSIF soliton_power_avg < floor THEN
                                 soliton_failure <= '1';
                                 current_state <= confirm;
                             ELSE
@@ -288,9 +271,9 @@ BEGIN
                         END IF;
                     WHEN fine =>
                         IF period_counter = fine_period - x"000001" THEN
-                            IF soliton_power_avg(15 + logtap DOWNTO logtap) > fine_target THEN
+                            IF soliton_power_avg > fine_target THEN
                                 output_voltage <= output_voltage - x"0001";
-                            ELSIF soliton_power_avg(15 + logtap DOWNTO logtap) < floor THEN
+                            ELSIF soliton_power_avg < floor THEN
                                 soliton_failure <= '1';
                                 current_state <= confirm;
                             ELSE
@@ -303,7 +286,7 @@ BEGIN
                         END IF;
                     WHEN stablize =>
                         IF period_counter = stab_period - x"000001" THEN
-                            IF soliton_power_avg(15 + logtap DOWNTO logtap) < floor THEN
+                            IF soliton_power_avg < floor THEN
                                 soliton_failure <= '1';
                                 current_state <= confirm;
                             ELSE
@@ -312,7 +295,6 @@ BEGIN
                                     output_voltage <= output_voltage + x"0001";
                                 ELSE
                                     --long term
-                                    PID_setpoint <= soliton_power_avg(15 + logtap DOWNTO logtap);
                                     current_state <= longterm;
                                 END IF;
                             END IF;
@@ -321,11 +303,10 @@ BEGIN
                             period_counter <= period_counter + x"000001";
                         END IF;
                     WHEN longterm =>
-                        IF soliton_power_avg(15 + logtap DOWNTO logtap) < floor THEN
+                        IF soliton_power_avg < floor THEN
                             soliton_failure <= '1';
                             current_state <= confirm;
                         END IF;
-                        PID_reset <= '0'; 
                     WHEN sweep =>
                         IF period_counter = sweep_period - x"000001" THEN
                             IF output_voltage = max_voltage THEN
@@ -350,44 +331,6 @@ BEGIN
             END IF;
          END IF;
     END PROCESS;
-    --soliton power average
-
-    PROCESS(Clk)
-    BEGIN
-        IF rising_edge(Clk) THEN
-            soliton_power_reg(0) <= soliton_power;
-            soliton_power_avg <= soliton_power_avg - ((logtap - 1 DOWNTO 0 => soliton_power_reg(tap - 1)(15)) & soliton_power_reg(tap - 1)) + ((logtap - 1 DOWNTO 0 => soliton_power(15)) & soliton_power);
-         END IF;
-    END PROCESS;
-    
-    avg : FOR i IN 0 TO tap - 2 GENERATE
-        PROCESS(Clk)
-        BEGIN
-            IF rising_edge(Clk) THEN
-                soliton_power_reg(i + 1) <= soliton_power_reg(i);
-            END IF;
-        END PROCESS;
-    END GENERATE avg;
-
-    pid: ENTITY WORK.PID PORT MAP(
-        actual => soliton_power_avg(15 + logtap DOWNTO logtap),
-        setpoint => PID_setpoint,
-        control => PID_control,
-
-        K_P => PID_K_P,
-        K_I => PID_K_I,
-        K_D => PID_K_D,
-
-        limit_I => x"0001000000000000",
-
-        limit_sum => PID_limit_sum,
-
-        Reset => PID_reset,
-        Clk => Clk
-    );
-
-    TestA <= x"0000";
-    TestB <= soliton_power_avg(15 + logtap DOWNTO logtap) - PID_setpoint;
 
     gen : FOR i IN 0 TO segments - 1 GENERATE
         LUT_slp_mul_prd(i) <= LUT_slope(i) * LUT_period(i);
@@ -400,8 +343,8 @@ BEGIN
         END IF;
     END PROCESS;
 
-    -- Test <= PID_control;
     -- limit wrapping around
-    reg_scanning_voltage <= output_voltage + manual_offset + PID_control WHEN current_state = longterm AND PID_lock = '0' ELSE
-                        output_voltage + manual_offset;
+    reg_scanning_voltage <= output_voltage + manual_offset;
+
+    is_longterm <= '0' WHEN current_state = longterm ELSE '1';
 END bhvr;

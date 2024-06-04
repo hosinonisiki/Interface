@@ -1,10 +1,14 @@
 ARCHITECTURE bhvr OF CustomWrapper IS
+    SIGNAL soliton_power_avg_A : signed(15 DOWNTO 0);
+    SIGNAL soliton_power_avg_B : signed(15 DOWNTO 0);
+    SIGNAL is_longterm : std_logic;
+    SIGNAL PID_input : signed(15 DOWNTO 0);
+    SIGNAL PID_setpoint : signed(15 DOWNTO 0);
+    SIGNAL PID_Reset : std_logic;
 BEGIN
-    DUT : ENTITY WORK.turnkey(bhvr) GENERIC MAP(
-        tap => 256,
-        logtap => 8
-    )PORT MAP(
+    DUT1 : ENTITY WORK.turnkey(bhvr) PORT MAP(
         soliton_power_unscaled => InputA,
+        soliton_power_avg_unscaled => soliton_power_avg_A,
         scanning_voltage_scaled => OutputA,
 
         LUT_period => (unsigned(Control1(31 DOWNTO 16)) & x"00", unsigned(Control1(15 DOWNTO 0)) & x"00", unsigned(Control2(31 DOWNTO 16)) & x"00"),
@@ -32,28 +36,68 @@ BEGIN
         stab_period => unsigned(Control10(31 DOWNTO 16)) & x"00",
 
         floor => signed(Control10(15 DOWNTO 0)),
-        
-        PID_K_P => signed(Control11(31 DOWNTO 0)),
-        PID_K_I => signed(Control12(31 DOWNTO 0)),
-        PID_K_D => signed(Control13(31 DOWNTO 0)),
          
         mode => Control0(1),
 
         sweep_period =>  x"00" & unsigned(Control14(31 DOWNTO 16)),
-
-        PID_lock => Control0(2),
-
-        PID_limit_sum => x"7000",
 
         input_gain => signed(Control14(7 DOWNTO 0)),
         output_gain => signed(Control14(15 DOWNTO 8)),
 
         manual_offset => signed(Control15(31 DOWNTO 16)),
 
-        Clk => Clk,
-        Reset => Control0(0),
+        is_longterm => is_longterm,
 
-        TestA => OutputB,
-        TestB => OutputC
+        Clk => Clk,
+        Reset => Control0(0)
+    );
+
+    DUT2 : ENTITY WORK.PID(nodecay) PORT MAP(
+        actual => PID_input,
+        setpoint => PID_setpoint,
+        control => OutputB,
+
+        K_P => signed(Control11(31 DOWNTO 0)),
+        K_I => signed(Control12(31 DOWNTO 0)),
+        K_D => signed(Control13(31 DOWNTO 0)),
+
+        limit_I => x"0001000000000000",
+
+        limit_sum => signed(Control15(15 DOWNTO 0)),
+
+        decay_I => x"40000000",
+
+        Reset => PID_Reset,
+        Clk => Clk
+    );
+    PID_input <= soliton_power_avg_B WHEN Control0(3) = '0' ELSE InputB;
+    PID_Reset <= Control0(2) OR is_longterm;
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            IF PID_Reset = '1' THEN
+                PID_setpoint <= PID_input;
+            END IF;
+        END IF;
+    END PROCESS;
+
+    DUT3 : ENTITY WORK.moving_average GENERIC MAP(
+        tap => 64,
+        logtap => 6
+    )PORT MAP(
+        input => InputA,
+        output => soliton_power_avg_A,
+        Clk => Clk,
+        Reset => Control0(0)
+    );
+
+    DUT4 : ENTITY WORK.moving_average GENERIC MAP(
+        tap => 64,
+        logtap => 6
+    )PORT MAP(
+        input => InputB,
+        output => soliton_power_avg_B,
+        Clk => Clk,
+        Reset => Control0(0)
     );
 END bhvr;
