@@ -177,6 +177,7 @@ class MIM():
         if self.logger:
             self.logger.debug("MIM Created.")
         self.instruments = {1:None, 2:None, 3:None, 4:None}
+        self.purposes = {}
         self.config = None
         
         self.uploading_queue = queue.Queue() 
@@ -185,14 +186,13 @@ class MIM():
         self.uploader.start()
 
     def get_slot(self, type: str) -> Union[int, None]:
-        for i in self.instruments:
-            if self.instruments[i] is not None and self.instruments[i][0] == type:
-                return i
+        if type in self.purposes:
+            return self.purposes[type]
         return None
 
     def get_instrument(self, arg: Union[int, str, None]) -> Union[Turnkey, Feedback, None]:
         if type(arg) == int:
-            return self.instruments[arg][1]
+            return self.instruments[arg]
         elif type(arg) == str:
             return self.get_instrument(self.get_slot(arg))
         return None
@@ -223,25 +223,38 @@ class MIM():
                             slot = int(i.get("slot"))
                             parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
                             mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
-                            self.instruments[slot] = ("turnkey", Turnkey(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping))
+                            self.instruments[slot] = Turnkey(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping)
+                            self.purposes["turnkey"] = slot
                         case "feedback":
                             if self.logger:
                                 self.logger.debug("Creating feedback.")
                             slot = int(i.get("slot"))
                             parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
                             mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
-                            self.instruments[slot] = ("feedback", Feedback(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping))
+                            self.instruments[slot] = Feedback(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping)
+                            self.purposes["feedback"] = slot
+                        case "feedback and turnkey":
+                            if self.logger:
+                                self.logger.debug("Creating feedback and turnkey.")
+                            slot = int(i.get("slot"))
+                            parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
+                            mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
+                            self.instruments[slot] = Feedback(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping)
+                            self.purposes["feedback"] = slot
+                            self.purposes["turnkey"] = slot
                         case _:
                             if self.logger:
                                 self.logger.debug("Unregistered MCC purpose.")
                             slot = int(i.get("slot"))
                             parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
                             mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
-                            self.instruments[slot] = (i.get("purpose"), MCC_Template(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping))
+                            self.instruments[slot] = MCC_Template(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping)
+                            self.purposes[i.get("purpose")] = slot
                 case _:
                     if self.logger:
                         self.logger.debug("Creating %s."%i.get("type"))
-                    self.instruments[int(i.get("slot"))] = (i.get("type"), self.mim.set_instrument(int(i.get("slot")), eval("instruments.%s"%i.get("type"))))
+                    slot = int(i.get("slot"))
+                    self.instruments[slot] = self.mim.set_instrument(slot, eval("instruments.%s"%i.get("type")))
 
         # set up connections, frontends and outputs
         if self.logger:
@@ -259,10 +272,10 @@ class MIM():
             self.mim.set_output(int(i.get("channel")), i.get("gain"))
         if self.logger:
             self.logger.debug("Final steps.")
-        if "turnkey" in self.instruments.values():
+        if "turnkey" in self.purposes:
             self.upload_control("turnkey")
             self.command("turnkey", "stop")
-        if "feedback" in self.instruments.values():
+        if "feedback" in self.purposes:
             self.upload_control("feedback")
         return self
     

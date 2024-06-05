@@ -195,9 +195,9 @@ BEGIN
         Clk => Clk,
         Reset => '0',
 
-        TestA => TestA,
-        TestB => TestB,
-        TestC => TestC
+        TestA => OPEN,
+        TestB => OPEN,
+        TestC => OPEN
     );
     DUT4 : ENTITY WORK.atan PORT MAP(
         inputC => I,
@@ -417,4 +417,9 @@ BEGIN
 
     -- newly added
     OutputA <= piezo_feedback + piezo_turnkey;
+
+    TestA <= piezo_feedback;
+    TestB <= piezo_turnkey;
+    TestC <= soliton_power_avg_A;
+    TestD <= soliton_power_avg_B;
 END bhvr;

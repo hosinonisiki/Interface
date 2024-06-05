@@ -773,7 +773,7 @@ class Interface():
             self.developer_parameter_value_entry = custom_widgets.QuantityEntry(self.developer_mode, formater = self.developer_parameter_value_format, report = lambda:self.developer_parameter_setting("upload parameter"), width = 10, font = ("Arial", 12))
             self.developer_parameter_value_entry.place(x = 750, y = 180, anchor = tk.NW)
             '''
-            instruments = [i.get("purpose") for i in self.mim.config.findall("./instruments/instrument") if i.get("type") == "CloudCompile"]
+            instruments = self.mim.purposes.keys()
             self.developer_instrument_boxes = [ttk.Combobox(self.developer_mode, values = [""] + instruments) for i in range(8)]
             for i in range(8):
                 self.developer_instrument_boxes[i].current(0)
@@ -819,8 +819,8 @@ class Interface():
                 if self.developer_instrument_boxes[index].get() == "":
                     self.developer_parameter_name_boxes[index]["values"] = [""]
                 else:
-                    instrument = self.mim.config.find("./instruments/instrument[@purpose='%s']"%self.developer_instrument_boxes[index].get())
-                    self.developer_parameter_name_boxes[index]["values"] = [""] + [i.get("name") for i in instrument.findall("./parameters/parameter")]
+                    instrument = self.mim.get_instrument(self.developer_instrument_boxes[index].get())
+                    self.developer_parameter_name_boxes[index]["values"] = [""] + instrument.mapping.keys()
                 self.developer_parameter_name_boxes[index].current(0)
                 self.developer_parameter_value_entries[index].set("")
                 self.developer_parameter_value_entries[index].store()
