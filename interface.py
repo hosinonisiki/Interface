@@ -10,6 +10,7 @@ import time
 import typing
 from typing import NoReturn
 import logging
+import xml.etree.ElementTree as ET
 
 import numpy as np
 
@@ -197,7 +198,7 @@ class Interface():
 
         # fpga section
         
-        self.fpga_frame = ttk.LabelFrame(self.root, text = "FPGA", width = 280, height = 220, relief = tk.GROOVE)
+        self.fpga_frame = ttk.LabelFrame(self.root, text = "FPGA", width = 280, height = 270, relief = tk.GROOVE)
         self.fpga_frame.place(x = 20, y = 15, anchor = tk.NW)
         
         self.fpga_connection_label = ttk.Label(self.fpga_frame, text = "FPGA local IP address:")
@@ -213,19 +214,34 @@ class Interface():
     
         self.fpga_disconnection_button = ttk.Button(self.fpga_frame, text = "Disconnect", command = self.fpga_disconnection_button_onclick, width = 32)
         self.fpga_disconnection_button.place(x = 20, y = 47, anchor = tk.NW)
-    
+
+        self.fpga_config_label = ttk.Label(self.fpga_frame, text = "Select configuration:")
+        self.fpga_config_label.place(x = 20, y = 76, anchor = tk.NW)
+
+        self.fpga_config_combobox = ttk.Combobox(self.fpga_frame, width = 30)
+        self.fpga_config_combobox.place(x = 20, y = 96, anchor = tk.NW)
+        # parse config options
+        self.config_root = ET.parse("config.xml").getroot()
+        self.configs = []
+        for i in self.config_root.findall("./configurations/config"):
+            description = i.get("description")
+            if len(description) > 35:
+                description = description[:32] + "..."
+            self.configs.append(description)
+        self.fpga_config_combobox["values"] = self.configs
+
         self.fpga_initialization_button = ttk.Button(self.fpga_frame, text = "Initialize", command = self.fpga_initialization_button_onclick, width = 32)
-        self.fpga_initialization_button.place(x = 20, y = 76, anchor = tk.NW)
+        self.fpga_initialization_button.place(x = 20, y = 126, anchor = tk.NW)
         
         self.manual_offset_label = ttk.Label(self.fpga_frame, text = "Manual offset:")
-        self.manual_offset_label.place(x = 20, y = 102, anchor = tk.NW)
+        self.manual_offset_label.place(x = 20, y = 152, anchor = tk.NW)
 
         self.manual_offset_format = custom_widgets.QuantityFormat((3, 3, 3), {"m": 1e-3}, "V")
         self.manual_offset_entry = custom_widgets.QuantityEntry(self.fpga_frame, self.manual_offset_format, self.manual_offset_report, width = 10, font = ("Arial", 12))
-        self.manual_offset_entry.place(x = 20, y = 122, anchor = tk.NW)
+        self.manual_offset_entry.place(x = 20, y = 172, anchor = tk.NW)
 
         self.fpga_control_panel_button = ttk.Button(self.fpga_frame, text = "Control panel", command = self.fpga_control_panel_button_onclick, width = 32)
-        self.fpga_control_panel_button.place(x = 20, y = 146, anchor = tk.NW)
+        self.fpga_control_panel_button.place(x = 20, y = 196, anchor = tk.NW)
 
         # tcm section
         
@@ -1142,7 +1158,8 @@ class Interface():
         self.logger.info("FPGA connection thread started.")
         try:
             self.logger.debug("Connecting to FPGA.")
-            self.mim = fpga.MIM(self.ip, config_id = "4", logger = self.logger)
+            self.config_id = str(self.fpga_config_combobox.current())
+            self.mim = fpga.MIM(self.ip, config_id = self.config_id, logger = self.logger)
             self.powerlock_state = self.POWERLOCK_STATE_OFF
             self.LO_state = self.LO_STATE_OFF
             self.fast_PID_state = self.FAST_PID_STATE_OFF

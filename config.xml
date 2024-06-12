@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
     <configurations>
-        <config id="1" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey and Feedback.">
+        <config id="0" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey and Feedback.">
             <instruments>
                 <instrument type="Oscilloscope" slot="4" />
                 <instrument type="CloudCompile" slot="3" purpose="feedback">
@@ -100,7 +100,7 @@
                 <output channel="4" gain="14dB" />
             </io_settings>
         </config>
-        <config id="2" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey only.">
+        <config id="1" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey only.">
             <instruments>
                 <instrument type="CloudCompile" slot="2" purpose="turnkey">
                     <bitstream>turnkey_pro_591</bitstream>
@@ -154,7 +154,7 @@
                 <output channel="2" gain="0dB" />
             </io_settings>
         </config>
-        <config id="3" platform="Moku:Go" firmware="591" comb_id="2" description="Turnkey only.">
+        <config id="2" platform="Moku:Go" firmware="591" comb_id="2" description="Turnkey only.">
             <instruments>
                 <instrument type="CloudCompile" slot="2" purpose="turnkey">
                     <bitstream>turnkey_go_591</bitstream>
@@ -208,7 +208,7 @@
                 <output channel="2" gain="0dB" />
             </io_settings>
         </config>
-        <config id="4" platform="Moku:Pro" firmware="591" comb_id="2" description="The refactored turnkey module." >
+        <config id="3" platform="Moku:Pro" firmware="591" comb_id="2" description="The refactored turnkey module." >
             <instruments>
                 <instrument type="CloudCompile" slot="2" purpose="turnkey_refactored">
                     <bitstream>turnkey_re_pro_591</bitstream>
@@ -262,7 +262,7 @@
                 <output channel="2" gain="14dB" />
             </io_settings>
         </config>
-        <config id="5" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey and Feedback with EDFA2 PID taking over Output2.">
+        <config id="4" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey and Feedback with EDFA2 PID taking over Output2.">
             <instruments>
                 <instrument type="Oscilloscope" slot="4" />
                 <instrument type="CloudCompile" slot="3" purpose="feedback">
@@ -363,7 +363,7 @@
                 <output channel="4" gain="14dB" />
             </io_settings>
         </config>
-        <config id="6" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey and Feedback combined in one instrument.">
+        <config id="5" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey and Feedback combined in one instrument.">
             <instruments>
                 <instrument type="CloudCompile" slot="3" purpose="feedback and turnkey">
                     <bitstream>feedback_turnkey_pro_591</bitstream>
@@ -430,7 +430,7 @@
                 <output channel="4" gain="14dB" />
             </io_settings>
         </config>
-        <config id="7" platform="Moku:Pro" firmware="591" description="PID with output wrapping.">
+        <config id="6" platform="Moku:Pro" firmware="591" description="PID with output wrapping.">
             <instruments>
                 <instrument type="CloudCompile" slot="2" purpose="PID">
                     <bitstream>PID_wrapped_pro_591</bitstream>
