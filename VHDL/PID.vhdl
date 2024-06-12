@@ -106,8 +106,8 @@ BEGIN
 
     reg_P <= buf_K_P * error;
 
-    reg_I <= limit_I WHEN decayed + ((15 DOWNTO 0 => sum1(47)) & sum1) > limit_I ELSE
-                -limit_I WHEN decayed + ((15 DOWNTO 0 => sum1(47)) & sum1) < -limit_I ELSE
+    reg_I <= limit_I WHEN decayed > limit_I ELSE
+                -limit_I WHEN decayed < -limit_I ELSE
                 decayed + ((15 DOWNTO 0 => sum1(47)) & sum1);
     
     reg_D <= buf_K_D * difference;
@@ -179,8 +179,8 @@ BEGIN
     reg_P <= buf_K_P * error;
     
     reg_buf_I <= buf_K_I * error;
-    reg_I <= limit_I WHEN I + ((15 DOWNTO 0 => buf_I(47)) & buf_I) > limit_I ELSE
-                -limit_I WHEN I + ((15 DOWNTO 0 => buf_I(47)) & buf_I) < -limit_I ELSE
+    reg_I <= limit_I WHEN I > limit_I ELSE
+                -limit_I WHEN I < -limit_I ELSE
                 I + ((15 DOWNTO 0 => buf_I(47)) & buf_I);
 
     

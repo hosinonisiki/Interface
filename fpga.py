@@ -210,9 +210,9 @@ class MIM():
         else:
             raise Exception("Configuration not found.")
         if self.logger:
-            try:
+            if self.config.get("platform") and self.config.get("firmware") and self.config.get("comb_id"):
                 self.logger.debug("Configuration found, working on %s firmware version %s with comb No.%s. %s"%(self.config.get("platform"), self.config.get("firmware"), self.config.get("comb_id"), self.config.get("description")))
-            except:
+            else:
                 # a miscellanous configuration
                 self.logger.debug("Configuration found, working with %s."%self.config.get("description"))
         

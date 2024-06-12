@@ -430,5 +430,30 @@
                 <output channel="4" gain="14dB" />
             </io_settings>
         </config>
+        <config id="7" platform="Moku:Pro" firmware="591" description="PID with output wrapping.">
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="PID">
+                    <bitstream>PID_wrapped_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="K_P" index="1" high="31" low="0" value="0" />
+                        <parameter name="K_I" index="2" high="31" low="0" value="0" />
+                        <parameter name="K_D" index="3" high="31" low="0" value="0" />
+                        <parameter name="threshold" index="4" high="31" low="16" value="" />
+                        <parameter name="wrapped" index="4" high="15" low="0" value="0" />
+                        <parameter name="holding_time" index="5" high="31" low="0" value="0" />
+                        <parameter name="limit_sum" index="6" high="31" low="16" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="1" />
+                    </parameters>
+                </instrument>
+            </instruments>
+            <connections>
+                <connection source="Input1" destination="Slot2InA" />
+                <connection source="Slot2OutA" destination="Output1" />
+            </connections>
+            <io_settings>
+                <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
+                <output channel="1" gain="14dB" />
+            </io_settings>
+        </config>
     </configurations>
 </root>
