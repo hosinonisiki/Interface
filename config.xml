@@ -77,7 +77,7 @@
                         <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
                         <parameter name="PID_limit" index="15" high="15" low="0" value="1000" />
                         <parameter name="PID_use_avg" index="0" high="3" low="3" value="0" />
-                        <parameter name="Reset" index="0" high="0" low="0" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="1" />
                     </parameters>
                 </instrument>
             </instruments>
@@ -137,7 +137,7 @@
                         <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
                         <parameter name="PID_limit" index="15" high="15" low="0" value="1000" />
                         <parameter name="PID_use_avg" index="0" high="3" low="3" value="0" />
-                        <parameter name="Reset" index="0" high="0" low="0" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="1" />
                     </parameters>
                 </instrument>
             </instruments>
@@ -191,7 +191,7 @@
                         <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
                         <parameter name="PID_limit" index="15" high="15" low="0" value="1000" />
                         <parameter name="PID_use_avg" index="0" high="3" low="3" value="0" />
-                        <parameter name="Reset" index="0" high="0" low="0" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="1" />
                     </parameters>
                 </instrument>
             </instruments>
@@ -338,7 +338,7 @@
                         <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
                         <parameter name="PID_limit" index="15" high="15" low="0" value="1000" />
                         <parameter name="PID_use_avg" index="0" high="3" low="3" value="0" />
-                        <parameter name="Reset" index="0" high="0" low="0" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="1" />
                     </parameters>
                 </instrument>
             </instruments>
@@ -365,6 +365,13 @@
         </config>
         <config id="5" platform="Moku:Pro" firmware="591" comb_id="1" description="Turnkey and Feedback combined in one instrument.">
             <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="pseudo ddr">
+                    <bitstream>encoder_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="sync_period" index="1" high="31" low="16" value="60000" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="0" />
+                    </parameters>
+                </instrument>
                 <instrument type="CloudCompile" slot="3" purpose="feedback and turnkey">
                     <bitstream>feedback_turnkey_pro_591</bitstream>
                     <parameters>
@@ -403,18 +410,20 @@
                         <parameter name="turnkey_PID_K_I" index="12" high="31" low="0" value="4294957296" />
                         <parameter name="turnkey_PID_K_D" index="13" high="31" low="0" value="0" />
                         <parameter name="mode" index="0" high="17" low="17" value="0" />
-                        <parameter name="turnkey_PID_lock" index="0" high="18" low="18" value="1" />
+                        <parameter name="PID_lock" index="0" high="18" low="18" value="1" />
                         <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
                         <parameter name="turnkey_PID_limit" index="15" high="15" low="0" value="1000" />
                         <parameter name="turnkey_PID_use_avg" index="0" high="19" low="19" value="0" />
-                        <parameter name="Reset" index="0" high="16" low="16" value="0" />
+                        <parameter name="decoder_phase" index="0" high="20" low="20" value="0" />
+                        <parameter name="Reset" index="0" high="16" low="16" value="1" />
                     </parameters>
                 </instrument>
             </instruments>
             <connections>
-                <connection source="Input1" destination="Slot3InA" />
+                <connection source="Input1" destination="Slot2InA" />
+                <connection source="Input2" destination="Slot2InB" />
+                <connection source="Slot2OutA" destination="Slot3InA" />
                 <connection source="Input3" destination="Slot3InB" />
-                <connection source="Input2" destination="Slot3InC" />
                 <connection source="Slot3OutA" destination="Output1" />
                 <connection source="Slot3OutB" destination="Output2" />
                 <connection source="Slot3OutD" destination="Output4" />
@@ -438,7 +447,7 @@
                         <parameter name="K_P" index="1" high="31" low="0" value="0" />
                         <parameter name="K_I" index="2" high="31" low="0" value="0" />
                         <parameter name="K_D" index="3" high="31" low="0" value="0" />
-                        <parameter name="threshold" index="4" high="31" low="16" value="" />
+                        <parameter name="threshold" index="4" high="31" low="16" value="0" />
                         <parameter name="wrapped" index="4" high="15" low="0" value="0" />
                         <parameter name="holding_time" index="5" high="31" low="0" value="0" />
                         <parameter name="limit_sum" index="6" high="31" low="16" value="0" />

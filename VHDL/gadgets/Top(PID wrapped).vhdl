@@ -14,7 +14,7 @@ BEGIN
         K_D => Control3(31 DOWNTO 0),
 
         threshold_I => x"0000" & Control4(31 DOWNTO 16) & x"00000000",
-        wrapped_I => x"0000" & Control4(15 DOWNTO 0) & x"00000000",
+        wrapped_I => (15 DOWNTO 0) & Control4(15 DOWNTO 0) & x"00000000",
 
         holding_time => Control5(31 DOWNTO 0),
 

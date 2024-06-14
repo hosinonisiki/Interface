@@ -276,11 +276,10 @@ class MIM():
             self.mim.set_output(int(i.get("channel")), i.get("gain"))
         if self.logger:
             self.logger.debug("Final steps.")
+        for purpose in self.purposes:
+            self.upload_control(purpose)
         if "turnkey" in self.purposes:
-            self.upload_control("turnkey")
             self.command("turnkey", "stop")
-        if "feedback" in self.purposes:
-            self.upload_control("feedback")
         return self
     
     def upload_control(self, purpose: str) -> object:

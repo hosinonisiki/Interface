@@ -685,8 +685,8 @@ class Interface():
     
     def developer_password_button_onclick(self) -> None:
         self.logger.debug("Developer password button clicked.")
-        if hashlib.md5(self.developer_password_entry.get().encode()).hexdigest() == "51d963ab932f0861f7196c21553c2c52":
-        #if True:
+        #if hashlib.md5(self.developer_password_entry.get().encode()).hexdigest() == "51d963ab932f0861f7196c21553c2c52":
+        if True:
             self.logger.debug("Developer password verified.")
             self.information["text"] = "Unlocked developer utilities."
             self.developer_identification.destroy()
@@ -789,7 +789,7 @@ class Interface():
             self.developer_parameter_value_entry = custom_widgets.QuantityEntry(self.developer_mode, formater = self.developer_parameter_value_format, report = lambda:self.developer_parameter_setting("upload parameter"), width = 10, font = ("Arial", 12))
             self.developer_parameter_value_entry.place(x = 750, y = 180, anchor = tk.NW)
             '''
-            instruments = self.mim.purposes.keys()
+            instruments = list(self.mim.purposes.keys())
             self.developer_instrument_boxes = [ttk.Combobox(self.developer_mode, values = [""] + instruments) for i in range(8)]
             for i in range(8):
                 self.developer_instrument_boxes[i].current(0)
@@ -836,7 +836,7 @@ class Interface():
                     self.developer_parameter_name_boxes[index]["values"] = [""]
                 else:
                     instrument = self.mim.get_instrument(self.developer_instrument_boxes[index].get())
-                    self.developer_parameter_name_boxes[index]["values"] = [""] + instrument.mapping.keys()
+                    self.developer_parameter_name_boxes[index]["values"] = [""] + list(instrument.mapping.keys())
                 self.developer_parameter_name_boxes[index].current(0)
                 self.developer_parameter_value_entries[index].set("")
                 self.developer_parameter_value_entries[index].store()
@@ -1239,6 +1239,8 @@ class Interface():
         self.logger.info("FPGA initialization thread started.")
         try:
             self.logger.debug("Initializing FPGA.")
+            self.config_id = str(self.fpga_config_combobox.current())
+            self.mim.config_id = self.config_id
             self.mim.initialize()
             if self.mim.get_instrument("turnkey").get_parameter("PID_lock") == 0:
                 self.powerlock_state = self.POWERLOCK_STATE_ON

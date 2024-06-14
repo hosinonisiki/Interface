@@ -1,6 +1,9 @@
 -- Combined module of both feedback and the old turnkey module
 -- Modification is done by adding elements from turnkey's Top to feedback's Top
 ARCHITECTURE bhvr OF CustomWrapper IS
+    SIGNAL decoded_input_1 : signed(15 DOWNTO 0);
+    SIGNAL decoded_input_2 : signed(15 DOWNTO 0);
+
     SIGNAL ref, ref_shift : signed(15 DOWNTO 0);
     SIGNAL I,Q : signed(15 DOWNTO 0);
     SIGNAL phase : signed(15 DOWNTO 0);
@@ -187,7 +190,7 @@ BEGIN
         Clk => Clk
     );
     DUT3 : ENTITY WORK.QI_demodulator(newer) PORT MAP(
-        input => InputC,
+        input => InputB,
         ref => ref,
         ref_shift => ref_shift,
         I => I,
@@ -319,9 +322,19 @@ BEGIN
         END IF;
     END PROCESS;
 
+    -- decoding, refer to channel_encoder.vhdl for details
+    DUT15 : ENTITY WORK.channel_decoder PORT MAP(
+        phase => Control0(20),
+        I => InputA,
+        A => decoded_input_1,
+        B => decoded_input_2,
+        Reset => Control0(16),
+        Clk => Clk
+    );
+
     -- turnkey module
     DUT11 : ENTITY WORK.turnkey(bhvr) PORT MAP(
-        soliton_power_unscaled => InputA,
+        soliton_power_unscaled => decoded_input_1,
         soliton_power_avg_unscaled => soliton_power_avg_A,
         scanning_voltage_scaled => piezo_turnkey,
 
@@ -384,7 +397,7 @@ BEGIN
         Reset => PID_Reset,
         Clk => Clk
     );
-    PID_input <= soliton_power_avg_B WHEN Control0(19) = '0' ELSE InputB;
+    PID_input <= soliton_power_avg_B WHEN Control0(19) = '0' ELSE decoded_input_2;
     PID_Reset <= Control0(18) OR is_longterm;
     PROCESS(Clk)
     BEGIN
@@ -399,7 +412,7 @@ BEGIN
         tap => 64,
         logtap => 6
     )PORT MAP(
-        input => InputA,
+        input => decoded_input_1,
         output => soliton_power_avg_A,
         Clk => Clk,
         Reset => Control0(16)
@@ -409,7 +422,7 @@ BEGIN
         tap => 64,
         logtap => 6
     )PORT MAP(
-        input => InputB,
+        input => decoded_input_2,
         output => soliton_power_avg_B,
         Clk => Clk,
         Reset => Control0(16)
