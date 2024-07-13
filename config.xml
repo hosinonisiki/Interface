@@ -60,12 +60,12 @@
                         <parameter name="attempts" index="7" high="31" low="24" value="1" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="48" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
-                        <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
+                        <parameter name="stab_target" index="9" high="15" low="0" value="1536" />
                         <parameter name="stab_period" index="10" high="31" low="16" value="2548" />
-                        <parameter name="floor" index="10" high="15" low="0" value="65472" />
+                        <parameter name="floor" index="10" high="15" low="0" value="65372" />
                         <parameter name="PID_K_P" index="11" high="31" low="0" value="4294767296" />
                         <parameter name="PID_K_I" index="12" high="31" low="0" value="4294957296" />
                         <parameter name="PID_K_D" index="13" high="31" low="0" value="0" />
@@ -120,12 +120,12 @@
                         <parameter name="attempts" index="7" high="31" low="24" value="1" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="48" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
-                        <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
+                        <parameter name="stab_target" index="9" high="15" low="0" value="1536" />
                         <parameter name="stab_period" index="10" high="31" low="16" value="2548" />
-                        <parameter name="floor" index="10" high="15" low="0" value="65472" />
+                        <parameter name="floor" index="10" high="15" low="0" value="65372" />
                         <parameter name="PID_K_P" index="11" high="31" low="0" value="4294767296" />
                         <parameter name="PID_K_I" index="12" high="31" low="0" value="4294957296" />
                         <parameter name="PID_K_D" index="13" high="31" low="0" value="0" />
@@ -174,12 +174,12 @@
                         <parameter name="attempts" index="7" high="31" low="24" value="1" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="48" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
-                        <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
+                        <parameter name="stab_target" index="9" high="15" low="0" value="1536" />
                         <parameter name="stab_period" index="10" high="31" low="16" value="2548" />
-                        <parameter name="floor" index="10" high="15" low="0" value="65472" />
+                        <parameter name="floor" index="10" high="15" low="0" value="65372" />
                         <parameter name="PID_K_P" index="11" high="31" low="0" value="4294767296" />
                         <parameter name="PID_K_I" index="12" high="31" low="0" value="4294957296" />
                         <parameter name="PID_K_D" index="13" high="31" low="0" value="0" />
@@ -223,12 +223,12 @@
                         <parameter name="detection_time" index="2" high="31" low="0" value="1250000" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="48" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="16" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="80" />
-                        <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
+                        <parameter name="stab_target" index="9" high="15" low="0" value="1536" />
                         <parameter name="stab_period" index="10" high="31" low="16" value="10" />
-                        <parameter name="floor" index="10" high="15" low="0" value="65472" />
+                        <parameter name="floor" index="10" high="15" low="0" value="65372" />
                         <parameter name="detect_soliton" index="0" high="1" low="1" value="1" />
                         <parameter name="PID_lock" index="0" high="2" low="2" value="1" />
                         <parameter name="immediate_PID" index="0" high="3" low="3" value="1" />
@@ -321,12 +321,12 @@
                         <parameter name="attempts" index="7" high="31" low="24" value="1" />
                         <parameter name="approaches" index="7" high="23" low="16" value="64" />
                         <parameter name="coarse_target" index="7" high="15" low="0" value="1008" />
-                        <parameter name="fine_target" index="8" high="31" low="16" value="64" />
+                        <parameter name="fine_target" index="8" high="31" low="16" value="48" />
                         <parameter name="coarse_period" index="8" high="15" low="0" value="4077" />
                         <parameter name="fine_period" index="9" high="31" low="16" value="20385" />
-                        <parameter name="stab_target" index="9" high="15" low="0" value="2048" />
+                        <parameter name="stab_target" index="9" high="15" low="0" value="1536" />
                         <parameter name="stab_period" index="10" high="31" low="16" value="2548" />
-                        <parameter name="floor" index="10" high="15" low="0" value="65472" />
+                        <parameter name="floor" index="10" high="15" low="0" value="65372" />
                         <parameter name="PID_K_P" index="11" high="31" low="0" value="4294767296" />
                         <parameter name="PID_K_I" index="12" high="31" low="0" value="4294957296" />
                         <parameter name="PID_K_D" index="13" high="31" low="0" value="0" />
@@ -439,7 +439,7 @@
                 <output channel="4" gain="14dB" />
             </io_settings>
         </config>
-        <config id="6" platform="Moku:Pro" firmware="591" description="PID with output wrapping.">
+        <config id="6" platform="Moku:Pro" firmware="591" description="PID with output wrapping on MokuPro.">
             <instruments>
                 <instrument type="CloudCompile" slot="2" purpose="PID">
                     <bitstream>PID_wrapped_pro_591</bitstream>
@@ -451,6 +451,9 @@
                         <parameter name="wrapped" index="4" high="15" low="0" value="0" />
                         <parameter name="holding_time" index="5" high="31" low="0" value="0" />
                         <parameter name="limit_sum" index="6" high="31" low="16" value="0" />
+                        <parameter name="setpoint" index="6" high="15" low="0" value="0" />
+                        <parameter name="debug_sel" index="8" high="31" low="28" value="0" />
+                        <parameter name="mode" index="0" high="1" low="1" value="0" />
                         <parameter name="Reset" index="0" high="0" low="0" value="1" />
                     </parameters>
                 </instrument>
@@ -458,10 +461,39 @@
             <connections>
                 <connection source="Input1" destination="Slot2InA" />
                 <connection source="Slot2OutA" destination="Output1" />
+                <connection source="Slot2OutB" destination="Output2" />
             </connections>
             <io_settings>
                 <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
                 <output channel="1" gain="14dB" />
+            </io_settings>
+        </config>
+        <config id="7" platform="Moku:Go" firmware="591" description="PID with output wrapping on MokuGo.">
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="PID">
+                    <bitstream>PID_wrapped_go_591</bitstream>
+                    <parameters>
+                        <parameter name="K_P" index="1" high="31" low="0" value="0" />
+                        <parameter name="K_I" index="2" high="31" low="0" value="0" />
+                        <parameter name="K_D" index="3" high="31" low="0" value="0" />
+                        <parameter name="threshold" index="4" high="31" low="16" value="0" />
+                        <parameter name="wrapped" index="4" high="15" low="0" value="0" />
+                        <parameter name="holding_time" index="5" high="31" low="0" value="0" />
+                        <parameter name="limit_sum" index="6" high="31" low="16" value="0" />
+                        <parameter name="setpoint" index="6" high="15" low="0" value="0" />
+                        <parameter name="debug_sel" index="8" high="31" low="28" value="0" />
+                        <parameter name="mode" index="0" high="1" low="1" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="1" />
+                    </parameters>
+                </instrument>
+            </instruments>
+            <connections>
+                <connection source="Input1" destination="Slot2InA" />
+                <connection source="Slot2OutA" destination="Output1" />
+                <connection source="Slot2OutB" destination="Output2" />
+            </connections>
+            <io_settings>
+                <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
             </io_settings>
         </config>
     </configurations>
