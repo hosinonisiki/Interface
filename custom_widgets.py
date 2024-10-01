@@ -1021,6 +1021,104 @@ class WaveformControl(tk.Frame):
                 self.periodically_running = True
             self.launcher()
 
+class ParameterController():
+    def __init__(self, master, x, y, mim) -> None:
+        self.instrument_box = ttk.Combobox(master, values = [""])
+        self.instrument_box.current(0)
+        self.instrument_box.place(x = x, y = y, anchor = tk.NW)
+        self.instrument_box.bind("<<ComboboxSelected>>", lambda event:self.replace_instrument())
+
+        self.parameter_name_box = ttk.Combobox(master, values = [""])
+        self.parameter_name_box.current(0)
+        self.parameter_name_box.place(x = x, y = y + 30, anchor = tk.NW)
+        self.parameter_name_box.bind("<<ComboboxSelected>>", lambda event:self.replace_parameter())
+
+        self.parameter_value_format = QuantityFormat((10, 0, 0), {}, "")
+        self.parameter_value_entry = QuantityEntry(master, formater = self.parameter_value_format, report = self.upload_parameter, width = 10, font = ("Arial", 12))
+        self.parameter_value_entry.place(x = x, y = y + 60, anchor = tk.NW)
+
+        self.mim = mim
+
+    def refresh(self):
+        if self.mim is None:
+            self.instrument_box["values"] = [""]
+        else:
+            instruments = list(self.mim.purposes.keys())
+            self.instrument_box["values"] = [""] + instruments
+        self.instrument_box.current(0)
+        self.replace_instrument()
+
+    def refresh_parameter(self):
+        self.replace_parameter()
+
+    def replace_instrument(self):
+        if self.instrument_box.get() == "":
+            self.parameter_name_box["values"] = [""]
+        else:
+            instrument = self.mim.get_instrument(self.instrument_box.get())
+            self.parameter_name_box["values"] = [""] + list(instrument.mapping.keys())
+        self.parameter_name_box.current(0)
+        self.replace_parameter()
+
+    def replace_parameter(self):
+        if self.parameter_name_box.get() == "":
+            self.parameter_value_entry.set("")
+        else:
+            value = self.mim.get_instrument(self.instrument_box.get()).get_parameter(self.parameter_name_box.get())
+            self.parameter_value_entry.set(value)
+        self.parameter_value_entry.store()
+
+    def upload_parameter(self):
+        self.mim.get_instrument(self.instrument_box.get()).set_parameter(self.parameter_name_box.get(), int(self.parameter_value_entry.get_value()))
+        self.mim.upload_data(self.instrument_box.get())
+
+class ParameterSwitch(tk.Button):
+    def __init__(self, master, instrument, parameter, mim, inverted = False, **kw):
+        super().__init__(master, command = self.onclick, **kw)
+        self.instrument = instrument
+        self.parameter = parameter
+        self.mim = mim
+        self.inverted = inverted
+        self.state = self.mim.get_instrument(self.instrument).get_parameter(self.parameter)
+        self.destroying_flag = False
+
+        self.update_thread = threading.Thread(target = self.update_thread_function, args = (), daemon = True)
+        self.update_thread.start()
+        self.update()
+
+        self.bind("<<Destroy>>", self.destroy)
+
+    def update_thread_function(self):
+        last = self.state
+        while(True):
+            time.sleep(0.03)
+            if self.destroying_flag:
+                return
+            current = self.state
+            if current != last:
+                last = current
+                self.update()
+        
+    def update(self):
+        self["relief"] = tk.SUNKEN if self.state != self.inverted else tk.RAISED
+
+    def destroy(self):
+        self.destroying_flag = True
+        self.update_thread.join()
+        super().destroy()
+
+    def refresh(self):
+        self.state = self.mim.get_instrument(self.instrument).get_parameter(self.parameter)
+
+    def onclick(self):
+        self.onclick_thread = threading.Thread(target = self.onclick_thread_function, args = (), daemon = True)
+        self.onclick_thread.start()
+
+    def onclick_thread_function(self):
+        self.state = 1 - self.state
+        self.mim.get_instrument(self.instrument).set_parameter(self.parameter, self.state)
+        self.mim.upload_control(self.instrument)
+
 def test():
     time.sleep(5)
     control.destroy()

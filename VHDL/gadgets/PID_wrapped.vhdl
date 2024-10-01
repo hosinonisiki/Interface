@@ -222,6 +222,6 @@ BEGIN
 
     debug <= I(47 DOWNTO 32) WHEN debug_sel = "0000" ELSE
                 state_out WHEN debug_sel = "0001" ELSE
-                internal_setpoint WHEN debug_sel = "0002" ELSE
+                internal_setpoint WHEN debug_sel = "0010" ELSE
                 x"0000";
 END hold_setpoint;

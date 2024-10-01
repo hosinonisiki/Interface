@@ -770,42 +770,11 @@ class Interface():
             self.developer_monitorD_button = ttk.Button(self.developer_mode, text = "upload to MonitorD", command = self.developer_monitorD_button_onclick, width = 20)
             self.developer_monitorD_button.place(x = 750, y = 90, anchor = tk.NW)
             
-            # assuming that fpga is already initialized
             # instantiate 8 parameter setting widget sets
             
-            '''
-            instruments = [i.get("purpose") for i in self.mim.config.findall("./instruments/instrument") if i.get("type") == "CloudCompile"]
-            self.developer_instrument_box = ttk.Combobox(self.developer_mode, values = [""] + instruments)
-            self.developer_instrument_box.current(0)
-            self.developer_instrument_box.place(x = 750, y = 120, anchor = tk.NW)
-            self.developer_instrument_box.bind("<<ComboboxSelected>>", lambda event:self.developer_parameter_setting("replace instrument"))
-
-            self.developer_parameter_name_box = ttk.Combobox(self.developer_mode, values = [""])
-            self.developer_parameter_name_box.current(0)
-            self.developer_parameter_name_box.place(x = 750, y = 150, anchor = tk.NW)
-            self.developer_parameter_name_box.bind("<<ComboboxSelected>>", lambda event:self.developer_parameter_setting("replace parameter"))
-
-            self.developer_parameter_value_format = custom_widgets.QuantityFormat((10, 0, 0), {}, "")
-            self.developer_parameter_value_entry = custom_widgets.QuantityEntry(self.developer_mode, formater = self.developer_parameter_value_format, report = lambda:self.developer_parameter_setting("upload parameter"), width = 10, font = ("Arial", 12))
-            self.developer_parameter_value_entry.place(x = 750, y = 180, anchor = tk.NW)
-            '''
-            instruments = list(self.mim.purposes.keys())
-            self.developer_instrument_boxes = [ttk.Combobox(self.developer_mode, values = [""] + instruments) for i in range(8)]
-            for i in range(8):
-                self.developer_instrument_boxes[i].current(0)
-                self.developer_instrument_boxes[i].place(x = 750 + 160 * (i % 4), y = 120 + 90 * (i // 4), anchor = tk.NW)
-                self.developer_instrument_boxes[i].bind("<<ComboboxSelected>>", lambda event, i = i:self.developer_parameter_setting("replace instrument", i))
-
-            self.developer_parameter_name_boxes = [ttk.Combobox(self.developer_mode, values = [""]) for i in range(8)]
-            for i in range(8):
-                self.developer_parameter_name_boxes[i].current(0)
-                self.developer_parameter_name_boxes[i].place(x = 750 + 160 * (i % 4), y = 150 + 90 * (i // 4), anchor = tk.NW)
-                self.developer_parameter_name_boxes[i].bind("<<ComboboxSelected>>", lambda event, i = i:self.developer_parameter_setting("replace parameter", i))
-
-            self.developer_parameter_value_format = custom_widgets.QuantityFormat((10, 0, 0), {}, "")
-            self.developer_parameter_value_entries = [custom_widgets.QuantityEntry(self.developer_mode, formater = self.developer_parameter_value_format, report = lambda i = i:self.developer_parameter_setting("upload parameter", i), width = 10, font = ("Arial", 12)) for i in range(8)]      
-            for i in range(8):
-                self.developer_parameter_value_entries[i].place(x = 750 + 160 * (i % 4), y = 180 + 90 * (i // 4), anchor = tk.NW)
+            self.parameter_controllers = [custom_widgets.ParameterController(self.developer_mode, 750 + 160 * (i % 4), 120 + 90 * (i // 4), self.mim) for i in range(8)]
+            for i in self.parameter_controllers:
+                i.refresh()
 
             self.update()
 
@@ -826,39 +795,6 @@ class Interface():
         self.mim.get_instrument("feedback").set_parameter("monitorD", self.developer_monitorC_box["values"].index(self.developer_monitorC_box.get()))
         self.mim.upload_control("feedback")
         return
-
-    def developer_parameter_setting(self, action: str, index: int) -> None:
-        self.logger.info("Developer parameter setting, action: %s, index: %d."%(action, index))
-        match action:
-            case "replace instrument":
-                self.logger.debug("Replacing instrument of No.%d as %s."%(index, self.developer_instrument_boxes[index].get()))
-                if self.developer_instrument_boxes[index].get() == "":
-                    self.developer_parameter_name_boxes[index]["values"] = [""]
-                else:
-                    instrument = self.mim.get_instrument(self.developer_instrument_boxes[index].get())
-                    self.developer_parameter_name_boxes[index]["values"] = [""] + list(instrument.mapping.keys())
-                self.developer_parameter_name_boxes[index].current(0)
-                self.developer_parameter_value_entries[index].set("")
-                self.developer_parameter_value_entries[index].store()
-            case "replace parameter":
-                self.logger.debug("Replacing parameter of No.%d as %s."%(index, self.developer_parameter_name_boxes[index].get()))
-                if self.developer_parameter_name_boxes[index].get() == "":
-                    self.developer_parameter_value_entries[index].set("")
-                else:
-                    value = self.mim.get_instrument(self.developer_instrument_boxes[index].get()).get_parameter(self.developer_parameter_name_boxes[index].get())
-                    self.developer_parameter_value_entries[index].set(value)
-                self.developer_parameter_value_entries[index].store()
-            case "upload parameter":
-                self.logger.debug("Uploading parameter %s to %s, requested by No.%d, value: %d."%(self.developer_parameter_name_boxes[index].get(), self.developer_instrument_boxes[index].get(), index, self.developer_parameter_value_entries[index].get_value()))
-                self.mim.get_instrument(self.developer_instrument_boxes[index].get()).set_parameter(self.developer_parameter_name_boxes[index].get(), int(self.developer_parameter_value_entries[index].get_value()))
-                result = self.mim.upload_data(self.developer_instrument_boxes[index].get())
-                match result:
-                    case "queued":
-                        self.information["text"] = "Parameter uploaded."
-                    case "rejected":
-                        self.information["text"] = "Parameter rejected."
-        return
-
 
     def knob_panel_button_onclick(self) -> None:
         self.logger.debug("Knob panel button clicked.")
@@ -932,9 +868,10 @@ class Interface():
                 try:
                     self.logger.debug("Stopping soliton generation.")
                     self.mim.command("turnkey", "stop")
-                    self.mim.command("feedback", "fast_PID_off")
-                    self.mim.command("feedback", "slow_PID_off")
-                    self.mim.command("feedback", "auto_match_off")
+                    if not self.mim.get_instrument("feedback") is None:
+                        self.mim.command("feedback", "fast_PID_off")
+                        self.mim.command("feedback", "slow_PID_off")
+                        self.mim.command("feedback", "auto_match_off")
                 except Exception as e:
                     self.logger.error("%s"%e.__repr__())
                     self.information["text"] = "Error encountered when communicating with FPGA, initialization recommended: %s"%e.__repr__()
@@ -1143,15 +1080,11 @@ class Interface():
     def fpga_connection_button_onclick(self) -> None:
         self.logger.info("FPGA connection button clicked.")
         self.ip = self.fpga_connection_entry.get()
-        if re.match(r"^([0-9]{1,3}\.){3}[0-9]{1,3}$", self.ip) or re.match(r"^\[([0-9a-fA-F]{0,4}:){5,7}[0-9a-fA-F]{0,4}\]$", self.ip):
-            self.logger.debug("Connecting to FPGA at %s."%self.ip)
-            self.information["text"] = "Connecting to FPGA."
-            self.fpga_state = self.FPGA_STATE_CONNECTING
-            self.fpga_connection_thread = threading.Thread(target = self.fpga_connection_thread_function, args = (), daemon = True)
-            self.fpga_connection_thread.start()
-        else:
-            self.logger.debug("Illegal ip address: %s"%self.ip)
-            self.information["text"] = "Illegal ip address."
+        self.logger.debug("Connecting to FPGA at %s."%self.ip)
+        self.information["text"] = "Connecting to FPGA."
+        self.fpga_state = self.FPGA_STATE_CONNECTING
+        self.fpga_connection_thread = threading.Thread(target = self.fpga_connection_thread_function, args = (), daemon = True)
+        self.fpga_connection_thread.start()
         return
     
     def fpga_connection_thread_function(self) -> None:

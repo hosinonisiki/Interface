@@ -1,4 +1,4 @@
-ARCHITECTURE bhvr OF CustomWrapper IS
+ARCHITECTURE turnkey OF CustomWrapper IS
     SIGNAL soliton_power_avg_A : signed(15 DOWNTO 0);
     SIGNAL soliton_power_avg_B : signed(15 DOWNTO 0);
     SIGNAL is_longterm : std_logic;
@@ -100,4 +100,4 @@ BEGIN
         Clk => Clk,
         Reset => Control0(0)
     );
-END bhvr;
+END turnkey;

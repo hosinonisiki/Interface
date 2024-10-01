@@ -1,4 +1,4 @@
-ARCHITECTURE bhvr OF CustomWrapper IS
+ARCHITECTURE feedback OF CustomWrapper IS
     SIGNAL ref, ref_shift : signed(15 DOWNTO 0);
     SIGNAL I,Q : signed(15 DOWNTO 0);
     SIGNAL phase : signed(15 DOWNTO 0);
@@ -186,7 +186,7 @@ BEGIN
         TestB => TestB,
         TestC => TestC
     );
-    DUT4 : ENTITY WORK.atan PORT MAP(
+    DUT4 : ENTITY WORK.atan(pipe_by_2) PORT MAP(
         inputC => I,
         inputS => Q,
         output => phase, -- positive phase angle indicates a negative init phase in input signal
@@ -324,4 +324,4 @@ BEGIN
             OutputD <= monitorD;
         END IF;
     END PROCESS;
-END bhvr;
+END feedback;

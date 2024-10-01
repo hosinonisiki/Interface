@@ -16,7 +16,7 @@ ENTITY multiplier_signed_2stage_piped IS
     );
 END multiplier_signed_2stage_piped;
 
-ARCHITECTURE bhvr OF multiplier_signed_2stage_piped IS
+ARCHITECTURE decom_by_4 OF multiplier_signed_2stage_piped IS
     SIGNAL A_high : signed(half_word_length_A - 1 DOWNTO 0);
     SIGNAL B_high : signed(half_word_length_B - 1 DOWNTO 0);
     SIGNAL A_low : signed(half_word_length_A DOWNTO 0);
@@ -52,4 +52,29 @@ BEGIN
     buf_sum2 <= ((half_word_length_A - 1 DOWNTO 0 => AlBh(half_word_length_A + half_word_length_B - 1)) & AlBh & (half_word_length_B - 1 DOWNTO 0 => '0'))
                 + ((half_word_length_A + half_word_length_B - 1 DOWNTO 0 => '0') & AlBl);
     P <= buf_sum1 + buf_sum2;
-END bhvr;
+END decom_by_4;
+
+ARCHITECTURE decom_by_2 OF multiplier_signed_2stage_piped IS
+    -- Assume A is a wide signed but B is not
+    SIGNAL A_high : signed(half_word_length_A - 1 DOWNTO 0);
+    SIGNAL A_low : signed(half_word_length_A DOWNTO 0);
+    SIGNAL reg_AhB : signed(half_word_length_A + 2 * half_word_length_B - 1 DOWNTO 0);
+    SIGNAL reg_AlB : signed(half_word_length_A + 2 * half_word_length_B DOWNTO 0);
+    SIGNAL AhB, AlB : signed(half_word_length_A + 2 * half_word_length_B - 1 DOWNTO 0);
+BEGIN
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            AhB <= reg_AhB;
+            AlB <= reg_AlB(half_word_length_A + 2 * half_word_length_B - 1 DOWNTO 0);
+        END IF;
+    END PROCESS;
+
+    A_high <= A(2 * half_word_length_A - 1 DOWNTO half_word_length_A);
+    A_low <= '0' & A(half_word_length_A - 1 DOWNTO 0);
+
+    reg_AhB <= A_high * B;
+    reg_AlB <= A_low * B;
+
+    P <= (AhB & (half_word_length_A - 1 DOWNTO 0 => '0')) + ((half_word_length_A - 1 DOWNTO 0 => AlB(half_word_length_A + 2 * half_word_length_B - 1)) & AlB);
+END decom_by_2;

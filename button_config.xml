@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <configurations>
+        <config id="1">
+            <buttons>
+                <button instrument="turnkey" parameter="Reset" inverted="True" text="Start working" />
+                <button instrument="turnkey" parameter="mode" inverted="False" text="Manual sweeping" />
+            </buttons>
+        </config>
+        <config id="8">
+            <buttons>
+                <button instrument="PID" parameter="mode" inverted="False" text="Ready for trigger" />
+                <button instrument="PID" parameter="slow_PID_Reset" inverted="True" text="slow PID" />
+                <button instrument="PID" parameter="fast_PID_Reset" inverted="True" text="fast PID" />
+            </buttons>
+        </config>
+        <config id="9">
+            <buttons>
+                <button instrument="feedback" parameter="LO_Reset" inverted="True" text="Enable LO" />
+                <button instrument="feedback" parameter="slow_PID_Reset" inverted="True" text="slow PID" />
+                <button instrument="feedback" parameter="fast_PID_Reset" inverted="True" text="fast PID" />
+            </buttons>
+        </config>
+        <config id="10">
+            <buttons>
+                <button instrument="PID" parameter="mode" inverted="False" text="Ready for trigger" />
+                <button instrument="PID" parameter="slow_PID_Reset" inverted="True" text="778 slow PID" />
+                <button instrument="PID" parameter="fast_PID_Reset" inverted="True" text="778 fast PID" />
+                <button instrument="feedback" parameter="LO_Reset" inverted="True" text="Enable LO" />
+                <button instrument="feedback" parameter="slow_PID_Reset" inverted="True" text="1556 slow PID" />
+                <button instrument="feedback" parameter="fast_PID_Reset" inverted="True" text="1556 fast PID" />
+            </buttons>
+        </config>
+	    <config id="6">
+            <buttons>
+                <button instrument="PID" parameter="Reset" inverted="True" text="Enable PID" />
+            </buttons>
+        </config>
+    </configurations>
+</root>

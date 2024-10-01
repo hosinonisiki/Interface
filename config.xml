@@ -133,7 +133,7 @@
                         <parameter name="sweep_period" index="14" high="31" low="16" value="404" />
                         <parameter name="PID_lock" index="0" high="2" low="2" value="1" />
                         <parameter name="input_gain" index="14" high="7" low="0" value="16" />
-                        <parameter name="output_gain" index="14" high="15" low="8" value="32" />
+                        <parameter name="output_gain" index="14" high="15" low="8" value="16" />
                         <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
                         <parameter name="PID_limit" index="15" high="15" low="0" value="1000" />
                         <parameter name="PID_use_avg" index="0" high="3" low="3" value="0" />
@@ -187,7 +187,7 @@
                         <parameter name="sweep_period" index="14" high="31" low="16" value="404" />
                         <parameter name="PID_lock" index="0" high="2" low="2" value="1" />
                         <parameter name="input_gain" index="14" high="7" low="0" value="16" />
-                        <parameter name="output_gain" index="14" high="15" low="8" value="32" />
+                        <parameter name="output_gain" index="14" high="15" low="8" value="16" />
                         <parameter name="manual_offset" index="15" high="31" low="16" value="0" />
                         <parameter name="PID_limit" index="15" high="15" low="0" value="1000" />
                         <parameter name="PID_use_avg" index="0" high="3" low="3" value="0" />
@@ -444,13 +444,13 @@
                 <instrument type="CloudCompile" slot="2" purpose="PID">
                     <bitstream>PID_wrapped_pro_591</bitstream>
                     <parameters>
-                        <parameter name="K_P" index="1" high="31" low="0" value="0" />
-                        <parameter name="K_I" index="2" high="31" low="0" value="0" />
+                        <parameter name="K_P" index="1" high="31" low="0" value="1000" />
+                        <parameter name="K_I" index="2" high="31" low="0" value="20000" />
                         <parameter name="K_D" index="3" high="31" low="0" value="0" />
-                        <parameter name="threshold" index="4" high="31" low="16" value="0" />
-                        <parameter name="wrapped" index="4" high="15" low="0" value="0" />
-                        <parameter name="holding_time" index="5" high="31" low="0" value="0" />
-                        <parameter name="limit_sum" index="6" high="31" low="16" value="0" />
+                        <parameter name="threshold" index="4" high="31" low="16" value="20000" />
+                        <parameter name="wrapped" index="4" high="15" low="0" value="5000" />
+                        <parameter name="holding_time" index="5" high="31" low="0" value="10000" />
+                        <parameter name="limit_sum" index="6" high="31" low="16" value="32767" />
                         <parameter name="setpoint" index="6" high="15" low="0" value="0" />
                         <parameter name="debug_sel" index="8" high="31" low="28" value="0" />
                         <parameter name="mode" index="0" high="1" low="1" value="0" />
@@ -473,13 +473,13 @@
                 <instrument type="CloudCompile" slot="2" purpose="PID">
                     <bitstream>PID_wrapped_go_591</bitstream>
                     <parameters>
-                        <parameter name="K_P" index="1" high="31" low="0" value="0" />
-                        <parameter name="K_I" index="2" high="31" low="0" value="0" />
+                        <parameter name="K_P" index="1" high="31" low="0" value="1000" />
+                        <parameter name="K_I" index="2" high="31" low="0" value="20000" />
                         <parameter name="K_D" index="3" high="31" low="0" value="0" />
-                        <parameter name="threshold" index="4" high="31" low="16" value="0" />
-                        <parameter name="wrapped" index="4" high="15" low="0" value="0" />
-                        <parameter name="holding_time" index="5" high="31" low="0" value="0" />
-                        <parameter name="limit_sum" index="6" high="31" low="16" value="0" />
+                        <parameter name="threshold" index="4" high="31" low="16" value="20000" />
+                        <parameter name="wrapped" index="4" high="15" low="0" value="5000" />
+                        <parameter name="holding_time" index="5" high="31" low="0" value="10000" />
+                        <parameter name="limit_sum" index="6" high="31" low="16" value="32767" />
                         <parameter name="setpoint" index="6" high="15" low="0" value="0" />
                         <parameter name="debug_sel" index="8" high="31" low="28" value="0" />
                         <parameter name="mode" index="0" high="1" low="1" value="0" />
@@ -494,6 +494,182 @@
             </connections>
             <io_settings>
                 <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
+            </io_settings>
+        </config>
+        <config id="8" platform="Moku:Pro" firmware="591" description="Atom locking 1, 778 lockup.">
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="PID">
+                    <bitstream>pid_atom_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="fast_K_P" index="1" high="31" low="0" value="40000" />
+                        <parameter name="fast_K_I" index="2" high="31" low="0" value="15000" />
+                        <parameter name="fast_K_D" index="3" high="31" low="0" value="0" />
+                        <parameter name="slow_K_P" index="4" high="31" low="0" value="500" />
+                        <parameter name="slow_K_I" index="5" high="31" low="0" value="1" />
+                        <parameter name="slow_K_D" index="6" high="31" low="0" value="0" />
+                        <parameter name="fast_PID_Reset" index="0" high="0" low="0" value="1" />
+                        <parameter name="slow_PID_Reset" index="0" high="1" low="1" value="1" />
+                        <parameter name="mode" index="0" high="2" low="2" value="0" />
+                        <parameter name="fast_setpoint" index="7" high="31" low="16" value="0" />
+                        <parameter name="slow_setpoint" index="7" high="15" low="0" value="0" />
+                        <parameter name="fast_limit_I" index="8" high="31" low="0" value="65536" />
+                        <parameter name="slow_limit_I" index="9" high="31" low="0" value="65536" />
+                        <parameter name="fast_limit_sum" index="10" high="31" low="16" value="12576" />
+                        <parameter name="slow_limit_sum" index="10" high="15" low="0" value="7767" />
+                        <parameter name="counter_limit" index="11" high="31" low="16" value="4096" />
+                    </parameters>
+                </instrument>
+                <instrument type="LaserLockBox" slot="1" />
+            </instruments>
+            <connections>
+                <connection source="Input1" destination="Slot1InA" />
+                <connection source="Slot1OutA" destination="Slot2InA" />
+                <connection source="Slot1OutB" destination="Slot2InB" />
+                <connection source="Slot1OutC" destination="Output3" />
+                <connection source="Slot2OutA" destination="Output1" />
+                <connection source="Slot2OutB" destination="Output2" />
+            </connections>
+            <io_settings>
+                <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
+                <output channel="1" gain="14dB" />
+                <output channel="2" gain="14dB" />
+                <output channel="3" gain="0dB" />
+            </io_settings>
+        </config>
+        <config id="9" platform="Moku:Pro" firmware="591" description="Atom locking 2, 1556 lockup.">
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="feedback">
+                    <!-- Consider substitute with a dedicated bitstream. -->
+                    <bitstream>feedback_atom_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="fast_PID_K_P" index="2" high="31" low="0" value="0" />
+                        <parameter name="fast_PID_K_I" index="3" high="31" low="0" value="0" />
+                        <parameter name="fast_PID_K_D" index="4" high="31" low="0" value="0" />
+                        <parameter name="monitorC" index="1" high="15" low="12" value="1" />
+                        <parameter name="monitorD" index="1" high="19" low="16" value="0" />
+                        <parameter name="segments_enabled" index="1" high="11" low="8" value="0" />
+                        <parameter name="set_address" index="1" high="7" low="4" value="0" />
+                        <parameter name="slow_PID_K_P" index="8" high="31" low="0" value="20000" />
+                        <parameter name="slow_PID_K_I" index="9" high="31" low="0" value="100" />
+                        <parameter name="slow_PID_K_D" index="10" high="31" low="0" value="0" />
+                        <parameter name="set_x" index="5" high="31" low="0" value="31250000" />
+                        <parameter name="set_y" index="6" high="31" low="16" value="3355" />
+                        <parameter name="set_slope" index="6" high="15" low="0" value="0" />
+                        <parameter name="frequency_bias" index="7" high="31" low="16" value="20768" />
+                        <parameter name="amplitude" index="7" high="15" low="0" value="28672" />
+                        <parameter name="fast_PID_Reset" index="0" high="10" low="10" value="1" />
+                        <parameter name="slow_PID_Reset" index="0" high="11" low="11" value="1" />
+                        <parameter name="LO_Reset" index="0" high="1" low="1" value="1" />
+                        <parameter name="set_sign" index="0" high="2" low="2" value="0" />
+                        <parameter name="initiate" index="0" high="3" low="3" value="1" />
+                        <parameter name="periodic" index="0" high="4" low="4" value="1" />
+                        <parameter name="prolong" index="0" high="5" low="5" value="0" />
+                        <parameter name="lock_mode" index="0" high="9" low="8" value="1" />
+                        <parameter name="slow_input" index="0" high="6" low="6" value="0" />
+                        <parameter name="set" index="0" high="7" low="7" value="1" />
+                        <parameter name="enable_auto_match" index="0" high="12" low="12" value="1" />
+                        <parameter name="initiate_auto_match" index="0" high="13" low="13" value="1" />
+                        <parameter name="frequency_match_threshold" index="11" high="31" low="16" value="268" />
+                        <parameter name="frequency_lock_threshold" index="11" high="15" low="0" value="3" />
+                        <parameter name="enable_compensation" index="0" high="14" low="14" value="0" />
+                        <parameter name="LO_compensation" index="12" high="31" low="16" value="65386" />
+                        <parameter name="slow_PID_decay" index="15" high="31" low="0" value="1073741824" />
+                        <parameter name="phase_unwrap" index="0" high="15" low="15" value="0" />
+                    </parameters>
+                </instrument>
+            </instruments>
+            <connections>
+                <connection source="Input1" destination="Slot2InA" />
+                <connection source="Slot2OutA" destination="Output1" />
+                <connection source="Slot2OutB" destination="Output2" />
+            </connections>
+            <io_settings>
+                <input channel="1" impedance="1MOhm" coupling="AC" attenuation="0dB" />
+                <output channel="1" gain="0dB" />
+                <output channel="2" gain="0dB" />
+            </io_settings>
+        </config>
+        <config id="10" platform="Moku:Pro" firmware="591" description="Atom combined.">
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="PID">
+                    <bitstream>pid_atom_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="fast_K_P" index="1" high="31" low="0" value="40000" />
+                        <parameter name="fast_K_I" index="2" high="31" low="0" value="15000" />
+                        <parameter name="fast_K_D" index="3" high="31" low="0" value="0" />
+                        <parameter name="slow_K_P" index="4" high="31" low="0" value="500" />
+                        <parameter name="slow_K_I" index="5" high="31" low="0" value="1" />
+                        <parameter name="slow_K_D" index="6" high="31" low="0" value="0" />
+                        <parameter name="fast_PID_Reset" index="0" high="0" low="0" value="1" />
+                        <parameter name="slow_PID_Reset" index="0" high="1" low="1" value="1" />
+                        <parameter name="mode" index="0" high="2" low="2" value="0" />
+                        <parameter name="fast_setpoint" index="7" high="31" low="16" value="0" />
+                        <parameter name="slow_setpoint" index="7" high="15" low="0" value="0" />
+                        <parameter name="fast_limit_I" index="8" high="31" low="0" value="65536" />
+                        <parameter name="slow_limit_I" index="9" high="31" low="0" value="65536" />
+                        <parameter name="fast_limit_sum" index="10" high="31" low="16" value="12576" />
+                        <parameter name="slow_limit_sum" index="10" high="15" low="0" value="7767" />
+                        <parameter name="counter_limit" index="11" high="31" low="16" value="4096" />
+                    </parameters>
+                </instrument>
+                <instrument type="LaserLockBox" slot="1" />
+                <instrument type="CloudCompile" slot="3" purpose="feedback">
+                    <!-- Consider substitute with a dedicated bitstream. -->
+                    <bitstream>feedback_atom_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="fast_PID_K_P" index="2" high="31" low="0" value="0" />
+                        <parameter name="fast_PID_K_I" index="3" high="31" low="0" value="0" />
+                        <parameter name="fast_PID_K_D" index="4" high="31" low="0" value="0" />
+                        <parameter name="monitorC" index="1" high="15" low="12" value="1" />
+                        <parameter name="monitorD" index="1" high="19" low="16" value="0" />
+                        <parameter name="segments_enabled" index="1" high="11" low="8" value="0" />
+                        <parameter name="set_address" index="1" high="7" low="4" value="0" />
+                        <parameter name="slow_PID_K_P" index="8" high="31" low="0" value="20000" />
+                        <parameter name="slow_PID_K_I" index="9" high="31" low="0" value="100" />
+                        <parameter name="slow_PID_K_D" index="10" high="31" low="0" value="0" />
+                        <parameter name="set_x" index="5" high="31" low="0" value="31250000" />
+                        <parameter name="set_y" index="6" high="31" low="16" value="3355" />
+                        <parameter name="set_slope" index="6" high="15" low="0" value="0" />
+                        <parameter name="frequency_bias" index="7" high="31" low="16" value="20768" />
+                        <parameter name="amplitude" index="7" high="15" low="0" value="28672" />
+                        <parameter name="fast_PID_Reset" index="0" high="10" low="10" value="1" />
+                        <parameter name="slow_PID_Reset" index="0" high="11" low="11" value="1" />
+                        <parameter name="LO_Reset" index="0" high="1" low="1" value="1" />
+                        <parameter name="set_sign" index="0" high="2" low="2" value="0" />
+                        <parameter name="initiate" index="0" high="3" low="3" value="1" />
+                        <parameter name="periodic" index="0" high="4" low="4" value="1" />
+                        <parameter name="prolong" index="0" high="5" low="5" value="0" />
+                        <parameter name="lock_mode" index="0" high="9" low="8" value="1" />
+                        <parameter name="slow_input" index="0" high="6" low="6" value="0" />
+                        <parameter name="set" index="0" high="7" low="7" value="1" />
+                        <parameter name="enable_auto_match" index="0" high="12" low="12" value="1" />
+                        <parameter name="initiate_auto_match" index="0" high="13" low="13" value="1" />
+                        <parameter name="frequency_match_threshold" index="11" high="31" low="16" value="268" />
+                        <parameter name="frequency_lock_threshold" index="11" high="15" low="0" value="3" />
+                        <parameter name="enable_compensation" index="0" high="14" low="14" value="0" />
+                        <parameter name="LO_compensation" index="12" high="31" low="16" value="65386" />
+                        <parameter name="slow_PID_decay" index="15" high="31" low="0" value="1073741824" />
+                        <parameter name="phase_unwrap" index="0" high="15" low="15" value="0" />
+                    </parameters>
+                </instrument>
+            </instruments>
+            <connections>
+                <connection source="Input1" destination="Slot1InA" />
+                <connection source="Slot1OutA" destination="Slot2InA" />
+                <connection source="Slot1OutB" destination="Slot2InB" />
+                <connection source="Slot1OutC" destination="Output3" />
+                <connection source="Slot2OutA" destination="Output1" />
+                <connection source="Slot2OutB" destination="Output2" />
+                <connection source="Input2" destination="Slot3InA" />
+                <connection source="Slot3OutB" destination="Output4" />
+            </connections>
+            <io_settings>
+                <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
+                <input channel="2" impedance="1MOhm" coupling="AC" attenuation="0dB" />
+                <output channel="1" gain="14dB" />
+                <output channel="2" gain="14dB" />
+                <output channel="3" gain="0dB" />
+                <output channel="4" gain="0dB" />
             </io_settings>
         </config>
     </configurations>

@@ -56,7 +56,7 @@ BEGIN
         Clk => Clk
     );
 
-    waveform_control : ENTITY WORK.sincos PORT MAP(
+    waveform_control : ENTITY WORK.sincos(pipe_by_1) PORT MAP(
         input => phase,
         outputC => outputC,
         outputS => outputS,

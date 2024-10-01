@@ -7,6 +7,7 @@ import json
 import xml.etree.ElementTree as ET
 import threading
 import queue
+import re
 
 # for testing
 import matplotlib.pyplot as plt
@@ -37,51 +38,62 @@ def convert_bits(integer: int, length: int) -> str:
     
 
 class MCC():
-    def __init__(self, mcc: object, slot: int, controls: dict[int, int] = None):
+    def __init__(self, mcc: object, slot: int, controls: dict[int, int] = None, mode: str = "default"):
         self.mcc = mcc
         self.slot = slot
-        self.controls = {}
+        self.controls = {i:0 for i in range(16)}
+        self.mode = mode
+        if self.mode == "http":
+            assert self.mcc is None, "HTTP mode does not require an MCC object."
 
-        self.download_control()
-        self.set_control(controls) # initialize control
+        self.default_controls = self.controls.copy()
     
-    def download_control(self) -> object:
-        try:
-            self.controls = {index:value for index, value in zip(range(16), [self.mcc.get_control(i)[i] for i in range(16)])}
-        except Exception as e:
-            raise Exception("Connection error: %s"%e.__repr__())
+    def set_default_control(self) -> object:
+        self.set_control(self.default_controls)
         return self
     
-    '''   
-    def upload_control(self, mode: str = "default", url: str = "http://localhost:8090/api/v2/registers") -> object:
-        if mode == "default":
+    def download_control(self) -> object:
+        if self.mode == "default":
             try:
-                for i in range(15, -1, -1):
-                    self.mcc.set_control(i, self.controls[i])
+                self.controls = {index:value for index, value in zip(range(16), [self.mcc.get_control(i)[i] for i in range(16)])}
             except Exception as e:
                 raise Exception("Connection error: %s"%e.__repr__())
-            
-        elif mode == "http":
-            post = "[[\"instr" + str(self.slot) + "\", {"
+        elif self.mode == "http":
+            try:
+                response = requests.get("http://192.168.73.1/api/v2/registers")
+                if response.status_code != 200:
+                    raise Exception("Status code: %s"%response.status_code)
+                for i in response.json():
+                    if i[0] == "instr" + str(self.slot - 1) and all([str(j) in i[1] for j in range(6, 22)]):
+                        self.controls = {index:i[1][str(index + 6)] for index in range(16)}
+                        break
+                else:
+                    self.controls = {index:0 for index in range(16)}
+            except Exception as e:
+                raise Exception("Connection error: %s"%e.__repr__())
+        return self
+
+    def upload_control(self, controls: dict[int, int]) -> object:
+        if self.mode == "default":
+            try:
+                for i in range(15, -1, -1):
+                    self.mcc.set_control(i, controls[i])
+            except Exception as e:
+                raise Exception("Connection error: %s"%e.__repr__())
+        elif self.mode == "http":
+            post = "[[\"instr" + str(self.slot - 1) + "\", {"
             for i in range(0, 16):
-                post = post + "\"" + str(i) + "\":" + str(self.controls[i])
+                post = post + "\"" + str(i + 6) + "\":" + str(controls[i])
                 if i != 15:
                     post = post + ","
             post = post + "}]]"
             try:
-                r_json = json.loads(post)
-                p_confiure = requests.post(url = url, json = r_json)
+                request = json.loads(post)
+                response = requests.post(url = "http://192.168.73.1/api/v2/registers", json = request)
+                if response.status_code != 200:
+                    raise Exception("Status code: %s"%response.status_code)
             except Exception as e:
                 raise Exception("Connection error: %s"%e.__repr__())
-        return self
-    '''
-
-    def upload(self, controls: dict[int, int]) -> object:
-        try:
-            for i in range(15, -1, -1):
-                self.mcc.set_control(i, controls[i])
-        except Exception as e:
-            raise Exception("Connection error: %s"%e.__repr__())
         return self
 
     def set_control(self, *arg) -> object:
@@ -103,12 +115,14 @@ class MCC():
         return self
 
 class Turnkey(MCC):
-    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None):
-        super().__init__(mcc, slot, controls)
-        self.parameters = parameters
+    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None, mode: str = "default"):
+        super().__init__(mcc, slot, controls, mode)
+        self.default_parameters = parameters
         self.mapping = mapping
-        for i in self.parameters:
-            self.set_parameter(i, self.parameters[i])
+
+    def set_default_parameter(self) -> object:
+        for i in self.default_parameters:
+            self.set_parameter(i, self.default_parameters[i])
 
     def set_parameter(self, name: str, value: int) -> object:
         location = self.mapping[name]
@@ -125,13 +139,15 @@ class Turnkey(MCC):
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
 
 class Feedback(MCC):
-    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None):
-        super().__init__(mcc, slot, controls)
-        self.parameters = parameters
+    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None, mode: str = "default"):
+        super().__init__(mcc, slot, controls, mode)
+        self.default_parameters = parameters
         self.mapping = mapping
-        for i in self.parameters:
-            self.set_parameter(i, self.parameters[i])
         self.waveform = []
+
+    def set_default_parameter(self) -> object:
+        for i in self.default_parameters:
+            self.set_parameter(i, self.default_parameters[i])
     
     def set_parameter(self, name: str, value: int) -> object:
         location = self.mapping[name]
@@ -148,12 +164,14 @@ class Feedback(MCC):
         return eval("0b" + bits[31 - location["high"]: 32 - location["low"]])
     
 class MCC_Template(MCC):
-    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None):
-        super().__init__(mcc, slot, controls)
-        self.parameters = parameters
+    def __init__(self, mcc: object, slot: int, parameters: dict[str, int], mapping: dict[str, dict[str, int]], controls: dict[int, int] = None, mode: str = "default"):
+        super().__init__(mcc, slot, controls, mode)
+        self.default_parameters = parameters
         self.mapping = mapping
-        for i in self.parameters:
-            self.set_parameter(i, self.parameters[i])
+
+    def set_default_parameter(self) -> object:
+        for i in self.default_parameters:
+            self.set_parameter(i, self.default_parameters[i])
 
     def set_parameter(self, name: str, value: int) -> object:
         location = self.mapping[name]
@@ -171,14 +189,36 @@ class MCC_Template(MCC):
 
 class MIM():
     def __init__(self, ip, config_id = "1", logger = None):
-        self.mim = instruments.MultiInstrument(ip, force_connect = True, platform_id = 4)
-        self.config_id = config_id
         self.logger = logger
+        if re.match(r"^([0-9]{1,3}\.){3}[0-9]{1,3}$", ip) or re.match(r"^\[([0-9a-fA-F]{0,4}:){5,7}[0-9a-fA-F]{0,4}\]$", ip):
+            self.ip = ip
+            self.mode = "default"
+            # claim ownership at class initialization under default mode
+            self.mim = instruments.MultiInstrument(self.ip, force_connect = True, platform_id = 4)
+        elif ip == "local":
+            self.ip = "192.168.73.1"
+            self.mode = "http"
+            # verify the connection by sending a request
+            response = requests.get("http://192.168.73.1/api/v2/registers")
+            if response.status_code != 200:
+                if self.logger:
+                    self.logger.error("Connection error: %s"%response.status_code)
+                raise Exception("Status Code: %s"%response.status_code)
+        else:
+            if self.logger:
+                self.logger.error("Invalid IP address.")
+            raise Exception("Invalid IP address.")
+        self.config_id = config_id
         if self.logger:
             self.logger.debug("MIM Created.")
         self.instruments = {1:None, 2:None, 3:None, 4:None}
+        self.bitstreams = {1:None, 2:None, 3:None, 4:None}
+        self.other_instruments = {1:None, 2:None, 3:None, 4:None}
         self.purposes = {}
         self.config = None
+        self.connections = []
+        self.frontends = {}
+        self.outputs = {}
         
         self.uploading_queue = queue.Queue() 
         self.data_uploading_queue = queue.Queue() # only allows one queueing at a time
@@ -197,10 +237,9 @@ class MIM():
             return self.get_instrument(self.get_slot(arg))
         return None
 
-    def initialize(self) -> object:
+    def parse_config(self) -> object:
         # parse config from xml
         if self.logger:
-            self.logger.info("Initializing MIM.")
             self.logger.debug("Parsing configuration.")
         root = ET.parse("config.xml").getroot()
         for i in root.findall("./configurations/config"):
@@ -217,69 +256,107 @@ class MIM():
                 self.logger.debug("Configuration found, working with %s."%self.config.get("description"))
         
         # set up instruments
+        self.instruments = {1:None, 2:None, 3:None, 4:None}
+        self.bitstreams = {1:None, 2:None, 3:None, 4:None}
+        self.other_instruments = {1:None, 2:None, 3:None, 4:None}
+        self.purposes = {}
         for i in self.config.findall("./instruments/instrument"):
             match i.get("type"):
                 case "CloudCompile":
+                    slot = int(i.get("slot"))
+                    parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
+                    mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
+                    self.bitstreams[slot] = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"
                     match i.get("purpose"):
                         case "turnkey":
                             if self.logger:
                                 self.logger.debug("Creating turnkey.")
-                            slot = int(i.get("slot"))
-                            parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
-                            mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
-                            self.instruments[slot] = Turnkey(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping)
+                            self.instruments[slot] = Turnkey(None, slot, parameters, mapping, {}, self.mode)
                             self.purposes["turnkey"] = slot
                         case "feedback":
                             if self.logger:
                                 self.logger.debug("Creating feedback.")
-                            slot = int(i.get("slot"))
-                            parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
-                            mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
-                            self.instruments[slot] = Feedback(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping)
+                            self.instruments[slot] = Feedback(None, slot, parameters, mapping, {}, self.mode)
                             self.purposes["feedback"] = slot
                         case "feedback and turnkey":
                             if self.logger:
                                 self.logger.debug("Creating feedback and turnkey.")
-                            slot = int(i.get("slot"))
-                            parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
-                            mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
-                            self.instruments[slot] = Feedback(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping)
+                            self.instruments[slot] = Feedback(None, slot, parameters, mapping, {}, self.mode)
                             self.purposes["feedback"] = slot
                             self.purposes["turnkey"] = slot
                         case _:
                             if self.logger:
                                 self.logger.debug("Unregistered MCC purpose.")
-                            slot = int(i.get("slot"))
-                            parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
-                            mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
-                            self.instruments[slot] = MCC_Template(self.mim.set_instrument(slot, instruments.CloudCompile, bitstream = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"), slot, parameters, mapping)
+                            self.instruments[slot] = MCC_Template(None, slot, parameters, mapping, {}, self.mode)
                             self.purposes[i.get("purpose")] = slot
                 case _:
                     if self.logger:
                         self.logger.debug("Creating %s."%i.get("type"))
                     slot = int(i.get("slot"))
-                    self.instruments[slot] = self.mim.set_instrument(slot, eval("instruments.%s"%i.get("type")))
+                    self.other_instruments[slot] = eval("instruments.%s"%i.get("type"))
 
         # set up connections, frontends and outputs
         if self.logger:
             self.logger.debug("Setting connections.")
-        self.con = []
+        self.connections = []
         for i in self.config.findall("./connections/connection"):
-            self.con.append({"source": i.get("source"), "destination": i.get("destination")})
-        self.mim.set_connections(self.con)
+            self.connections.append({"source": i.get("source"), "destination": i.get("destination")})
 
         if self.logger:
             self.logger.debug("Setting frontends and outputs.")
+        self.frontends = {}
+        self.outputs = {}
         for i in self.config.findall("./io_settings/input"):
-            self.mim.set_frontend(int(i.get("channel")), i.get("impedance"), i.get("coupling"), i.get("attenuation"))
+            self.frontends[int(i.get("channel"))] = {"impedance": i.get("impedance"), "coupling": i.get("coupling"), "attenuation": i.get("attenuation")}
         for i in self.config.findall("./io_settings/output"):
-            self.mim.set_output(int(i.get("channel")), i.get("gain"))
+            self.outputs[int(i.get("channel"))] = {"gain": i.get("gain")}        
+        return self
+
+    def upload_config(self) -> object:
         if self.logger:
-            self.logger.debug("Final steps.")
+            self.logger.debug("Uploading configuration.")
+        if self.mode == "http":
+            # claim ownership at uploading function under http mode
+            self.mim = instruments.MultiInstrument(self.ip, force_connect = True, platform_id = 4)
+        for i in range(1, 5):
+            if self.bitstreams[i]:
+                self.instruments[i].mcc = self.mim.set_instrument(i, instruments.CloudCompile, bitstream = self.bitstreams[i])
+        for i in self.other_instruments:
+            if self.other_instruments[i]:
+                self.instruments[i] = self.mim.set_instrument(i, self.other_instruments[i])
+        self.mim.set_connections(self.connections)
+        for i in self.frontends:
+            self.mim.set_frontend(i, self.frontends[i]["impedance"], self.frontends[i]["coupling"], self.frontends[i]["attenuation"])
+        for i in self.outputs:
+            self.mim.set_output(i, self.outputs[i]["gain"])
+        return self
+
+    def upload_parameter(self) -> object:
         for purpose in self.purposes:
+            self.get_instrument(purpose).set_default_parameter()
             self.upload_control(purpose)
-        if "turnkey" in self.purposes:
-            self.command("turnkey", "stop")
+        return self
+
+    def initialize(self) -> object:
+        if self.logger:
+            self.logger.info("Initializing MIM.")
+        self.parse_config()
+        self.upload_config()
+        self.upload_parameter()
+        return self
+    
+    def sync_download(self) -> object:
+        if self.logger:
+            self.logger.info("Synchronizing local parameters.")
+        for purpose in self.purposes:
+            self.get_instrument(purpose).download_control()
+        return self
+
+    def sync_upload(self) -> object:
+        if self.logger:
+            self.logger.info("Synchronizing remote parameters.")
+        for purpose in self.purposes:
+            self.get_instrument(purpose).upload_control()
         return self
     
     def upload_control(self, purpose: str) -> object:
@@ -312,7 +389,7 @@ class MIM():
                 self.upload(self.data_uploading_queue.get())
 
     def upload(self, package: tuple[object, dict[int, int]]) -> object:
-        package[0].upload(package[1])
+        package[0].upload_control(package[1])
         return self
 
     # intercept all mcc commands

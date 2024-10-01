@@ -111,6 +111,7 @@ ARCHITECTURE bhvr OF turnkey IS
     SIGNAL stab_counter : signed(15 DOWNTO 0);
 
     SIGNAL startup : std_logic := '0';
+    SIGNAL last_Reset : std_logic := '1';
 BEGIN
     -- IO
     PROCESS(Clk)
@@ -195,7 +196,7 @@ BEGIN
                             current_state <= line; --
                         END IF;
                     WHEN line =>
-                        IF period_counter = period - x"000001" THEN
+                        IF period_counter = period THEN
                             IF next_segment = segments THEN
                                 --enter hold
                                 period_counter <= x"000000";
@@ -236,7 +237,7 @@ BEGIN
                             output_voltage <= offset_voltage + signed(amplitude_counter);
                         END IF;
                     WHEN hold => 
-                        IF period_counter = hold_period - x"000001" THEN
+                        IF period_counter = hold_period THEN
                             IF MI_counter >= soliton_counter AND MI_counter > none_counter THEN
                                 MI_detected <= '1';
                             ELSIF soliton_counter > none_counter THEN
@@ -256,7 +257,7 @@ BEGIN
                     WHEN failure =>
                         output_voltage <= max_voltage;
                     WHEN coarse =>
-                        IF period_counter = coarse_period - x"000001" THEN
+                        IF period_counter = coarse_period THEN
                             IF soliton_power_avg > coarse_target THEN
                                 output_voltage <= output_voltage - x"0001";
                             ELSIF soliton_power_avg < floor THEN
@@ -270,7 +271,7 @@ BEGIN
                             period_counter <= period_counter + x"000001";
                         END IF;
                     WHEN fine =>
-                        IF period_counter = fine_period - x"000001" THEN
+                        IF period_counter = fine_period THEN
                             IF soliton_power_avg > fine_target THEN
                                 output_voltage <= output_voltage - x"0001";
                             ELSIF soliton_power_avg < floor THEN
@@ -285,7 +286,7 @@ BEGIN
                             period_counter <= period_counter + x"000001";
                         END IF;
                     WHEN stablize =>
-                        IF period_counter = stab_period - x"000001" THEN
+                        IF period_counter = stab_period THEN
                             IF soliton_power_avg < floor THEN
                                 soliton_failure <= '1';
                                 current_state <= confirm;
@@ -308,7 +309,7 @@ BEGIN
                             current_state <= confirm;
                         END IF;
                     WHEN sweep =>
-                        IF period_counter = sweep_period - x"000001" THEN
+                        IF period_counter = sweep_period THEN
                             IF output_voltage = max_voltage THEN
                                 output_voltage <= x"0000";
                                 current_state <= sweeppause;
@@ -320,7 +321,7 @@ BEGIN
                             period_counter <= period_counter + x"000001";
                         END IF;
                     WHEN sweeppause =>
-                        IF period_counter = hold_period - x"000001" THEN
+                        IF period_counter = hold_period THEN
                             period_counter <= x"000000";
                             current_state <= sweep;
                         ELSE
@@ -333,13 +334,21 @@ BEGIN
     END PROCESS;
 
     gen : FOR i IN 0 TO segments - 1 GENERATE
-        LUT_slp_mul_prd(i) <= LUT_slope(i) * LUT_period(i);
+        PROCESS(clk)
+        BEGIN
+            IF rising_edge(clk) THEN
+                LUT_slp_mul_prd(i) <= LUT_slope(i) * LUT_period(i);
+            END IF;
+        END PROCESS;
     END GENERATE gen;
 
-    PROCESS(Reset)
+    PROCESS(clk)
     BEGIN
-        IF falling_edge(Reset) THEN
-            startup <= '1';
+        IF rising_edge(clk) THEN
+            last_Reset <= Reset;
+            IF Reset = '0' and last_Reset = '1' THEN
+                startup <= '1';
+            END IF;
         END IF;
     END PROCESS;
 
