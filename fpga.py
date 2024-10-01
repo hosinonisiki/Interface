@@ -8,6 +8,15 @@ import xml.etree.ElementTree as ET
 import threading
 import queue
 import re
+import sys
+
+# for AXKU041 connection
+sys.path.append("./AXKU041")
+import uart
+import bus
+import module
+import module_signal_router
+import module_moku_mim_wrapper
 
 # for testing
 import matplotlib.pyplot as plt
@@ -71,6 +80,12 @@ class MCC():
                     self.controls = {index:0 for index in range(16)}
             except Exception as e:
                 raise Exception("Connection error: %s"%e.__repr__())
+        elif self.mode == "AXKU041":
+            try:
+                for i in range(15, -1, -1):
+                    self.controls[i] = int.from_bytes(self.mcc.read(i + (self.slot - 1) * 16), "big")
+            except Exception as e:
+                raise Exception("Connection error: %s"%e.__repr__())
         return self
 
     def upload_control(self, controls: dict[int, int]) -> object:
@@ -92,6 +107,12 @@ class MCC():
                 response = requests.post(url = "http://192.168.73.1/api/v2/registers", json = request)
                 if response.status_code != 200:
                     raise Exception("Status code: %s"%response.status_code)
+            except Exception as e:
+                raise Exception("Connection error: %s"%e.__repr__())
+        elif self.mode == "AXKU041":
+            try:
+                for i in range(15, -1, -1):
+                    self.mcc.write(i + (self.slot - 1) * 16, controls[i])
             except Exception as e:
                 raise Exception("Connection error: %s"%e.__repr__())
         return self
@@ -204,6 +225,30 @@ class MIM():
                 if self.logger:
                     self.logger.error("Connection error: %s"%response.status_code)
                 raise Exception("Status Code: %s"%response.status_code)
+        elif re.match(r"^COM[0-9]{1,2}$", ip):
+            # Serial connection indicates instead of Moku:Pro,
+            # the custom FPGA design running on AXKU041 is used.
+            self.ip = ip
+            self.mode = "AXKU041"
+            try:
+                self.serial = uart.MySerial(self.ip, baudrate = 57600, parity = "E", timeout = 0.5)
+                self.bus = bus.Bus(self.serial)
+                self.module_mim = module_moku_mim_wrapper.ModuleMokuMIMWrapper(self.bus)
+                self.module_router = module_signal_router.ModuleSignalRouter(self.bus)
+                # Set up the routing to let the MIM module directly connect to design's interface
+                self.module_router.set_routing(0, 10)
+                self.module_router.set_routing(1, 11)
+                self.module_router.set_routing(2, 12)
+                self.module_router.set_routing(3, 13)
+                self.module_router.set_routing(6, 6)
+                self.module_router.set_routing(7, 7)
+                self.module_router.set_routing(8, 8)
+                self.module_router.set_routing(9, 9)
+                self.module_router.upload()
+            except Exception as e:
+                if self.logger:
+                    self.logger.error("Connection error: %s"%e.__repr__())
+                raise Exception("Connection error: %s"%e.__repr__())
         else:
             if self.logger:
                 self.logger.error("Invalid IP address.")
@@ -212,13 +257,14 @@ class MIM():
         if self.logger:
             self.logger.debug("MIM Created.")
         self.instruments = {1:None, 2:None, 3:None, 4:None}
-        self.bitstreams = {1:None, 2:None, 3:None, 4:None}
-        self.other_instruments = {1:None, 2:None, 3:None, 4:None}
         self.purposes = {}
         self.config = None
-        self.connections = []
-        self.frontends = {}
-        self.outputs = {}
+        if self.mode == "default" or self.mode == "http":
+            self.bitstreams = {1:None, 2:None, 3:None, 4:None}
+            self.other_instruments = {1:None, 2:None, 3:None, 4:None}
+            self.connections = []
+            self.frontends = {}
+            self.outputs = {}
         
         self.uploading_queue = queue.Queue() 
         self.data_uploading_queue = queue.Queue() # only allows one queueing at a time
@@ -249,67 +295,85 @@ class MIM():
         else:
             raise Exception("Configuration not found.")
         if self.logger:
-            if self.config.get("platform") and self.config.get("firmware") and self.config.get("comb_id"):
-                self.logger.debug("Configuration found, working on %s firmware version %s with comb No.%s. %s"%(self.config.get("platform"), self.config.get("firmware"), self.config.get("comb_id"), self.config.get("description")))
-            else:
-                # a miscellanous configuration
-                self.logger.debug("Configuration found, working with %s."%self.config.get("description"))
+            if self.mode == "default" or self.mode == "http":
+                if self.config.get("platform") and self.config.get("firmware") and self.config.get("comb_id"):
+                    self.logger.debug("Configuration found, working on %s firmware version %s with comb No.%s. %s"%(self.config.get("platform"), self.config.get("firmware"), self.config.get("comb_id"), self.config.get("description")))
+                else:
+                    # a miscellanous configuration
+                    self.logger.debug("Configuration found, working with %s."%self.config.get("description"))
+            elif self.mode == "AXKU041":
+                # Verify if the configuration is supported in the design
+                if self.config.get("AXKU041_supported") == "True":
+                    self.logger.debug("Configuration found, working on AXKU041. %s"%self.config.get("description"))
+                else:
+                    raise Exception("The chosen configuration is not supported on AXKU041.")
         
         # set up instruments
         self.instruments = {1:None, 2:None, 3:None, 4:None}
-        self.bitstreams = {1:None, 2:None, 3:None, 4:None}
-        self.other_instruments = {1:None, 2:None, 3:None, 4:None}
         self.purposes = {}
+        if self.mode == "default" or self.mode == "http":
+            self.bitstreams = {1:None, 2:None, 3:None, 4:None}
+            self.other_instruments = {1:None, 2:None, 3:None, 4:None}
         for i in self.config.findall("./instruments/instrument"):
             match i.get("type"):
                 case "CloudCompile":
                     slot = int(i.get("slot"))
-                    parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
                     mapping = {j.get("name"):{"index": int(j.get("index")), "high": int(j.get("high")), "low": int(j.get("low"))} for j in i.findall("./parameters/parameter")}
-                    self.bitstreams[slot] = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"
+                    if self.mode == "default" or self.mode == "http":
+                        parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters/parameter")}
+                        mcc_object = None
+                        self.bitstreams[slot] = "./bitstreams/" + i.find("bitstream").text + ".tar.gz"
+                    elif self.mode == "AXKU041":
+                        parameters = {j.get("name"):int(j.get("value")) for j in i.findall("./parameters_for_AXKU041/parameter")}
+                        mcc_object = self.module_mim
                     match i.get("purpose"):
                         case "turnkey":
                             if self.logger:
                                 self.logger.debug("Creating turnkey.")
-                            self.instruments[slot] = Turnkey(None, slot, parameters, mapping, {}, self.mode)
+                            self.instruments[slot] = Turnkey(mcc_object, slot, parameters, mapping, {}, self.mode)
                             self.purposes["turnkey"] = slot
                         case "feedback":
                             if self.logger:
                                 self.logger.debug("Creating feedback.")
-                            self.instruments[slot] = Feedback(None, slot, parameters, mapping, {}, self.mode)
+                            self.instruments[slot] = Feedback(mcc_object, slot, parameters, mapping, {}, self.mode)
                             self.purposes["feedback"] = slot
                         case "feedback and turnkey":
                             if self.logger:
                                 self.logger.debug("Creating feedback and turnkey.")
-                            self.instruments[slot] = Feedback(None, slot, parameters, mapping, {}, self.mode)
+                            self.instruments[slot] = Feedback(mcc_object, slot, parameters, mapping, {}, self.mode)
                             self.purposes["feedback"] = slot
                             self.purposes["turnkey"] = slot
                         case _:
                             if self.logger:
                                 self.logger.debug("Unregistered MCC purpose.")
-                            self.instruments[slot] = MCC_Template(None, slot, parameters, mapping, {}, self.mode)
+                            self.instruments[slot] = MCC_Template(mcc_object, slot, parameters, mapping, {}, self.mode)
                             self.purposes[i.get("purpose")] = slot
                 case _:
-                    if self.logger:
-                        self.logger.debug("Creating %s."%i.get("type"))
-                    slot = int(i.get("slot"))
-                    self.other_instruments[slot] = eval("instruments.%s"%i.get("type"))
+                    if self.mode == "default" or self.mode == "http":
+                        if self.logger:
+                            self.logger.debug("Creating %s."%i.get("type"))
+                        slot = int(i.get("slot"))
+                        self.other_instruments[slot] = eval("instruments.%s"%i.get("type"))
+                    elif self.mode == "AXKU041":
+                        if self.logger:
+                            self.logger.debug("Skipping the creation of %s."%i.get("type"))
 
-        # set up connections, frontends and outputs
-        if self.logger:
-            self.logger.debug("Setting connections.")
-        self.connections = []
-        for i in self.config.findall("./connections/connection"):
-            self.connections.append({"source": i.get("source"), "destination": i.get("destination")})
+        if self.mode == "default" or self.mode == "http":
+            # set up connections, frontends and outputs
+            if self.logger:
+                self.logger.debug("Setting connections.")
+            self.connections = []
+            for i in self.config.findall("./connections/connection"):
+                self.connections.append({"source": i.get("source"), "destination": i.get("destination")})
 
-        if self.logger:
-            self.logger.debug("Setting frontends and outputs.")
-        self.frontends = {}
-        self.outputs = {}
-        for i in self.config.findall("./io_settings/input"):
-            self.frontends[int(i.get("channel"))] = {"impedance": i.get("impedance"), "coupling": i.get("coupling"), "attenuation": i.get("attenuation")}
-        for i in self.config.findall("./io_settings/output"):
-            self.outputs[int(i.get("channel"))] = {"gain": i.get("gain")}        
+            if self.logger:
+                self.logger.debug("Setting frontends and outputs.")
+            self.frontends = {}
+            self.outputs = {}
+            for i in self.config.findall("./io_settings/input"):
+                self.frontends[int(i.get("channel"))] = {"impedance": i.get("impedance"), "coupling": i.get("coupling"), "attenuation": i.get("attenuation")}
+            for i in self.config.findall("./io_settings/output"):
+                self.outputs[int(i.get("channel"))] = {"gain": i.get("gain")}
         return self
 
     def upload_config(self) -> object:
@@ -318,17 +382,25 @@ class MIM():
         if self.mode == "http":
             # claim ownership at uploading function under http mode
             self.mim = instruments.MultiInstrument(self.ip, force_connect = True, platform_id = 4)
-        for i in range(1, 5):
-            if self.bitstreams[i]:
-                self.instruments[i].mcc = self.mim.set_instrument(i, instruments.CloudCompile, bitstream = self.bitstreams[i])
-        for i in self.other_instruments:
-            if self.other_instruments[i]:
-                self.instruments[i] = self.mim.set_instrument(i, self.other_instruments[i])
-        self.mim.set_connections(self.connections)
-        for i in self.frontends:
-            self.mim.set_frontend(i, self.frontends[i]["impedance"], self.frontends[i]["coupling"], self.frontends[i]["attenuation"])
-        for i in self.outputs:
-            self.mim.set_output(i, self.outputs[i]["gain"])
+        if self.mode == "default" or self.mode == "http":
+            for i in range(1, 5):
+                if self.bitstreams[i]:
+                    self.instruments[i].mcc = self.mim.set_instrument(i, instruments.CloudCompile, bitstream = self.bitstreams[i])
+            for i in self.other_instruments:
+                if self.other_instruments[i]:
+                    self.instruments[i] = self.mim.set_instrument(i, self.other_instruments[i])
+            self.mim.set_connections(self.connections)
+            for i in self.frontends:
+                self.mim.set_frontend(i, self.frontends[i]["impedance"], self.frontends[i]["coupling"], self.frontends[i]["attenuation"])
+            for i in self.outputs:
+                self.mim.set_output(i, self.outputs[i]["gain"])
+        elif self.mode == "AXKU041":
+            # Refresh the module
+            self.module_mim.reset()
+            # Set the module to the specified configuration
+            self.module_mim.set_config(self.config_id)
+            self.module_mim.enable()
+            self.module_mim.upload()
         return self
 
     def upload_parameter(self) -> object:
