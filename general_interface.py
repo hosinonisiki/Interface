@@ -64,7 +64,7 @@ class GeneralInterface():
 
         self.fpga_connection_entry = ttk.Entry(self.fpga_frame, width = 20)
         self.fpga_connection_entry.place(x = 20, y = 20, anchor = tk.NW)
-        self.fpga_connection_entry.insert(0, "local")
+        self.fpga_connection_entry.insert(0, "COM3")
         self.fpga_connection_entry.bind("<Return>", lambda event:self.fpga_connection_button_onclick())
         
         self.fpga_connection_button = ttk.Button(self.fpga_frame, text = "Connect", command = self.fpga_connection_button_onclick)

@@ -14,9 +14,9 @@ import sys
 sys.path.append("./AXKU041")
 import uart
 import bus
-import module
 import module_signal_router
 import module_moku_mim_wrapper
+import spi
 
 # for testing
 import matplotlib.pyplot as plt
@@ -211,6 +211,7 @@ class MCC_Template(MCC):
 class MIM():
     def __init__(self, ip, config_id = "1", logger = None):
         self.logger = logger
+        self.config_id = config_id
         if re.match(r"^([0-9]{1,3}\.){3}[0-9]{1,3}$", ip) or re.match(r"^\[([0-9a-fA-F]{0,4}:){5,7}[0-9a-fA-F]{0,4}\]$", ip):
             self.ip = ip
             self.mode = "default"
@@ -233,7 +234,7 @@ class MIM():
             try:
                 self.serial = uart.MySerial(self.ip, baudrate = 57600, parity = "E", timeout = 0.5)
                 self.bus = bus.Bus(self.serial)
-                self.module_mim = module_moku_mim_wrapper.ModuleMokuMIMWrapper(self.bus)
+                self.module_mim = module_moku_mim_wrapper.ModuleMokuMIMWrapper(self.bus, self.config_id)
                 self.module_router = module_signal_router.ModuleSignalRouter(self.bus)
                 # Set up the routing to let the MIM module directly connect to design's interface
                 self.module_router.set_routing(0, 10)
@@ -245,6 +246,13 @@ class MIM():
                 self.module_router.set_routing(8, 8)
                 self.module_router.set_routing(9, 9)
                 self.module_router.upload()
+                self.sp = spi.Spi(self.serial)
+                self.sp.write("adc1", 3, 3, b"\x00\x14\x41")
+                self.sp.write("adc1", 3, 3, b"\x00\x17\x06")
+                self.sp.write("adc1", 3, 3, b"\x00\xFF\x01")
+                self.sp.write("adc2", 3, 3, b"\x00\x14\x41")
+                self.sp.write("adc2", 3, 3, b"\x00\x17\x06")
+                self.sp.write("adc2", 3, 3, b"\x00\xFF\x01")
             except Exception as e:
                 if self.logger:
                     self.logger.error("Connection error: %s"%e.__repr__())
@@ -253,7 +261,6 @@ class MIM():
             if self.logger:
                 self.logger.error("Invalid IP address.")
             raise Exception("Invalid IP address.")
-        self.config_id = config_id
         if self.logger:
             self.logger.debug("MIM Created.")
         self.instruments = {1:None, 2:None, 3:None, 4:None}
@@ -395,10 +402,10 @@ class MIM():
             for i in self.outputs:
                 self.mim.set_output(i, self.outputs[i]["gain"])
         elif self.mode == "AXKU041":
+            self.module_mim.set_config(self.config_id)
             # Refresh the module
             self.module_mim.reset()
             # Set the module to the specified configuration
-            self.module_mim.set_config(self.config_id)
             self.module_mim.enable()
             self.module_mim.upload()
         return self
@@ -558,7 +565,10 @@ class MIM():
     def disconnect(self) -> object:
         if self.logger:
             self.logger.info("Disconnecting MIM.")
-        self.mim.relinquish_ownership()
+        if self.mode == "default" or self.mode == "http":
+            self.mim.relinquish_ownership()
+        elif self.mode == "AXKU041":
+            self.serial.close()
         return self
     
     def get_waveform(self, frames: int = 50, delay: float = 0.000) -> list[float]:
