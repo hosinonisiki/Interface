@@ -4,10 +4,14 @@ bitstreams/
 
 compiled/
 
-tb & tests/
+tb and tests/
 
 *.bat
 
 templog.py
 
 issues.txt
+
+AXKU041/
+
+__pycache__/

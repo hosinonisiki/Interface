@@ -54,10 +54,13 @@ class MCC():
     
     def download_control(self) -> object:
         if self.mode == "default":
-            try:
-                self.controls = {index:value for index, value in zip(range(16), [self.mcc.get_control(i)[i] for i in range(16)])}
-            except Exception as e:
-                raise Exception("Connection error: %s"%e.__repr__())
+            if self.mcc is None:
+                pass
+            else:
+                try:
+                    self.controls = {index:value for index, value in zip(range(16), [self.mcc.get_control(i)[i] for i in range(16)])}
+                except Exception as e:
+                    raise Exception("Connection error: %s"%e.__repr__())
         elif self.mode == "http":
             try:
                 response = requests.get("http://192.168.73.1/api/v2/registers")

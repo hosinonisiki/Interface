@@ -672,5 +672,74 @@
                 <output channel="4" gain="0dB" />
             </io_settings>
         </config>
+        <config id="11" platform="Moku:Pro" firmware="591" description="PID for bandwidth test.">
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="PID">
+                    <bitstream>pid_bandwidth_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="K_P" index="2" high="31" low="0" value="0" />
+                        <parameter name="K_I" index="3" high="31" low="0" value="0" />
+                        <parameter name="K_D" index="4" high="31" low="0" value="0" />
+                        <parameter name="limit_I" index="5" high="31" low="0" value="65536" />
+                        <parameter name="limit_sum" index="6" high="15" low="0" value="65535" />
+                        <parameter name="LO_frequency" index="1" high="31" low="0" value="0" />
+                        <parameter name="lock_mode" index="0" high="3" low="2" value="0" />
+                        <parameter name="monitor" index="0" high="7" low="4" value="0" />
+                        <parameter name="Reset" index="0" high="0" low="0" value="1" />
+                    </parameters>
+                </instrument>
+            </instruments>
+            <connections>
+                <connection source="Input1" destination="Slot2InA" />
+                <connection source="Slot2OutA" destination="Output1" />
+                <connection source="Slot2OutB" destination="Output2" />
+            </connections>
+            <io_settings>
+                <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
+                <output channel="1" gain="14dB" />
+                <output channel="2" gain="0dB" />
+            </io_settings>
+        </config>
+        <config id = "12" platform="Moku:Pro" firmware="591" description="PDH locking system.">
+            <instruments>
+                <instrument type="CloudCompile" slot="2" purpose="PDH">
+                    <bitstream>pdh_pro_591</bitstream>
+                    <parameters>
+                        <parameter name="memory_data_high" index="1" high="31" low="0" value="0" />
+                        <parameter name="memory_data_low" index="2" high="31" low="0" value="0" />
+                        <parameter name="memory_address" index="3" high="4" low="0" value="0" />
+                        <parameter name="threshold_scanning" index="4" high="31" low="16" value="-32768" />
+                        <parameter name="threshold_locking" index="4" high="15" low="0" value="-32768" />
+                        <parameter name="time_lasted_scanning" index="5" high="31" low="16" value="65535" />
+                        <parameter name="time_lasted_locking" index="5" high="15" low="0" value="65535" />
+                        <parameter name="K_P" index="6" high="23" low="0" value="0" />
+                        <parameter name="K_I" index="7" high="31" low="0" value="0" />
+                        <parameter name="K_D" index="8" high="23" low="0" value="0" />
+                        <parameter name="setpoint" index="9" high="15" low="0" value="0" />
+                        <parameter name="limit_I" index="10" high="31" low="16" value="32767" />
+                        <parameter name="limit_sum" index="10" high="15" low="0" value="32767" />
+                        <parameter name="slope" index="11" high="31" low="0" value="0" />
+                        <parameter name="scale" index="12" high="23" low="0" value="65536" />
+                        <parameter name="bias" index="13" high="15" low="0" value="0" />
+                        <parameter name="lower_limit" index="14" high="31" low="16" value="-32768" />
+                        <parameter name="upper_limit" index="14" high="15" low="0" value="32767" />
+                        <parameter name="acc_variation" index="15" high="31" low="0" value="0" />
+                        <parameter name="write_enable" index="0" high="0" low="0" value="0" />
+                        <parameter name="choose" index="0" high="4" low="1" value="0" />
+                        <parameter name="command" index="0" high="6" low="5" value="0" />
+                    </parameters>
+                </instrument>
+            </instruments>
+            <connections>
+                <connection source="Input1" destination="Slot2InA" />
+                <connection source="Slot2OutA" destination="Output1" />
+                <connection source="Slot2OutB" destination="Output2" />
+            </connections>
+            <io_settings>
+                <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
+                <output channel="1" gain="0dB" />
+                <output channel="2" gain="14dB" />
+            </io_settings>
+        </config>
     </configurations>
 </root>

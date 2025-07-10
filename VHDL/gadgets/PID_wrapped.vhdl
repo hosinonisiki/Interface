@@ -123,15 +123,12 @@ BEGIN
                 x"0000";
 END hold_I;
 
-ARCHITECTURE hold_setpoint OF PID_wrapped IS
+ARCHITECTURE optimized OF PID_wrapped IS
     SIGNAL error : signed(15 DOWNTO 0);
     SIGNAL last_error : signed(15 DOWNTO 0) := x"0000";
     SIGNAL difference : signed(15 DOWNTO 0);
     SIGNAL buf_sum : signed(47 DOWNTO 0);
     SIGNAL sum : signed(15 DOWNTO 0);
-
-    SIGNAL internal_setpoint : signed(15 DOWNTO 0) := x"0000";
-    SIGNAL held_setpoint : signed(15 DOWNTO 0) := x"0000";
 
     SIGNAL buf_K_P : signed(31 DOWNTO 0);
     SIGNAL buf_K_I : signed(31 DOWNTO 0);
@@ -142,7 +139,6 @@ ARCHITECTURE hold_setpoint OF PID_wrapped IS
     SIGNAL D : signed(47 DOWNTO 0);
 
     SIGNAL reg_P : signed(47 DOWNTO 0);
-    SIGNAL reg_I : signed(63 DOWNTO 0);
     SIGNAL reg_D : signed(47 DOWNTO 0);
 
     SIGNAL buf_I : signed(47 DOWNTO 0);
@@ -158,15 +154,13 @@ BEGIN
         IF rising_edge(Clk) THEN
             IF Reset = '1' THEN
                 P <= (OTHERS => '0');
-                I <= (OTHERS => '0');
                 D <= (OTHERS => '0');
             ELSE
                 P <= reg_P;
-                I <= reg_I;
                 D <= reg_D;
             END IF;
             last_error <= error;
-            error <= actual - internal_setpoint;
+            error <= actual - setpoint;
             difference <= error - last_error;
             control <= sum;
             buf_K_P <= K_P;
@@ -174,30 +168,30 @@ BEGIN
             buf_K_D <= K_D;
             buf_I <= reg_buf_I;
         END IF;
-    END PROCESS PID;  
-    internal_setpoint <= setpoint WHEN state = s_freerun ELSE held_setpoint;
+    END PROCESS PID;    
 
     reg_P <= buf_K_P * error;
     
     reg_buf_I <= buf_K_I * error;
-
-    reg_I <= I + ((15 DOWNTO 0 => buf_I(47)) & buf_I);
     FSM : PROCESS(Clk)
     BEGIN
         IF rising_edge(Clk) THEN
             IF Reset = '1' THEN
                 state <= s_freerun;
                 counter <= (OTHERS => '0');
+                I <= (OTHERS => '0');
             ELSE
                 IF state = s_freerun THEN
                     IF I > threshold_I THEN
                         state <= s_holding;
                         counter <= holding_time;
-                        held_setpoint <= wrapped_I(47 DOWNTO 32); -- Sharing the same port for now
+                        I <= -wrapped_I;
                     ELSIF I < -threshold_I THEN
                         state <= s_holding;
                         counter <= holding_time;
-                        held_setpoint <= -wrapped_I(47 DOWNTO 32);
+                        I <= wrapped_I;
+                    ELSE
+                        I <= I + ((15 DOWNTO 0 => buf_I(47)) & buf_I);
                     END IF;
                 ELSE
                     IF counter = 0 THEN
@@ -222,6 +216,5 @@ BEGIN
 
     debug <= I(47 DOWNTO 32) WHEN debug_sel = "0000" ELSE
                 state_out WHEN debug_sel = "0001" ELSE
-                internal_setpoint WHEN debug_sel = "0010" ELSE
                 x"0000";
-END hold_setpoint;
+END optimized;

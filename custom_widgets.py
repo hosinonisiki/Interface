@@ -1119,6 +1119,20 @@ class ParameterSwitch(tk.Button):
         self.mim.get_instrument(self.instrument).set_parameter(self.parameter, self.state)
         self.mim.upload_control(self.instrument)
 
+class ScriptButton(tk.Button):
+    def __init__(self, master, instrument, mim, callback, **kw):
+        super().__init__(master, command = self.onclick, **kw)
+        self.instrument = instrument
+        self.mim = mim
+        self.callback = callback
+        
+    def onclick(self):
+        self.onclick_thread = threading.Thread(target = self.onclick_thread_function, args = (), daemon = True)
+        self.onclick_thread.start()
+
+    def onclick_thread_function(self):
+        self.callback(self.instrument, self.mim)
+        
 def test():
     time.sleep(5)
     control.destroy()

@@ -14,6 +14,7 @@ import numpy as np
 
 import fpga
 import custom_widgets
+import custom_scripts
 
 class GeneralInterface():
     # state constants
@@ -274,9 +275,14 @@ class GeneralInterface():
         for i in root.findall("./configurations/config"):
             if i.get("id") == self.mim.config_id:
                 for j in i.findall("./buttons/button"):
-                    button = custom_widgets.ParameterSwitch(self.root, instrument = j.get("instrument"), parameter = j.get("parameter"), mim = self.mim, inverted = eval(j.get("inverted")), text = j.get("text"), width = 32)
-                    button.place(x = 40, y = 254 + 32 * len(self.command_buttons), anchor = tk.NW)
-                    self.command_buttons.append(button)
+                    if j.get("type") == "switch":
+                        button = custom_widgets.ParameterSwitch(self.root, instrument = j.get("instrument"), parameter = j.get("parameter"), mim = self.mim, inverted = eval(j.get("inverted")), text = j.get("text"), width = 32)
+                        button.place(x = 40, y = 254 + 32 * len(self.command_buttons), anchor = tk.NW)
+                        self.command_buttons.append(button)
+                    elif j.get("type") == "script":
+                        button = custom_widgets.ScriptButton(self.root, instrument = j.get("instrument"), mim = self.mim, callback = eval("custom_scripts.%s"%j.get("script")), text = j.get("text"), width = 32)
+                        button.place(x = 40, y = 254 + 32 * len(self.command_buttons), anchor = tk.NW)
+                        self.command_buttons.append(button)
                 break
         return
 

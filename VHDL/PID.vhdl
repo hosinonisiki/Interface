@@ -192,3 +192,62 @@ BEGIN
                -limit_sum WHEN buf_sum(47 DOWNTO 16) - x"00000001" < -(x"0000" & limit_sum) ELSE
                buf_sum(31 DOWNTO 16);
 END nodecay;
+
+-- architecture migrated from the module running on AXKU041
+-- notice the difference in width of various signals
+ARCHITECTURE optimized OF PID IS
+    SIGNAL error : signed(15 DOWNTO 0);
+    SIGNAL error_1 : signed(15 DOWNTO 0);
+    SIGNAL differential : signed(15 DOWNTO 0);
+    SIGNAL integral : signed(47 DOWNTO 0);
+
+    SIGNAL gain_p : signed(23 DOWNTO 0);
+    SIGNAL gain_i : signed(31 DOWNTO 0);
+    SIGNAL gain_d : signed(23 DOWNTO 0);
+
+    SIGNAL product_p : signed(39 DOWNTO 0);
+    SIGNAL product_i : signed(47 DOWNTO 0);
+    SIGNAL product_d : signed(39 DOWNTO 0);
+
+    SIGNAL limit_integral : signed(47 DOWNTO 0);
+    SIGNAL limit_sum_padded : signed(27 DOWNTO 0);
+
+    SIGNAL integral_buf : signed(47 DOWNTO 0);
+    SIGNAL integral_buf_limited : signed(47 DOWNTO 0);
+    SIGNAL sum_buf : signed(27 DOWNTO 0);
+    SIGNAL sum_buf_limited : signed(27 DOWNTO 0);
+BEGIN
+    gain_p <= K_P(23 DOWNTO 0);
+    gain_i <= K_I;
+    gain_d <= K_D(23 DOWNTO 0);
+    limit_integral <= limit_I(55 DOWNTO 8);
+    limit_sum_padded <= x"00" & limit_sum & x"0";
+
+    PROCESS(Clk)
+    BEGIN
+        IF rising_edge(Clk) THEN
+            IF Reset = '1' THEN
+                integral <= (OTHERS => '0');
+            ELSE
+                error <= actual - setpoint;
+                error_1 <= error;
+                differential <= error - error_1;
+                integral <= integral_buf_limited;
+                product_p <= gain_p * error;
+                product_i <= gain_i * error;
+                product_d <= gain_d * differential;
+                control <= sum_buf_limited(19 DOWNTO 4);
+            END IF;
+        END IF;
+    END PROCESS;
+
+    integral_buf <= integral + ((7 DOWNTO 0 => product_i(47)) & product_i(47 DOWNTO 8)) + ((46 DOWNTO 0 => '0') & product_i(7));
+    integral_buf_limited <= limit_integral WHEN integral_buf > limit_integral ELSE
+                            -limit_integral WHEN integral_buf < -limit_integral ELSE
+                            integral_buf;
+
+    sum_buf <= product_p(39 DOWNTO 12) + integral_buf_limited(47 DOWNTO 20) + product_d(39 DOWNTO 12);
+    sum_buf_limited <= limit_sum_padded WHEN sum_buf > limit_sum_padded ELSE
+                    -limit_sum_padded WHEN sum_buf < -limit_sum_padded ELSE
+                    sum_buf;
+END optimized;
