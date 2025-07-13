@@ -15,12 +15,18 @@ def upload_parameter_4SLA_IIR(instrument, mim):
         mim.get_instrument(instrument).set_parameter("memory_address", i + 17)
         mim.get_instrument(instrument).set_parameter("memory_data_high", a[i] // (2 ** 32))
         mim.get_instrument(instrument).set_parameter("memory_data_low", a[i] % (2 ** 32))
+        mim.upload_control(instrument)
         mim.get_instrument(instrument).set_parameter("write_enable", 1)
+        mim.upload_control(instrument)
         mim.get_instrument(instrument).set_parameter("write_enable", 0)
+        mim.upload_control(instrument)
     for i in range(17):
         mim.get_instrument(instrument).set_parameter("memory_address", i)
         mim.get_instrument(instrument).set_parameter("memory_data_high", b[i] // (2 ** 32))
         mim.get_instrument(instrument).set_parameter("memory_data_low", b[i] % (2 ** 32))
+        mim.upload_control(instrument)
         mim.get_instrument(instrument).set_parameter("write_enable", 1)
+        mim.upload_control(instrument)
         mim.get_instrument(instrument).set_parameter("write_enable", 0)
+        mim.upload_control(instrument)
     return

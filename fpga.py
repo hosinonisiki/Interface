@@ -235,7 +235,7 @@ class MIM():
             self.ip = ip
             self.mode = "AXKU041"
             try:
-                self.serial = uart.MySerial(self.ip, baudrate = 57600, parity = "E", timeout = 0.5)
+                self.serial = uart.MySerial(self.ip, baudrate = 19200, parity = "E", timeout = 0.5)
                 self.bus = bus.Bus(self.serial)
                 self.module_mim = module_moku_mim_wrapper.ModuleMokuMIMWrapper(self.bus, self.config_id)
                 self.module_router = module_signal_router.ModuleSignalRouter(self.bus)
