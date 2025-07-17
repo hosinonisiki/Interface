@@ -845,6 +845,7 @@
                         <parameter name="write_enable" index="0" high="0" low="0" value="0" />
                         <parameter name="choose" index="0" high="4" low="1" value="0" />
                         <parameter name="command" index="0" high="6" low="5" value="0" />
+                        <parameter name="choose_sec" index="0" high="10" low="7" value="0" />
                     </parameters>
                     <parameters_for_AXKU041>
                         <parameter name="memory_data_high" index="1" high="31" low="0" value="0" />
@@ -869,6 +870,7 @@
                         <parameter name="write_enable" index="0" high="0" low="0" value="0" />
                         <parameter name="choose" index="0" high="4" low="1" value="0" />
                         <parameter name="command" index="0" high="6" low="5" value="0" />
+                        <parameter name="choose_sec" index="0" high="10" low="7" value="0" />
                     </parameters_for_AXKU041>
                 </instrument>
             </instruments>
@@ -876,11 +878,15 @@
                 <connection source="Input1" destination="Slot2InA" />
                 <connection source="Slot2OutA" destination="Output1" />
                 <connection source="Slot2OutB" destination="Output2" />
+                <connection source="Slot2OutC" destination="Output3" />
+                <connection source="Slot2OutD" destination="Output4" />
             </connections>
             <io_settings>
                 <input channel="1" impedance="1MOhm" coupling="DC" attenuation="0dB" />
                 <output channel="1" gain="0dB" />
                 <output channel="2" gain="14dB" />
+                <output channel="3" gain="0dB" />
+                <output channel="4" gain="0dB" />
             </io_settings>
         </config>
     </configurations>
