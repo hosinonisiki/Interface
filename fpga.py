@@ -17,6 +17,7 @@ import bus
 import module_signal_router
 import module_moku_mim_wrapper
 import spi
+import port_numbers
 
 # for testing
 import matplotlib.pyplot as plt
@@ -240,14 +241,14 @@ class MIM():
                 self.module_mim = module_moku_mim_wrapper.ModuleMokuMIMWrapper(self.bus, self.config_id)
                 self.module_router = module_signal_router.ModuleSignalRouter(self.bus)
                 # Set up the routing to let the MIM module directly connect to design's interface
-                self.module_router.set_routing(0, 10)
-                self.module_router.set_routing(1, 11)
-                self.module_router.set_routing(2, 12)
-                self.module_router.set_routing(3, 13)
-                self.module_router.set_routing(6, 6)
-                self.module_router.set_routing(7, 7)
-                self.module_router.set_routing(8, 8)
-                self.module_router.set_routing(9, 9)
+                self.module_router.set_routing(port_numbers.OUTPUT_A, port_numbers.MIM_OUT_A)
+                self.module_router.set_routing(port_numbers.OUTPUT_B, port_numbers.MIM_OUT_B)
+                self.module_router.set_routing(port_numbers.OUTPUT_C, port_numbers.MIM_OUT_C)
+                self.module_router.set_routing(port_numbers.OUTPUT_D, port_numbers.MIM_OUT_D)
+                self.module_router.set_routing(port_numbers.MIM_IN_A, port_numbers.INPUT_A)
+                self.module_router.set_routing(port_numbers.MIM_IN_B, port_numbers.INPUT_B)
+                self.module_router.set_routing(port_numbers.MIM_IN_C, port_numbers.INPUT_C)
+                self.module_router.set_routing(port_numbers.MIM_IN_D, port_numbers.INPUT_D)
                 self.module_router.upload()
                 self.sp = spi.Spi(self.serial)
                 self.sp.write("adc1", 3, 3, b"\x00\x14\x41")
