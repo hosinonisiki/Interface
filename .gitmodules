@@ -1,0 +1,4 @@
+[submodule "AXKU041"]
+	path = AXKU041
+	url = https://github.com/hosinonisiki/DClocking
+	branch = main

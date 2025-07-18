@@ -11,7 +11,7 @@ import re
 import sys
 
 # for AXKU041 connection
-sys.path.append("./AXKU041")
+sys.path.append("./AXKU041/python control/")
 import uart
 import bus
 import module_signal_router
